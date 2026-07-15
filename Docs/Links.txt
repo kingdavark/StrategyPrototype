@@ -1,0 +1,11 @@
+https://www.worldhistory.org/timeline/?timeline_search=timeline_search&tl_date_from=-250&tl_date_from_bc_ad=BC&tl_date_to=-125&tl_date_to_bc_ad=BC&tl_keywords=&timeline_types=9%2C5%2C10%2C11%2C12%2C7%2C13%2C1%2C4
+
+https://www.worldhistory.org/timeline/?timeline_search=timeline_search&tl_date_from=-250&tl_date_from_bc_ad=BC&tl_date_to=-125&tl_date_to_bc_ad=BC&tl_keywords=&timeline_types=9%2C5%2C10%2C11%2C12%2C7%2C13%2C1%2C4
+
+
+INVENZIONI
+https://en.wikipedia.org/wiki/Timeline_of_historic_inventions
+https://en.wikipedia.org/wiki/Timeline_of_religion
+
+
+Metodo: fatti elencare da deepseek il punto di arrivo partendo da data predefinita, poi da lì sviluppa invenzioni sociali e culturali appoggiandoti su albero civ iv mod realistiche
