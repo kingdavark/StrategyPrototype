@@ -224,6 +224,25 @@ funzioni complesse hanno commenti in stile JSDoc.
 - Questa scelta facilita la coerenza, la ricerca di aiuto online e la
   portabilità del progetto.
 
+## Spiegazione delle meccaniche durante l’implementazione
+
+Prima di ogni modifica al codice, l'assistente fornirà una breve
+spiegazione che copra:
+
+- **Cosa stiamo per implementare** e in che modo si inserisce nel loop
+  di gioco attuale.
+
+- **Quali dinamiche di gameplay introduce o modifica**, e quali nuove
+  scelte o vincoli crea per il giocatore.
+
+- **Come si riflette sull'interfaccia o sul mondo visibile** (feedback
+  visivo, nuovi elementi grafici, cambiamenti nella percezione dello
+  stato del gioco).
+
+Questo approccio garantisce che ogni decisione implementativa sia
+consapevole e allineata ai pilastri del design, e che il prototipo
+evolva in modo coerente.
+
 # Riferimenti incrociati
 
 - I documenti di design completi (Concept Semplificato, Concept
