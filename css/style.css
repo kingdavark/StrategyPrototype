@@ -1,9 +1,14 @@
-/* Reset margin and padding, make canvas fill the window */
+/* Reset and center the game canvas */
 body {
     margin: 0;
     padding: 0;
+    width: 100%;
+    height: 100%;
     background-color: #000; /* black background while canvas loads */
     overflow: hidden;       /* prevent scrollbars if canvas is bigger than window */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 canvas {

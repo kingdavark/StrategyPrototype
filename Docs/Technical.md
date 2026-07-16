@@ -224,6 +224,12 @@ funzioni complesse hanno commenti in stile JSDoc.
 - Questa scelta facilita la coerenza, la ricerca di aiuto online e la
   portabilità del progetto.
 
+<!-- -->
+
+- Quando vengono fornite modifiche a file esistenti, l'assistente deve
+  preservare i commenti già presenti, a meno che le modifiche stesse non
+  li rendano obsoleti o errati.
+
 ## Spiegazione delle meccaniche durante l’implementazione
 
 Prima di ogni modifica al codice, l'assistente fornirà una breve
@@ -242,6 +248,53 @@ spiegazione che copra:
 Questo approccio garantisce che ogni decisione implementativa sia
 consapevole e allineata ai pilastri del design, e che il prototipo
 evolva in modo coerente.
+
+Inoltre, darà **istruzioni passo passo** per l’implementazione, cioè un
+elenco operativo per l'utente, scritto in linguaggio semplice, che
+include:
+
+- Quali file aprire in VS Code.
+
+- Cosa incollare esattamente e in quale punto del file.
+
+- Quali tasti premere (es. Ctrl+S per salvare).
+
+- Come eseguire i test manuali per verificare il funzionamento.
+
+In questo modo ogni modifica è comprensibile anche a un non tecnico e
+immediatamente testabile.
+
+## Checklist di test al termine di ogni batch
+
+Alla fine di ogni sessione di implementazione, l'assistente fornirà una
+checklist di test manuali per verificare che quanto sviluppato funzioni
+correttamente. La checklist includerà:
+
+- Azioni specifiche da compiere nel gioco (es. "clicca su una cella
+  verde").
+
+- Il comportamento atteso (es. "il pop deve iniziare a muoversi verso la
+  cella").
+
+- Eventuali controlli nella console del browser (es. "non devono
+  apparire errori rossi").
+
+L'utente eseguirà i test e segnalerà eventuali anomalie prima di
+procedere al commit.
+
+## Aggiornamento della documentazione al termine di ogni sessione
+
+Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
+
+- Verificare se i documenti di design (GDD, roadmap, concept) devono
+  essere aggiornati per riflettere le nuove meccaniche implementate o le
+  decisioni prese durante la sessione.
+
+- Aggiornare il TECHNICAL.md se sono state introdotte nuove strutture
+  dati, funzioni o pattern architetturali.
+
+- Fare commit e push di tutti i file modificati (codice e
+  documentazione) con un messaggio chiaro.
 
 # Riferimenti incrociati
 

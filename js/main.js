@@ -3,8 +3,8 @@
 
 const config = {
     type: Phaser.AUTO,       // Use WebGL if available, fallback to Canvas
-    width: 800,              // Game width in pixels
-    height: 600,             // Game height in pixels
+    width: 1280,              // Game width in pixels
+    height: 720,             // Game height in pixels
     backgroundColor: '#1a1a2e', // Dark blue-grey background for the game world
     parent: document.body,   // Attach the canvas to the body
     scene: {
