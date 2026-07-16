@@ -1,0 +1,11 @@
+/* Reset margin and padding, make canvas fill the window */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000; /* black background while canvas loads */
+    overflow: hidden;       /* prevent scrollbars if canvas is bigger than window */
+}
+
+canvas {
+    display: block;         /* remove extra space below canvas */
+}
