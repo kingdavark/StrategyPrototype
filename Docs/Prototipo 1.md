@@ -187,8 +187,13 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 - Definizione di un punto base (accampamento) sulla mappa.
 
+- Il giocatore può selezionare il numero di abitanti (in base a quelli
+  disponibili nell’accampamento) da mandare a raccogliere una specifica
+  risorsa
+
 - Il giocatore può cliccare sull'accampamento per ordinare al pop di
-  tornare e scaricare il cibo raccolto.
+  tornare e scaricare il cibo raccolto. Tendenzialmente però i pop fanno
+  avanti e indietro in automatico
 
 - Un contatore globale mostra le scorte di cibo della tribù.
 
@@ -263,7 +268,8 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
   caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base
   del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque,
   le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da
-  forse vedere subito dopo MVP1?
+  forse vedere subito dopo MVP1? Implementiamo già diversi layer di
+  visualizzazione (terreno, cibo, risorse varie ecc.)?
 
 **MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)**
 

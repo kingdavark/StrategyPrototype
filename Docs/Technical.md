@@ -278,6 +278,16 @@ seguirà questa procedura:
 5\. **Eseguire commit e push** con il messaggio fornito dall'assistente,
 che includerà tutte le modifiche (codice e documenti).
 
+## Verifica dell’accesso al repository
+
+Per garantire che l'assistente stia leggendo il contenuto reale del
+repository e non basandosi solo sulla cronologia della chat, in fondo al
+file TECHNICAL.md è presente un numero progressivo (es. \`SYNC: 1\`).
+Dopo ogni push, l'utente cambierà questo numero. All'inizio di ogni
+risposta che richiede accesso al repository, l'assistente dovrà
+riportare il numero SYNC che ha letto, confermando così di aver
+effettivamente consultato i file su GitHub.
+
 ## Commenti e auto-documentazione
 
 Il codice è scritto con nomi di variabili e funzioni chiari ed
@@ -303,6 +313,11 @@ funzioni complesse hanno commenti in stile JSDoc.
   preservare i commenti già presenti, a meno che le modifiche stesse non
   li rendano obsoleti o errati.
 
+- Tutte le funzioni di update che modificano posizioni, timer o valori
+  nel tempo devono utilizzare il delta time (differenza temporale dal
+  frame precedente) per garantire la frame-rate independence. Non si
+  devono usare valori fissi per frame.
+
 ## Spiegazione delle meccaniche durante l’implementazione
 
 Prima di ogni modifica al codice, l'assistente fornirà una breve
@@ -326,6 +341,14 @@ spiegazione che copra:
   vengono descritti con il loro impatto attuale e il potenziale
   riutilizzo futuro come meccaniche di gioco, mantenendo sempre un
   chiaro distinguo tra "debug" e "gameplay".
+
+- **Spiegazione del codice fornito**: ogni volta che l'assistente
+  fornisce un blocco di codice (un intero file o una porzione da
+  incollare), lo accompagnerà con una breve spiegazione in linguaggio
+  semplice di cosa fa quel codice, qual è la logica generale e come si
+  collega al resto del sistema. Questa spiegazione è aggiuntiva rispetto
+  ai commenti già presenti nel codice e serve a dare una visione
+  d'insieme prima di entrare nei dettagli implementativi.
 
 Questo approccio garantisce che ogni decisione implementativa sia
 consapevole e allineata ai pilastri del design, e che il prototipo
@@ -387,3 +410,5 @@ Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
 - Questo documento descrive l'implementazione tecnica e deve essere
   aggiornato ogni volta che viene presa una decisione architetturale
   rilevante.
+
+SYNC: 4
