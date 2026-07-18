@@ -134,6 +134,23 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
   colpo d'occhio le aree più ricche e decide dove mandare i
   raccoglitori.
 
+- La densità di cibo è visualizzata con una scala a 7 colori, con
+  intervalli precisi e non sovrapposti:
+
+  - 0.90-1.00: verde scuro
+
+  - 0.75-0.89: verde medio
+
+  - 0.50-0.74: verde chiaro
+
+  - 0.25-0.49: giallo
+
+  - 0.05-0.24: arancione
+
+  - 0.01-0.04: rosso
+
+  - 0.00: nessun colore (sfondo)
+
 **Batch 3 – Pop e movimento**
 
 - Definizione della classe base per entità mobili e della classe Pop
@@ -231,6 +248,22 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
 - Le scorte vengono consumate nel tempo.
 
 - Il tempo può essere controllato con pausa, play e velocità.
+
+**NOTE FINE MVP1**
+
+- Tool per disegnare la mappa (apporre foreste, pesci, gathering food
+  ecc. con dei pennelli) \[è forse troppo presto\]
+
+- Creazione di algoritmo per creazione foreste e cibo in base a
+  tipologia terreno delle celle \[anche questo forse da vedere più
+  avanti\]
+
+- Non abbiamo minimamente lavorato sulla tipologia del terreno
+  (montagna, acqua, acqua profonda, collina, pianura) e le
+  caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base
+  del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque,
+  le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da
+  forse vedere subito dopo MVP1?
 
 **MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)**
 

@@ -186,6 +186,34 @@ continuare a lavorare senza perdita di contesto.
 
 ## Flusso di lavoro nella chat
 
+Prima di proporre qualsiasi modifica al codice, ai documenti di design,
+alla pianificazione di un batch o alla scrittura di nuovo codice,
+l'assistente deve:
+
+- Recuperare da GitHub il contenuto aggiornato di tutti i file rilevanti
+  per il contesto (documenti di design, TECHNICAL.md, file di codice
+  coinvolti).
+
+- Verificare sempre il capitolo 5 del TECHNICAL.md, che disciplina il
+  flusso di lavoro.
+
+- Non basarsi unicamente sulla memoria della conversazione, ma
+  incrociare le informazioni lette dai file con la cronologia della
+  chat.
+
+- Identificare i file direttamente o indirettamente collegati alla
+  modifica richiesta (es. se si modifica una funzione in world.js,
+  verificare anche main.js e units.js se la utilizzano).
+
+- Se vi sono dubbi o incertezze, invece di produrre una risposta di cui
+  non si ha sicurezza al 100%, chiedere per aver maggiori informazioni e
+  contesto. Non elaborare nulla per induzione come se fosse una cosa
+  certa
+
+- Solo dopo questa verifica, procedere con la proposta di modifica.
+
+Durante la sessione:
+
 - **Modifiche a file esistenti:** l'assistente fornisce solo la porzione
   di codice modificata, indicando chiaramente in quale file e in quale
   punto va inserita.
@@ -204,6 +232,51 @@ continuare a lavorare senza perdita di contesto.
 
 - **Approccio iterativo:** prima si condivide e si concorda il design,
   poi si scrive il codice.
+
+Alla fine di ogni batch, prima di procedere con il commit, l'assistente
+seguirà questa procedura:
+
+1\. **Elencare le modifiche da apportare ai documenti**:
+
+- Specificare quali documenti di design (GDD, Concept, Roadmap)
+  necessitano aggiornamenti per riflettere le nuove meccaniche o
+  decisioni prese durante il batch.
+
+- Se non ci sono modifiche necessarie ai documenti di design,
+  dichiararlo esplicitamente (es. "Nessuna modifica necessaria ai
+  documenti di design").
+
+- Specificare se il TECHNICAL.md richiede aggiornamenti per nuove
+  strutture dati, funzioni o regole di workflow.
+
+2\. **Attendere la conferma esplicita dell'utente**:
+
+- L'assistente non scriverà la descrizione del commit né darà istruzioni
+  per il push fino a quando l'utente non avrà confermato che il lavoro
+  sul batch è soddisfacente e che gli aggiornamenti ai documenti sono
+  corretti.
+
+- Solo dopo la conferma, l'assistente produrrà il messaggio di commit
+  (titolo e descrizione) basato su tutte le modifiche effettivamente
+  apportate dall'ultimo commit, inclusi aggiornamenti ai documenti.
+
+3\. **Documenti di design (GDD, Concept, Roadmap)**:
+
+- Si aggiornano solo quando una meccanica di gioco è stata validata e
+  ritenuta stabile (es. al termine di un MVP).
+
+- Durante i batch intermedi con aggiustamenti di UI, colori di debug o
+  piccole modifiche tecniche, non si modificano.
+
+4\. **TECHNICAL.md**:
+
+- Si aggiorna quando vengono introdotte nuove strutture dati, funzioni,
+  pattern architetturali o regole di workflow.
+
+- Non si aggiorna per dettagli implementativi minori.
+
+5\. **Eseguire commit e push** con il messaggio fornito dall'assistente,
+che includerà tutte le modifiche (codice e documenti).
 
 ## Commenti e auto-documentazione
 
@@ -243,7 +316,16 @@ spiegazione che copra:
 
 - **Come si riflette sull'interfaccia o sul mondo visibile** (feedback
   visivo, nuovi elementi grafici, cambiamenti nella percezione dello
-  stato del gioco).
+  stato del gioco). Anche gli strumenti di debug vengono descritti con
+  il loro impatto visivo attuale e il potenziale riutilizzo futuro come
+  meccaniche di gioco, mantenendo un chiaro distinguo tra "debug" e
+  "gameplay".
+
+- **Funzionalità di debug**: anche gli strumenti di debug
+  (visualizzazioni temporanee, tooltip di test, overlay informativi)
+  vengono descritti con il loro impatto attuale e il potenziale
+  riutilizzo futuro come meccaniche di gioco, mantenendo sempre un
+  chiaro distinguo tra "debug" e "gameplay".
 
 Questo approccio garantisce che ogni decisione implementativa sia
 consapevole e allineata ai pilastri del design, e che il prototipo
