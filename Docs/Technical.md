@@ -184,6 +184,12 @@ lavoro, è necessario incollare i seguenti documenti aggiornati:
 In questo modo l'assistente avrà piena conoscenza del progetto e potrà
 continuare a lavorare senza perdita di contesto.
 
+All’inizio di ogni nuovo batch di lavoro, per mantere il contesto
+aggiornato della chat, l'utente eseguirà bundle_context.py e incollerà
+il contenuto di project_context.txt come primo messaggio, insieme al
+SYNC corrente e al batch su cui si sta lavorando. L'assistente leggerà
+il bundle per ricostruire il contesto completo.
+
 ## Flusso di lavoro nella chat
 
 Prima di proporre qualsiasi modifica al codice, ai documenti di design,
@@ -411,4 +417,4 @@ Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
   aggiornato ogni volta che viene presa una decisione architetturale
   rilevante.
 
-SYNC: 4
+SYNC: 112

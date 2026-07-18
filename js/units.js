@@ -37,7 +37,6 @@ class Pop {
         this.targetX = worldX;
         this.targetY = worldY;
         this.state = 'moving';
-        this.task = null; // moving cancels current task
     }
 
     /**
@@ -45,25 +44,77 @@ class Pop {
      * @param {number} delta - time since last frame in seconds (game time)
      */
     update(delta) {
-        if (this.state !== 'moving') return;
+        if (this.state === 'moving') {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
 
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 2) {
+                // Arrived at destination
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.state = 'idle';
+                // If there is a pending task, start it automatically
+                if (this.task && this.task.type) {
+                    this.state = 'working';
+                    console.log(`Pop started ${this.task.type} at (${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
+                }
+                return;
+            }
 
-        if (dist < 2) {
-            // Arrived at destination
-            this.x = this.targetX;
-            this.y = this.targetY;
-            this.state = 'idle';
-            return;
+            // Move towards target
+            const step = this.speed * delta;
+            const ratio = Math.min(step / dist, 1);
+            this.x += dx * ratio;
+            this.y += dy * ratio;
+        } else if (this.state === 'working') {
+            if (!this.task || !this.task.type) {
+                this.state = 'idle';
+                return;
+            }
+
+            // Execute task based on type
+            if (this.task.type === 'forage') {
+                // Check if inventory is full
+                if (this.inventory.food >= 20) {
+                    console.log('Inventory full, stop foraging.');
+                    this.state = 'idle';
+                    this.task = null;
+                    return;
+                }
+
+                const cell = worldToCell(this.x, this.y);
+                const cellData = getCell(cell.cx, cell.cy);
+                const density = cellData.forageDensity;
+
+                if (density <= 0) {
+                    console.log('Cell exhausted, stop foraging.');
+                    this.state = 'idle';
+                    this.task = null;
+                    return;
+                }
+
+                // Gather rate: density * 1.5 food per second
+                const gatherRate = density * 1.5 * delta;
+                this.inventory.food += gatherRate;
+
+                // Reduce local density
+                modifyDensity(this.x, this.y, 'forageDensity', -0.1 * delta, CELL_SIZE * 0.8);
+            }
         }
+    }
 
-        // Move towards target
-        const step = this.speed * delta;
-        const ratio = Math.min(step / dist, 1); // don't overshoot
-        this.x += dx * ratio;
-        this.y += dy * ratio;
+        /**
+     * Start a task at the current location.
+     * @param {string} taskType - type of task ('forage', 'gatherWood', etc.)
+     */
+    startTask(taskType) {
+        this.task = {
+            type: taskType,
+            location: { x: this.x, y: this.y }
+        };
+        this.state = 'working';
+        console.log(`Pop ${this.id} started task: ${taskType}`);
     }
 }
 

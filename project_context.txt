@@ -1,0 +1,1941 @@
+# PROJECT CONTEXT BUNDLE
+# Generated from: C:\Users\david\OneDrive\Desktop\Omnia\Game Development\StrategyPrototype
+
+## FILE TREE
+```
+  Docs\Bibbia (GDD).md
+  Docs\Prototipo 1.md
+  Docs\Technical.md
+  css\style.css
+  index.html
+  js\main.js
+  js\resources.js
+  js\time.js
+  js\ui.js
+  js\units.js
+  js\world.js
+```
+
+## FILE: Docs\Bibbia (GDD).md
+```
+# Visione e Pilastri
+
+## Concept
+
+**Titolo provvisorio:** *Dinastia* (o *Eredità*)
+
+**Genere**\
+Strategico 4X in tempo reale con elementi gestionali e simulativi. Il
+giocatore controlla una dinastia, non uno Stato astratto.
+
+**Pilastri del design**
+
+**1. Dinastia e interessi personali**\
+Il giocatore incarna una famiglia con possedimenti propri (terreni,
+industrie, beni). Può essere a capo di una civiltà, all'opposizione o
+ridotto a un ruolo marginale. Altre famiglie competono per risorse e
+influenza. Se si perde il comando, il gioco continua dai propri
+interessi privati. Tu puoi possedere elementi di una civiltà, e così
+altre famiglie che potrebbero opporsi a decisioni che danneggiano i loro
+interessi (es. dichiarare guerra a un partner commerciale).
+
+**2. Risorse limitate e logistica fisica**\
+Le risorse naturali sono un *continuum* che si degrada o esaurisce:
+foreste scompaiono se tagliate troppo in fretta, animali si estinguono
+se cacciati intensamente, campi perdono fertilità se non lasciati
+riposare, miniere e pozzi hanno un hard cap. Le materie prime vanno
+trasportate fisicamente da chi le raccoglie. I beni raffinati vanno
+immagazzinati e possono deteriorarsi. Eserciti e spedizioni consumano
+provviste durante gli spostamenti. Le rotte commerciali consegnano merci
+dopo un tempo di viaggio reale.
+
+**3. Tempo reale con controllo del ritmo**\
+Il mondo scorre sempre. Il giocatore può mettere in pausa, accelerare o
+rallentare il tempo. Un giorno di gioco dura pochi secondi (regolabile).
+
+**4. Informazione imperfetta e locale**\
+Tre stati di conoscenza per ogni unità/risorsa:
+
+- *Certa*: nel raggio visivo del giocatore.
+
+- *Da report*: valida all’ultimo messaggio ricevuto, può essere
+  falsificata da nemici o traditori.
+
+- *Proiettata*: posizione stimata in base a velocità e ultime
+  informazioni note.
+
+Anche dati come felicità, scorte o produzione sono mediati da chi li
+riporta, con arrotondamenti o errori. Senza un sistema di raccolta
+informazioni, certe cose non saranno note. Per sapere quanta legna hai
+realmente, serve qualcuno che la conti e te lo riferisca.
+
+**5. Popolazione simulata (pop system)**\
+La popolazione è suddivisa in gruppi (pop) con attributi: occupazione,
+età, cultura, religione, status. Le unità militari sono pop arruolati:
+se combattono, non producono. Etnia e interessi creano sottogruppi che
+possono essere sleali (es. eserciti di cultura affine al nemico
+potrebbero tradire).
+
+**6. Mappa continua senza griglia**\
+Spazio continuo, niente esagoni o province predefinite. Il territorio è
+definito dall'uso effettivo: una foresta che usi è "tua" finché nessuno
+te la contesta. Con il progresso diplomatico si possono tracciare
+confini. Le strade accelerano il movimento. La suddivisione interna in
+province è manuale (decidi tu come organizzare l'impero).
+
+**7. Tecnologia organica e indirizzabile**\
+I progressi emergono dall'attività ripetuta (caccia → armi, raccolta →
+agricoltura, estrazione → metallurgia). Con lo sviluppo di centri di
+ricerca (laboratori, università) si può indirizzare lo sviluppo
+tecnologico e culturale, ma l'innovazione spontanea continua. Due rami
+principali: tecnologico e culturale/sociale. La tecnologia si diffonde
+geograficamente per contatto, non istantaneamente ovunque.
+
+**8. Potere variabile e governo customizzabile**\
+A seconda della forma di governo, il giocatore dà ordini diretti (tribù)
+o incentivi indiretti (democrazia). Le forme di governo possono essere
+customizzate. Non sei sempre al comando: talvolta detieni il potere,
+altre volte devi sopravvivere come emarginato o agire dietro le quinte.
+
+**9. Mondo vivo e simulato**\
+Variazioni climatiche e stagioni. Migrazioni spinte da benessere e
+influenza culturale. Malattie ed epidemie. Eventi critici (carestie,
+rivolte, guerre civili) generati dal sistema quando certe condizioni si
+accumulano.
+
+**10. Amministrazione interna e deleghe**\
+La diplomazia traccia confini esterni, ma il giocatore può suddividere
+il proprio territorio in regioni/province per migliorare la
+governabilità. Può affidarle a sottoposti (governatori, vassalli) che
+riportano dati e gestiscono per suo conto. Questi delegati hanno lealtà
+e competenza variabili, influenzando la qualità dei report e
+l'efficienza amministrativa.
+
+**11. Storia emergente e simulazione delle crisi**\
+Non esistono alberi di missioni o percorsi storici prestabiliti. La
+storia emerge dall'interazione di variabili profonde (economia,
+demografia, fedeltà, religione, clima). Eventi critici sono generati dal
+sistema quando squilibri si accumulano. Ogni partita è un racconto unico
+e storicamente plausibile.
+
+**Meccaniche chiave (sommario)**
+
+- Raccolta, trasporto, lavorazione e stoccaggio di risorse.
+
+- Consumo di cibo e provviste per pop e unità.
+
+- Sistema di pop con demografia, bisogni, fedeltà.
+
+- Movimento e pathfinding su mappa continua.
+
+- Sistema di visibilità e report (certo / da report / proiettato).
+
+- Progresso tecnologico organico + indirizzabile.
+
+- Diplomazia e definizione di confini.
+
+- Dinamiche dinastiche e fazioni interne.
+
+- Combattimento con eserciti composti da pop, rischio tradimento.
+
+- Gestione delle crisi e storia emergente.
+
+**Stile visivo e interfaccia**
+
+- Prototipo: 2D dall'alto (Phaser 3).
+
+- Versione finale: 3D in stile Crusader Kings 3.
+
+- UI minimale ma informativa: mappa, pannelli pop, risorse, tempo.
+
+## Roadmap
+
+**Nota:** la roadmap segue la progressione storica. Ogni era sblocca
+nuove possibilità di gameplay. Lo sviluppo del codice può seguire lo
+stesso ordine, implementando prima le basi che rendono possibile l'era
+successiva.
+
+**Era 0 – Nomadismo (MVP iniziale)**\
+*Tecnologie assenti. Comandi diretti del capo tribù.*
+
+- Raccolta e caccia.
+
+- Movimento su mappa continua.
+
+- Consumo cibo e morte per fame.
+
+- Nessuna proprietà privata, nessuna lavorazione.
+
+- Pop generici, poche decine di individui.
+
+- Informazione imperfetta base (visuale diretta vs. proiezione).
+
+**Era 1 – Stanzialità e agricoltura primitiva**\
+*Scoperta dell'agricoltura (da raccolta ripetuta) e della
+domesticazione.*
+
+- Primi campi coltivabili, fertilità dinamica.
+
+- Villaggio permanente con edifici base (magazzino, falegnameria).
+
+- Lavorazione legno (assi) e conservazione cibo.
+
+- Inizio degrado risorse se sovrasfruttate.
+
+- La popolazione può specializzarsi: contadini, artigiani.
+
+- Prime strade semplici per accelerare trasporto.
+
+- Tecnologia organica: "ascia migliorata", "irrigazione base".
+
+**Era 2 – Età dei metalli e della scrittura**\
+*Scoperta della metallurgia e della scrittura (da necessità
+amministrative).*
+
+- Estrazione mineraria (hard cap per miniere).
+
+- Lavorazione metalli → strumenti e armi.
+
+- Scrittura: report più accurati, archiviazione dati, possibilità di
+  tracciare confini interni.
+
+- Amministrazione interna: province, governatori con lealtà e
+  competenza.
+
+- Comparsa di altre famiglie con interessi economici.
+
+- Il potere può essere perso: se deposto, il giocatore continua con i
+  propri possedimenti.
+
+**Era 3 – Commercio complesso e diplomazia**\
+*Sviluppo della moneta e delle rotte commerciali a lungo raggio.*
+
+- Rotte commerciali con merci che viaggiano fisicamente.
+
+- Diplomazia per tracciare confini con altre civiltà.
+
+- Eserciti composti da pop di diversa estrazione, possibile tradimento.
+
+- Informazione imperfetta applicata a diplomazia (report degli
+  ambasciatori).
+
+- Diffusione tecnologica tra civiltà per contatto.
+
+**Era 4 – Governo avanzato e religioni organizzate**\
+*Sviluppo di forme di governo complesse e religioni strutturate.*
+
+- Forme di governo customizzabili (monarchia, repubblica, teocrazia...).
+
+- Ordini diventano incentivi se il governo lo richiede.
+
+- Religioni organizzate: influenzano lealtà, cultura e migrazioni.
+
+- Missionari e conversione.
+
+- Università e centri di ricerca per indirizzare tecnologia/cultura.
+
+- Gestione delle crisi: carestie, rivolte, eresie generate dal sistema.
+
+**Era 5 – Globalizzazione e industrializzazione**\
+*Scoperte scientifiche, stampa, macchine a vapore...*
+
+- Variazioni climatiche e migrazioni di massa.
+
+- Malattie ed epidemie (diffusione lungo rotte commerciali).
+
+- Tecnologia che accelera e si diffonde più rapidamente.
+
+- Catene produttive complesse, fabbriche, proletariato.
+
+- Ideologie politiche che competono per il potere.
+
+- Potenza di fuoco e logistica militare su larga scala.
+
+**Era 6 – Contemporanea e futuro**\
+*Dalla rivoluzione informatica in poi...*
+
+- Reti di comunicazione istantanea (riduzione dell'incertezza
+  informativa).
+
+- Economia globale, mercati finanziari.
+
+- Armi di distruzione di massa, diplomazia multilaterale.
+
+- Simulazione di crisi globali (climatiche, pandemiche, nucleari).
+
+# Mappa e territorio
+
+## Griglia spaziale nascosta e layer di densità
+
+Il mondo non ha una griglia visibile, ma internamente utilizza una
+griglia uniforme nascosta (**spatial hash**) per ottimizzare le query
+spaziali e per memorizzare i dati di densità delle risorse diffuse.
+
+- **Celle della griglia:** quadrate, di dimensione fissa (es. 100×100
+  pixel). Ogni cella ha coordinate intere (cx, cy).
+
+- **Scopi della griglia:**
+
+  1.  **Query spaziali rapide:** trovare entità (unità, branchi) vicine
+      a una posizione senza scorrere tutti gli oggetti.
+
+  2.  **Memorizzare densità di risorse naturali:** foreste, vegetazione,
+      piccola fauna, pesci, fertilità. Questi valori sono continui
+      (float 0..1) e vengono modificati localmente durante lo
+      sfruttamento.
+
+- **Natura fluida:** la griglia non impone vincoli al movimento o alla
+  forma del territorio. I confini delle aree di risorsa emergono
+  naturalmente dai valori di densità.
+
+- **Layer di densità previsti (MVP):**
+
+  - *forestDensity* – densità di alberi (0 = nessun albero, 1 = foresta
+    fitta)
+
+  - *forageDensity* – vegetazione raccoglibile (bacche, erbe, radici)
+
+  - *smallGameDensity* – piccola fauna terrestre (conigli, uccelli)
+
+  - *fishDensity* – pesci (presente solo nelle celle che intersecano
+    corpi idrici)
+
+  - *fertility* – fertilità del suolo per l’agricoltura (futuro)
+
+## Biomi e risorse naturali
+
+*(da sviluppare)*
+
+## Strade e infrastrutture
+
+*(da sviluppare)*
+
+## Confini e province
+
+*(da sviluppare)*
+
+# Risorse ed economia
+
+## Tipi di risorse naturali (prototipo)
+
+**Foreste (legna)**
+
+- **Layer:** forestDensity
+
+- **Sfruttamento:** un’unità che taglia legna riduce la densità nella
+  cella e nelle celle adiacenti (raggio di impatto configurabile).
+
+- **Effetto locale:** una foresta può essere disboscata solo in parte
+  senza distruggere l’intera area.
+
+- **Rigenerazione:** lenta e costante (in futuro influenzata da clima e
+  stagioni).
+
+- **Risorsa prodotta:** legna grezza, trasportata fisicamente
+  all’accampamento.
+
+**Vegetazione raccoglibile (bacche, erbe, radici)**
+
+- **Layer:** forageDensity
+
+- **Sfruttamento:** raccolta manuale, riduce la densità locale.
+
+- **Rigenerazione:** stagionale o continua lenta.
+
+- **Risorsa prodotta:** cibo vegetale.
+
+- **Sviluppo futuro:** propedeutico all’agricoltura.
+
+**Fauna minore terrestre (conigli, uccelli, piccola selvaggina)**
+
+- **Layer:** smallGameDensity
+
+- **Sfruttamento:** caccia/cattura con strumenti rudimentali, riduce la
+  densità locale.
+
+- **Rigenerazione:** continua, più rapida in aree con vegetazione fitta.
+
+- **Risorsa prodotta:** cibo (carne) e eventuali pelli.
+
+- **Sviluppo futuro:** porta a trappole, armi da caccia, domesticazione.
+
+**Pesci (fiumi, laghi, coste)**
+
+- **Layer:** fishDensity
+
+- **Distribuzione:** presente solo nelle celle che intersecano corpi
+  idrici; zero altrove.
+
+- **Sfruttamento:** pesca, riduce la densità locale.
+
+- **Rigenerazione:** continua, influenzata dalla dimensione del corpo
+  idrico e dalle stagioni.
+
+- **Risorsa prodotta:** cibo (pesce).
+
+- **Sviluppo futuro:** tecniche di pesca, navigazione, commercio
+  marittimo.
+
+**Fauna: grandi animali (branchi mobili)**
+
+- **Modello:** unità autonome (branchi) con posizione (x, y), specie e
+  numero di capi.
+
+- **Comportamento:** i branchi si muovono lentamente nell’habitat
+  preferito, si riproducono se non disturbati.
+
+- **Caccia:** i cacciatori devono avvicinarsi al branco; ogni ciclo
+  riduce i capi e produce cibo (carne e pelli). Sotto una soglia il
+  branco si estingue.
+
+- **Visualizzazione:** sprite che si sposta sulla mappa.
+
+**Fertilità del suolo**
+
+- **Layer:** fertility (float 0..1)
+
+- **Utilizzo futuro:** consumata dall’agricoltura, rigenerata dal
+  maggese.
+
+- **Per il prototipo attuale:** layer definito ma non ancora utilizzato.
+
+## Lavorazione, stoccaggio e deperimento (futuro MVP3)
+
+- Le risorse grezze (legna, cibo) possono essere lavorate (legna → assi,
+  cibo → conserve) per aumentarne il valore o la conservabilità.
+
+- Il cibo non conservato deperisce nel tempo (velocità di deterioramento
+  configurabile).
+
+- I magazzini aumentano la capacità di stoccaggio e riducono il
+  deterioramento.
+
+# Popolazione e demografia
+
+- Sistema a pop (gruppi di individui con attributi condivisi)
+
+- Attributi: età, occupazione, cultura, religione, status sociale, etnia
+
+- Consumo di cibo, tasso di natalità e mortalità
+
+- Fedeltà e appartenenza a fazioni
+
+# Tecnologia e cultura
+
+- **Progressione organica:** i progressi si sbloccano automaticamente
+  quando una determinata attività viene svolta per un certo numero di
+  cicli (es. dopo X sessioni di caccia, appare "arco rudimentale").
+
+- **Ricerca indirizzata:** tramite laboratori, università e centri
+  culturali si può investire per accelerare specifici filoni
+  (tecnologico, culturale, sociale).
+
+- **Diffusione geografica:** le tecnologie si propagano per contatto tra
+  civiltà vicine, non appaiono istantaneamente ovunque.
+
+- **Rami:** almeno due principali, *tecnologico* (strumenti, armi,
+  costruzioni) e *culturale/sociale* (leggi, religione, forme
+  organizzative).
+
+# Governo e amministrazione
+
+- **Forme di governo:** dalla tribù nomade alle democrazie moderne, con
+  livelli di controllo variabile (ordini diretti vs. incentivi
+  indiretti).
+
+- **Personalizzazione:** le forme di governo possono essere modificate
+  nel tempo, con leggi e politiche interne.
+
+- **Deleghe e vassalli:** possibilità di affidare province a governatori
+  con lealtà e competenza proprie.
+
+- **Perdita del potere:** se il capo della dinastia viene rimosso, il
+  giocatore continua a gestire i propri interessi privati come famiglia.
+
+# Diplomazia e guerra
+
+- **Confini:** la diplomazia permette di tracciare confini riconosciuti
+  con altre civiltà; all'interno, i confini amministrativi sono definiti
+  dal giocatore.
+
+- **Eserciti:** composti da pop arruolati. La composizione etnica e
+  culturale influisce sulla fedeltà e sul rischio di tradimento.
+
+- **Logistica militare:** rifornimenti devono viaggiare fisicamente
+  dalle retrovie al fronte.
+
+- **Report e spionaggio:** le informazioni sulle forze nemiche sono
+  limitate e soggette a errori (certo / da report / proiettato).
+
+# Informazione e UI
+
+- **Visibilità:** tre stati (certa, da report, proiettata) per ogni
+  entità sulla mappa.
+
+- **Gestione dei report:** ritardi e imprecisioni dipendono dalla
+  distanza e dall'affidabilità della fonte.
+
+- **Interfaccia utente:** mappa, pannelli per pop e risorse, notifiche
+  per eventi critici.
+
+- **Filigrana informativa:** anche le statistiche interne (scorte,
+  felicità) sono filtrate da chi le riporta.
+
+# Mondo simulato
+
+- **Clima e stagioni:** influenzano la produttività agricola, la
+  rigenerazione delle risorse e la migrazione animale.
+
+- **Migrazioni:** pop si spostano in base a fattori economici, culturali
+  e di sicurezza.
+
+- **Malattie:** si diffondono lungo le rotte commerciali e in condizioni
+  igieniche precarie.
+
+- **Eventi emergenti:** carestie, rivoluzioni, guerre civili emergono
+  quando variabili come scarsità di cibo, oppressione fiscale e tensioni
+  etniche superano soglie critiche.
+
+- **Cicli storici**: eventi e modificatori spingono per replicare i
+  reali cicli storici
+
+# Piano di sviluppo tecnico
+
+- **Stack:** Phaser 3 per il prototipo 2D; in futuro migrazione a motore
+  3D (es. Three.js o Unity) per la versione finale in stile Crusader
+  Kings 3.
+
+- **Architettura:** descritta nel documento TECHNICAL.md.
+
+- **Performance:** monitorare il numero di entità e la dimensione della
+  griglia spaziale per garantire fluidità con migliaia di pop e branchi.
+
+- **Scalabilità:** la struttura a layer di densità e lo spatial hashing
+  sono pensati per supportare mappe molto ampie e simulazioni complesse.
+
+```
+
+## FILE: Docs\Prototipo 1.md
+```
+# Prototipo 1
+
+## Concept
+
+**Titolo provvisorio:** *Dinastia* (o *Eredità*)
+
+**High Concept**\
+Un 4X in tempo reale dove guidi una dinastia, non uno Stato. Parti con
+una tribù nomade, la fai diventare stanziale, e gestisci risorse finite,
+logistica reale e informazioni imperfette, mentre il tuo potere può
+crescere o sgretolarsi. Il mondo non si ferma mai, ma puoi rallentarlo
+per decidere.
+
+**Pilastri del design (per il prototipo)**
+
+1.  **Sopravvivenza tangibile** – risorse limitate, logistica fisica,
+    consumo di provviste.
+
+2.  **Informazione imperfetta** – ciò che sai dipende da chi te lo dice.
+    Le certezze sono poche.
+
+3.  **Tempo reale con controllo del ritmo** – pausa tattica,
+    accelerazione, flusso continuo.
+
+**Game Loop minimo**
+
+1.  Osservi la mappa 2D con la tua tribù accampata.
+
+2.  Selezioni un gruppo di persone, le assegni a un compito (cacciare,
+    raccogliere legna).
+
+3.  Il gruppo si sposta (tempo reale), consuma cibo durante il viaggio,
+    raggiunge la risorsa, la sfrutta, torna.
+
+4.  La risorsa arriva all’accampamento: è disponibile per costruire o
+    sfamare.
+
+5.  Puoi mettere in pausa per ripianificare. Puoi accelerare per vedere
+    gli effetti nel tempo.
+
+**Cosa testare con il primo prototipo**
+
+- Il loop "assegna compito → spostamento → raccolta → ritorno" è
+  comprensibile e divertente?
+
+- La gestione pausa/play/velocità è intuitiva?
+
+- La rappresentazione visiva di posizione certa vs proiettata vs da
+  report funziona?
+
+- La mappa continua (senza griglia) e l’interazione click-per-spostarsi
+  sono fluide?
+
+**Confini del prototipo**
+
+- Mappa 2D con una foresta, un fiume, una pianura.
+
+- Una tribù di 30 persone, divise in "pop".
+
+- Due risorse raccoglibili: legna e cibo.
+
+- Un accampamento che consuma cibo.
+
+- Pausa/play/accelerazione.
+
+- Movimento con pathfinding base (verso il click).
+
+- Escluso: diplomazia, altre fazioni, tecnologia, miniere, lavorazione
+  risorse, politica interna, religione, forme di governo.
+
+**Stack tecnico**\
+HTML5, CSS, JavaScript con libreria Phaser 3 (rendering 2D, input,
+gestione scene).
+
+**Ispirazioni**
+
+- Crusader Kings 3 (dinastia, informazione imperfetta, tempo reale con
+  pausa)
+
+- Victoria 3 / Stellaris (pop system, risorse logistiche)
+
+- Banished / Dawn of Man (sopravvivenza tribale, risorse tangibili)
+
+- King's Orders (report e comunicazione)
+
+## Roadmap
+
+**Logica di sviluppo del prototipo**\
+Il prototipo parte implementando le fondamenta trasversali del gioco
+(mappa continua, pop system, informazione imperfetta, tempo reale) e
+aggiunge funzionalità in parallelo alla progressione storica simulata.
+Ogni iterazione sblocca nuove meccaniche quando la civiltà del giocatore
+raggiunge la soglia tecnologica/sociale corrispondente, o quando le
+fondamenta precedenti sono state validate. In pratica, l'MVP copre l'Era
+0 (nomadismo), e le iterazioni successive attivano le ere successive,
+aggiungendo strati di complessità al sistema già esistente.
+
+**MVP1 – Raccolta cibo e sopravvivenza base**
+
+Obiettivo generale\
+Il giocatore controlla un gruppo di raccoglitori, può spostarli su una
+mappa continua, raccogliere cibo vegetale, vedere le zone impoverirsi e
+rigenerarsi, e gestire le scorte che vengono consumate nel tempo. Il
+loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
+
+**Batch 1 – Setup Phaser funzionante**
+
+- Installazione di Phaser 3 via CDN.
+
+- Struttura base di index.html, main.js, style.css.
+
+- Canvas visualizzato correttamente nel browser.
+
+- Nessuna meccanica di gioco, solo infrastruttura tecnica.
+
+**Batch 2 – Griglia spaziale e mappa con zone di cibo**
+
+- Implementazione della griglia spaziale nascosta (world.js).
+
+- Layer forageDensity con distribuzione non uniforme:
+
+  - Zone ad alta densità (macchie di bacche) rappresentate visivamente
+    con colori più intensi.
+
+  - Zone a bassa densità con colori tenui.
+
+  - Zone a densità zero senza colore.
+
+- Visualizzazione di debug: ogni cella della griglia è colorata in base
+  alla densità, così il giocatore può vedere dove il cibo è più
+  abbondante.
+
+- Meccanica: il mondo contiene risorse diffuse; il giocatore distingue a
+  colpo d'occhio le aree più ricche e decide dove mandare i
+  raccoglitori.
+
+- La densità di cibo è visualizzata con una scala a 7 colori, con
+  intervalli precisi e non sovrapposti:
+
+  - 0.90-1.00: verde scuro
+
+  - 0.75-0.89: verde medio
+
+  - 0.50-0.74: verde chiaro
+
+  - 0.25-0.49: giallo
+
+  - 0.05-0.24: arancione
+
+  - 0.01-0.04: rosso
+
+  - 0.00: nessun colore (sfondo)
+
+**Batch 3 – Pop e movimento**
+
+- Definizione della classe base per entità mobili e della classe Pop
+  (units.js).
+
+- Un pop (gruppo di raccoglitori) appare sulla mappa.
+
+- Click su un punto qualsiasi della mappa: il pop si muove in modo
+  continuo, senza scatti, verso quella posizione.
+
+- Meccanica: interazione diretta con il mondo. Non esistono griglie
+  visibili che vincolano il movimento. Il giocatore sposta fisicamente
+  la sua gente.
+
+**Batch 4 – Raccolta cibo e riduzione della densità**
+
+- Quando il pop arriva su una cella con forageDensity maggiore di zero,
+  inizia automaticamente a raccogliere cibo.
+
+- La quantità di cibo raccolta per secondo è proporzionale alla densità
+  locale: zone ricche rendono di più, zone povere di meno.
+
+- La funzione modifyDensity riduce la densità della cella e di quelle
+  vicine (raggio configurabile), simulando un prelievo localizzato.
+
+- Se la densità arriva a zero, quella zona è temporaneamente esaurita e
+  non produce più cibo.
+
+- Meccanica: il giocatore vede le zone impoverirsi dopo la raccolta.
+  Deve decidere se insistere su una zona ricca rischiando di esaurirla,
+  o spostarsi altrove.
+
+**Batch 5 – Rientro al campo, scorta e consumo**
+
+- Definizione di un punto base (accampamento) sulla mappa.
+
+- Il giocatore può selezionare il numero di abitanti (in base a quelli
+  disponibili nell’accampamento) da mandare a raccogliere una specifica
+  risorsa
+
+- Il giocatore può cliccare sull'accampamento per ordinare al pop di
+  tornare e scaricare il cibo raccolto. Tendenzialmente però i pop fanno
+  avanti e indietro in automatico
+
+- Un contatore globale mostra le scorte di cibo della tribù.
+
+- Introduzione del consumo: ogni giorno di gioco (intervallo
+  configurabile) una quantità di cibo viene sottratta dalle scorte in
+  base al numero di pop presenti.
+
+- Se le scorte arrivano a zero, per ora viene mostrato un avviso; in
+  futuro comporterà la morte dei pop.
+
+- Meccanica: il giocatore deve bilanciare la raccolta con il consumo
+  costante. Non basta accumulare, bisogna mantenere un flusso positivo.
+  Il ritorno al campo diventa una decisione strategica: tornare troppo
+  presto spreca tempo di viaggio, tornare troppo tardi rischia di far
+  esaurire le scorte.
+
+**Batch 6 – Controlli del tempo (pausa, play, velocità)**
+
+- Implementazione del TimeManager (time.js).
+
+- Tre velocità di simulazione: 1x (normale), 2x (accelerata), 0x
+  (pausa).
+
+- Interfaccia minima: pulsanti o tasti per cambiare velocità.
+
+- La raccolta, il movimento e il consumo dipendono dal tempo di gioco
+  effettivo, non dal framerate.
+
+- Meccanica: il giocatore può mettere in pausa per pianificare con
+  calma, o accelerare quando non ci sono decisioni urgenti. Questo è il
+  primo passo verso il pilastro "tempo reale con controllo del ritmo".
+
+**Batch 7 – Rigenerazione base del cibo**
+
+- Le celle con forageDensity si rigenerano lentamente nel tempo (es. una
+  piccola frazione al giorno).
+
+- La rigenerazione è più rapida in celle con densità bassa, per simulare
+  la ricrescita naturale.
+
+- Una zona completamente esaurita (densità zero) impiega più tempo a
+  iniziare a rigenerare.
+
+- Meccanica: il giocatore non può esaurire una zona per sempre, ma deve
+  ruotare le aree di raccolta per non restare senza cibo. Questo
+  introduce una prima forma di gestione sostenibile delle risorse.
+
+**Dopo il Batch 7\
+Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
+
+- Il giocatore sposta i raccoglitori sulla mappa.
+
+- Raccoglie cibo in zone a densità variabile.
+
+- Le zone si impoveriscono e si rigenerano.
+
+- Le scorte vengono consumate nel tempo.
+
+- Il tempo può essere controllato con pausa, play e velocità.
+
+**NOTE FINE MVP1**
+
+- Tool per disegnare la mappa (apporre foreste, pesci, gathering food
+  ecc. con dei pennelli) \[è forse troppo presto\]
+
+- Creazione di algoritmo per creazione foreste e cibo in base a
+  tipologia terreno delle celle \[anche questo forse da vedere più
+  avanti\]
+
+- Non abbiamo minimamente lavorato sulla tipologia del terreno
+  (montagna, acqua, acqua profonda, collina, pianura) e le
+  caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base
+  del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque,
+  le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da
+  forse vedere subito dopo MVP1? Implementiamo già diversi layer di
+  visualizzazione (terreno, cibo, risorse varie ecc.)?
+
+**MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)**
+
+MVP2 introduce i branchi mobili (grandi animali) e la pesca in acque
+interne. Il giocatore impara a diversificare le fonti di cibo oltre alla
+raccolta vegetale. La caccia richiede movimento attivo (inseguire il
+branco), mentre la pesca è stanziale ma limitata alle celle d'acqua.
+
+Nuova definizione:
+
+- Branchi di grandi animali appaiono sulla mappa come entità mobili.
+  Ogni branco ha una specie, un numero di capi, un habitat preferito e
+  un tasso di riproduzione.
+
+- Il giocatore può assegnare un pop alla caccia: deve avvicinarsi al
+  branco, e ogni ciclo di caccia riduce i capi e produce carne e pelli.
+  Se il branco scende sotto una soglia, si estingue localmente.
+
+- Nelle celle che intersecano fiumi o laghi, il layer fishDensity
+  permette la pesca. Funziona come la raccolta vegetale (riduce densità,
+  si rigenera), ma solo in acqua.
+
+- L'interfaccia mostra le nuove risorse (carne, pesce) accanto al cibo
+  vegetale. Per ora tutte valgono come "cibo", ma vengono registrate
+  separatamente per usi futuri.
+
+- Meccanica: la caccia è più redditizia ma richiede inseguimento e può
+  esaurire i branchi. La pesca è stabile ma limitata geograficamente. Il
+  giocatore deve decidere come allocare i pop tra raccolta, caccia e
+  pesca.
+
+**MVP3 – Raccolta legna, lavorazione e strumenti**
+
+MVP3 introduce il layer forestDensity e la raccolta di legna. Poi la
+lavorazione (legna → tool) per migliorare la caccia e la raccolta di
+cibo in generale. L'ordine logico è: risorsa grezza, lavorazione, tool.
+
+DA RICORDARE A DEEPSEEK: controllare e confermare che gli strumenti in
+legna vennero prima di quelli in pietra.
+
+Nuova definizione:
+
+- Attivazione del layer forestDensity sulla griglia. Le foreste sono
+  visivamente distinguibili (verde scuro). La raccolta di legna riduce
+  la densità localmente, come per il forage.
+
+- Il giocatore può assegnare pop alla raccolta di legna. La legna grezza
+  viene trasportata all'accampamento.
+
+- Introduzione della lavorazione: la legna grezza può essere trasformata
+  in tool (azione "lavora legna" al campo).
+
+- Costruzione dei tool: consuma legna. I tool possono essere armi per la
+  caccia, la pesca o bastoni/ceste per migliorare la raccolta delle
+  bacche
+
+- Meccanica: la legna diventa la prima risorsa non commestibile. La
+  lavorazione introduce il concetto di catena produttiva. Si gettano le
+  basi per la specializzazione dei pop (raccoglitori, taglialegna,
+  artigiani).
+
+**MVP4 – Informazione imperfetta e report**
+
+Nessuna modifica necessaria. Le meccaniche di visibilità (certo,
+proiettato, da report) e di stima delle scorte sono indipendenti dal
+tipo di risorsa. Quando le implementeremo, applicheremo l'incertezza a
+tutte le risorse (cibo vegetale, carne, pesce, legna, assi).
+
+Testo attuale confermato:
+
+- Il campo base ha una "riserva di cibo" che non conosci esattamente:
+  vedi una stima arrotondata.
+
+- Per sapere quanta legna hai realmente, devi inviare qualcuno a
+  controllare o aspettare il report di chi torna.
+
+- Raggio visivo del giocatore: dove hai uomini, vedi; il resto è buio o
+  sfocato.
+
+- I report possono essere ritardati o imprecisi in base alla distanza.
+
+<!-- -->
+
+- Barra del tempo (velocità 1x, 2x, pausa).
+
+- Indicatore di posizione:
+
+  - Certa (colore pieno) se nel raggio visivo.
+
+  - Proiettata (desaturata con interpolazione) se fuori dal raggio.
+
+  - Da report (lampeggiante o con indicatore "R") quando arriva un
+    messaggio.
+
+- Tooltip base per risorse e pop.
+
+**MVP5 – Seconda tribù e territorio**
+
+Nessuna modifica necessaria. La competizione per le risorse funziona con
+qualsiasi tipo di layer o branco.
+
+Testo attuale confermato:
+
+- Una seconda tribù vicina condivide la stessa foresta e le stesse zone
+  di cibo.
+
+- Se entrambe raccolgono o cacciano, le risorse si esauriscono prima.
+
+- Possibile scontro se i gruppi si incrociano (combattimento basilare).
+
+- Inizio del concetto di "territorio d'uso": la risorsa è di chi la sta
+  usando.
+
+**CONCETTI DA RECUPERARE POI:**
+
+- Deterioramento risorse
+
+**Oltre MVP5**
+
+Le iterazioni successive del prototipo seguiranno la progressione
+storica (Era 1: stanzialità, agricoltura, prime strutture; Era 2:
+metalli, scrittura, amministrazione; ecc.), sbloccando funzionalità
+corrispondenti man mano che le fondamenta tecniche lo permettono. La
+priorità sarà sempre validare il loop di base prima di aggiungere
+complessità.
+
+Prima però procederemo a raffinare il loop cacciatore/raccoglitore con
+lo sviluppo tecnologico della pietra, dei primi edifici e delle prime
+strutture sociali e progressi culturali.
+
+```
+
+## FILE: Docs\Technical.md
+```
+# Stack tecnologico
+
+- **Linguaggio:** JavaScript (ES6+)
+
+- **Motore di rendering 2D:** Phaser 3 (caricato da CDN)
+
+- **Gestione moduli:** inizialmente script globali concatenati;
+  possibile migrazione a moduli ES6 con Vite in futuro
+
+- **Struttura file:**
+
+  - index.html – punto di ingresso, carica Phaser e gli script
+
+  - css/style.css – stili per UI HTML sovrapposta
+
+  - js/main.js – inizializzazione di Phaser e configurazione globale
+
+  - js/world.js – griglia spaziale, layer di densità, query spaziali
+
+  - js/units.js – classi per pop, unità, branchi
+
+  - js/resources.js – logica di raccolta, consumo, deterioramento
+    (futuro)
+
+  - js/ui.js – interfaccia utente, pannelli, tooltip (futuro)
+
+  - js/time.js – gestione pausa/play/velocità (futuro)
+
+# Griglia spaziale e risorse diffuse
+
+## **Struttura dati**
+
+Il mondo è suddiviso in una griglia rettangolare di celle invisibili, di
+dimensione fissa CELL_SIZE (es. 100 pixel).
+
+Ogni cella è un oggetto con le seguenti proprietà:
+
+javascript
+
+{
+
+cx, cy, *// coordinate intere della cella nella griglia*
+
+entities: \[\], *// entità mobili (pop, branchi) attualmente in questa
+cella*
+
+forestDensity: 0.0, *// 0..1*
+
+forageDensity: 0.0, *// 0..1 (vegetazione raccoglibile)*
+
+smallGameDensity: 0.0, *// 0..1 (piccola fauna terrestre)*
+
+fishDensity: 0.0, *// 0..1 (pesci, solo in celle d'acqua)*
+
+fertility: 0.5 *// 0..1 (default medio)*
+
+}
+
+La griglia è memorizzata in un array 2D o in una Map con chiave "cx,cy".
+
+## Funzioni principali (world.js)
+
+- worldToCell(x, y) → {cx, cy}: converte coordinate mondo in coordinate
+  cella.
+
+- getCell(cx, cy) → oggetto cella (crea la cella se non esiste).
+
+- getEntitiesInRadius(x, y, radius) → array di entità: interroga le
+  celle nel raggio e filtra per distanza esatta.
+
+- modifyDensity(x, y, layer, amount, impactRadius): modifica la densità
+  del layer indicato nelle celle intorno alla posizione, con decadimento
+  radiale.
+
+## Layer di densità attuali (MVP)
+
+| Layer | Proprietà | Descrizione |
+|----|----|----|
+| Foresta | forestDensity | Densità di alberi. Ridotta dal taglio, rigenerazione lenta. |
+| Vegetazione raccoglibile | forageDensity | Bacche, erbe, radici. Ridotta dalla raccolta, rigenerazione stagionale. |
+| Piccola fauna terrestre | smallGameDensity | Conigli, uccelli. Ridotta dalla caccia, rigenerazione continua. |
+| Pesci | fishDensity | Disponibile solo in celle d'acqua. Ridotto dalla pesca. |
+| Fertilità | fertility | Per uso futuro (agricoltura). |
+
+# Entità mobili
+
+## Unità generica
+
+Ogni entità mobile (pop, branco) possiede almeno:
+
+javascript
+
+{
+
+id: string,
+
+type: 'pop' \| 'herd',
+
+x, y, *// posizione continua in pixel*
+
+targetX, targetY, *// destinazione (per movimento)*
+
+speed: 50, *// pixel al secondo a velocità 1x*
+
+state: 'idle' \| 'moving' \| 'working'
+
+}
+
+## Pop (gruppo di persone)
+
+Estende l'unità generica con:
+
+- population: numero di individui nel gruppo
+
+- task: { type: 'gatherWood' \| 'hunt' \| 'forage' \| 'fish' \|
+  'trapSmallGame', location: {x, y} }
+
+- inventory: { wood: 0, food: 0 } – risorse trasportate (in futuro
+  potranno essere differenziate)
+
+- rations: provviste di cibo portate per il viaggio
+
+## Branco (animali)
+
+- species: es. 'deer', 'bison'
+
+- herdSize: numero di capi
+
+- habitat: tipo di terreno preferito
+
+- Comportamento AI: movimento lento casuale entro l'habitat, fuga se
+  minacciato.
+
+# Ciclo di aggiornamento (game loop)
+
+Phaser chiama update(time, delta) a ogni frame. La logica di gioco può
+essere disaccoppiata dal rendering per garantire coerenza temporale.
+
+1.  **TimeManager** calcola il tempo di gioco effettivo (gameDelta =
+    delta \* speedMultiplier). Se in pausa, gameDelta = 0.
+
+2.  **Movimento:** tutte le unità con stato 'moving' vengono spostate
+    verso il target in base a speed e gameDelta.
+
+3.  **Azioni:** all'arrivo a destinazione, l'unità inizia il lavoro
+    (raccolta, caccia, pesca). Il lavoro ha una durata in giorni/ore
+    all’interno del mondo di gioco (che corrispondono a un tot di
+    secondi nella realtà).
+
+4.  **Consumo risorse:** a intervalli regolari di tempo di gioco (es.
+    ogni dayLength secondi) tutti i pop consumano cibo dalle scorte
+    dell'accampamento.
+
+5.  **Rigenerazione risorse:** a intervalli regolari, le celle della
+    griglia rigenerano una frazione di densità per ogni layer (es. +0.01
+    per forestDensity al giorno se non tagliata).
+
+# Gestione del codice e collaborazione via chat
+
+## Repository
+
+Il codice è ospitato su un repository Git (GitHub). La chat è usata per
+discutere, scrivere snippet e aggiornare la documentazione, **non** come
+deposito principale del codice. Il repository contiene tutto il
+necessario per eseguire il prototipo localmente.
+
+## Mantenimento del contesto tra chat
+
+All'inizio di una nuova conversazione, per garantire la continuità del
+lavoro, è necessario incollare i seguenti documenti aggiornati:
+
+- Concept Semplificato
+
+- Concept Completo (capitolo 1 della Bibbia)
+
+- Roadmap del Prototipo
+
+- Roadmap Generale del Gioco
+
+- GDD Esteso (Bibbia completa)
+
+- Questo documento (TECHNICAL.md)
+
+In questo modo l'assistente avrà piena conoscenza del progetto e potrà
+continuare a lavorare senza perdita di contesto.
+
+All’inizio di ogni nuovo batch di lavoro, per mantere il contesto
+aggiornato della chat, l'utente eseguirà bundle_context.py e incollerà
+il contenuto di project_context.txt come primo messaggio, insieme al
+SYNC corrente e al batch su cui si sta lavorando. L'assistente leggerà
+il bundle per ricostruire il contesto completo.
+
+## Flusso di lavoro nella chat
+
+Prima di proporre qualsiasi modifica al codice, ai documenti di design,
+alla pianificazione di un batch o alla scrittura di nuovo codice,
+l'assistente deve:
+
+- Recuperare da GitHub il contenuto aggiornato di tutti i file rilevanti
+  per il contesto (documenti di design, TECHNICAL.md, file di codice
+  coinvolti).
+
+- Verificare sempre il capitolo 5 del TECHNICAL.md, che disciplina il
+  flusso di lavoro.
+
+- Non basarsi unicamente sulla memoria della conversazione, ma
+  incrociare le informazioni lette dai file con la cronologia della
+  chat.
+
+- Identificare i file direttamente o indirettamente collegati alla
+  modifica richiesta (es. se si modifica una funzione in world.js,
+  verificare anche main.js e units.js se la utilizzano).
+
+- Se vi sono dubbi o incertezze, invece di produrre una risposta di cui
+  non si ha sicurezza al 100%, chiedere per aver maggiori informazioni e
+  contesto. Non elaborare nulla per induzione come se fosse una cosa
+  certa
+
+- Solo dopo questa verifica, procedere con la proposta di modifica.
+
+Durante la sessione:
+
+- **Modifiche a file esistenti:** l'assistente fornisce solo la porzione
+  di codice modificata, indicando chiaramente in quale file e in quale
+  punto va inserita.
+
+- **Nuovi file:** l'assistente fornisce il contenuto completo.
+
+- Ogni modifica è accompagnata da un breve commento che spiega cosa fa e
+  perché.
+
+- L'utente applica le modifiche localmente, testa il codice, e poi
+  committa e pusha sul repository.
+
+- **Principio di non-assunzione:** l'assistente non assume nulla se non
+  è sicuro al 100%; in caso di dubbio, chiede chiarimenti prima di
+  procedere.
+
+- **Approccio iterativo:** prima si condivide e si concorda il design,
+  poi si scrive il codice.
+
+Alla fine di ogni batch, prima di procedere con il commit, l'assistente
+seguirà questa procedura:
+
+1\. **Elencare le modifiche da apportare ai documenti**:
+
+- Specificare quali documenti di design (GDD, Concept, Roadmap)
+  necessitano aggiornamenti per riflettere le nuove meccaniche o
+  decisioni prese durante il batch.
+
+- Se non ci sono modifiche necessarie ai documenti di design,
+  dichiararlo esplicitamente (es. "Nessuna modifica necessaria ai
+  documenti di design").
+
+- Specificare se il TECHNICAL.md richiede aggiornamenti per nuove
+  strutture dati, funzioni o regole di workflow.
+
+2\. **Attendere la conferma esplicita dell'utente**:
+
+- L'assistente non scriverà la descrizione del commit né darà istruzioni
+  per il push fino a quando l'utente non avrà confermato che il lavoro
+  sul batch è soddisfacente e che gli aggiornamenti ai documenti sono
+  corretti.
+
+- Solo dopo la conferma, l'assistente produrrà il messaggio di commit
+  (titolo e descrizione) basato su tutte le modifiche effettivamente
+  apportate dall'ultimo commit, inclusi aggiornamenti ai documenti.
+
+3\. **Documenti di design (GDD, Concept, Roadmap)**:
+
+- Si aggiornano solo quando una meccanica di gioco è stata validata e
+  ritenuta stabile (es. al termine di un MVP).
+
+- Durante i batch intermedi con aggiustamenti di UI, colori di debug o
+  piccole modifiche tecniche, non si modificano.
+
+4\. **TECHNICAL.md**:
+
+- Si aggiorna quando vengono introdotte nuove strutture dati, funzioni,
+  pattern architetturali o regole di workflow.
+
+- Non si aggiorna per dettagli implementativi minori.
+
+5\. **Eseguire commit e push** con il messaggio fornito dall'assistente,
+che includerà tutte le modifiche (codice e documenti).
+
+## Verifica dell’accesso al repository
+
+Per garantire che l'assistente stia leggendo il contenuto reale del
+repository e non basandosi solo sulla cronologia della chat, in fondo al
+file TECHNICAL.md è presente un numero progressivo (es. \`SYNC: 1\`).
+Dopo ogni push, l'utente cambierà questo numero. All'inizio di ogni
+risposta che richiede accesso al repository, l'assistente dovrà
+riportare il numero SYNC che ha letto, confermando così di aver
+effettivamente consultato i file su GitHub.
+
+## Commenti e auto-documentazione
+
+Il codice è scritto con nomi di variabili e funzioni chiari ed
+esplicativi. Ogni file ha un'intestazione che ne descrive lo scopo. Le
+funzioni complesse hanno commenti in stile JSDoc.
+
+## Convenzioni di codice
+
+- **Lingua:** tutto il codice, i commenti e i nomi dei file sono
+  in **inglese**. Questo include nomi di variabili, funzioni, classi,
+  messaggi di commit e documentazione tecnica interna al codice.
+
+- I documenti di design (GDD, roadmap, concept) possono restare in
+  italiano, in quanto rivolti alla progettazione e non
+  all’implementazione.
+
+- Questa scelta facilita la coerenza, la ricerca di aiuto online e la
+  portabilità del progetto.
+
+<!-- -->
+
+- Quando vengono fornite modifiche a file esistenti, l'assistente deve
+  preservare i commenti già presenti, a meno che le modifiche stesse non
+  li rendano obsoleti o errati.
+
+- Tutte le funzioni di update che modificano posizioni, timer o valori
+  nel tempo devono utilizzare il delta time (differenza temporale dal
+  frame precedente) per garantire la frame-rate independence. Non si
+  devono usare valori fissi per frame.
+
+## Spiegazione delle meccaniche durante l’implementazione
+
+Prima di ogni modifica al codice, l'assistente fornirà una breve
+spiegazione che copra:
+
+- **Cosa stiamo per implementare** e in che modo si inserisce nel loop
+  di gioco attuale.
+
+- **Quali dinamiche di gameplay introduce o modifica**, e quali nuove
+  scelte o vincoli crea per il giocatore.
+
+- **Come si riflette sull'interfaccia o sul mondo visibile** (feedback
+  visivo, nuovi elementi grafici, cambiamenti nella percezione dello
+  stato del gioco). Anche gli strumenti di debug vengono descritti con
+  il loro impatto visivo attuale e il potenziale riutilizzo futuro come
+  meccaniche di gioco, mantenendo un chiaro distinguo tra "debug" e
+  "gameplay".
+
+- **Funzionalità di debug**: anche gli strumenti di debug
+  (visualizzazioni temporanee, tooltip di test, overlay informativi)
+  vengono descritti con il loro impatto attuale e il potenziale
+  riutilizzo futuro come meccaniche di gioco, mantenendo sempre un
+  chiaro distinguo tra "debug" e "gameplay".
+
+- **Spiegazione del codice fornito**: ogni volta che l'assistente
+  fornisce un blocco di codice (un intero file o una porzione da
+  incollare), lo accompagnerà con una breve spiegazione in linguaggio
+  semplice di cosa fa quel codice, qual è la logica generale e come si
+  collega al resto del sistema. Questa spiegazione è aggiuntiva rispetto
+  ai commenti già presenti nel codice e serve a dare una visione
+  d'insieme prima di entrare nei dettagli implementativi.
+
+Questo approccio garantisce che ogni decisione implementativa sia
+consapevole e allineata ai pilastri del design, e che il prototipo
+evolva in modo coerente.
+
+Inoltre, darà **istruzioni passo passo** per l’implementazione, cioè un
+elenco operativo per l'utente, scritto in linguaggio semplice, che
+include:
+
+- Quali file aprire in VS Code.
+
+- Cosa incollare esattamente e in quale punto del file.
+
+- Quali tasti premere (es. Ctrl+S per salvare).
+
+- Come eseguire i test manuali per verificare il funzionamento.
+
+In questo modo ogni modifica è comprensibile anche a un non tecnico e
+immediatamente testabile.
+
+## Checklist di test al termine di ogni batch
+
+Alla fine di ogni sessione di implementazione, l'assistente fornirà una
+checklist di test manuali per verificare che quanto sviluppato funzioni
+correttamente. La checklist includerà:
+
+- Azioni specifiche da compiere nel gioco (es. "clicca su una cella
+  verde").
+
+- Il comportamento atteso (es. "il pop deve iniziare a muoversi verso la
+  cella").
+
+- Eventuali controlli nella console del browser (es. "non devono
+  apparire errori rossi").
+
+L'utente eseguirà i test e segnalerà eventuali anomalie prima di
+procedere al commit.
+
+## Aggiornamento della documentazione al termine di ogni sessione
+
+Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
+
+- Verificare se i documenti di design (GDD, roadmap, concept) devono
+  essere aggiornati per riflettere le nuove meccaniche implementate o le
+  decisioni prese durante la sessione.
+
+- Aggiornare il TECHNICAL.md se sono state introdotte nuove strutture
+  dati, funzioni o pattern architetturali.
+
+- Fare commit e push di tutti i file modificati (codice e
+  documentazione) con un messaggio chiaro.
+
+# Riferimenti incrociati
+
+- I documenti di design completi (Concept Semplificato, Concept
+  Completo, Roadmap, GDD Esteso) costituiscono la specifica di
+  riferimento per il comportamento del gioco.
+
+- Questo documento descrive l'implementazione tecnica e deve essere
+  aggiornato ogni volta che viene presa una decisione architetturale
+  rilevante.
+
+SYNC: 112
+
+```
+
+## FILE: css\style.css
+```
+/* Reset and center the game canvas */
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000; /* black background while canvas loads */
+    overflow: hidden;       /* prevent scrollbars if canvas is bigger than window */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    display: block;         /* remove extra space below canvas */
+}
+```
+
+## FILE: index.html
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dinastia - Prototype</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Load Phaser 3 from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+</head>
+<body>
+    <!-- The game canvas will be created here automatically by Phaser -->
+    <script src="js/world.js"></script>
+    <script src="js/units.js"></script>
+    <script src="js/resources.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/time.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
+```
+
+## FILE: js\main.js
+```
+// main.js - Entry point for the game prototype
+// Creates the Phaser game instance and the initial scene.
+
+const config = {
+    type: Phaser.AUTO,       // Use WebGL if available, fallback to Canvas
+    width: 1280,              // Game width in pixels
+    height: 720,             // Game height in pixels
+    backgroundColor: '#1a1a2e', // Dark blue-grey background for the game world
+    parent: document.body,   // Attach the canvas to the body
+    scene: {
+        preload: preload,    // Function to load assets (images, sounds)
+        create: create,      // Function to set up the initial game state
+        update: update       // Function called every frame (game loop)
+    }
+};
+
+// Create the Phaser game instance
+const game = new Phaser.Game(config);
+
+// Camp position (visual placeholder, functionality comes later)
+const CAMP_X = 100;
+const CAMP_Y = 100;
+
+// Global references for the game scene (set in create)
+let gameScene;
+let popGraphics;
+let myPop;
+let selectedPop = null;   // currently selected pop (left-click to select)
+let gridGraphics;  // reference to grid graphics for dynamic updates
+
+// Enable click: left-click to select pop, right-click to move selected pop,
+// Shift+left-click to inspect cell (debug).
+function enableDebugClick(scene) {
+    // Prevent the browser's right-click context menu on the canvas
+    scene.input.mouse.disableContextMenu();
+
+    // ---- LEFT CLICK (or touch) ----
+    scene.input.on('pointerdown', function (pointer) {
+        // Ignore right-click here, it's handled separately
+        if (pointer.rightButtonDown()) return;
+
+        // Shift+left-click: inspect cell (debug)
+        if (pointer.event.shiftKey) {
+            const cell = worldToCell(pointer.x, pointer.y);
+            const cx = cell.cx;
+            const cy = cell.cy;
+            if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                const cellData = getCell(cx, cy);
+                const density = cellData.forageDensity;
+                console.log(`Cell (${cx}, ${cy}) - Forage Density: ${density.toFixed(4)}`);
+                const infoText = scene.add.text(
+                    pointer.x + 15,
+                    pointer.y - 15,
+                    `Cell: ${cx}, ${cy}\nForage: ${(density * 100).toFixed(1)}%`,
+                    {
+                        fontSize: '12px',
+                        fill: '#ffffff',
+                        backgroundColor: '#000000aa',
+                        padding: { x: 4, y: 2 }
+                    }
+                ).setDepth(100);
+                scene.time.delayedCall(2000, function () {
+                    infoText.destroy();
+                });
+            }
+            return;
+        }
+
+        // Normal left-click: attempt to select a pop under cursor
+        let clickedPop = null;
+        for (const pop of pops) {
+            const dist = Phaser.Math.Distance.Between(pointer.x, pointer.y, pop.x, pop.y);
+            if (dist < 10) {
+                clickedPop = pop;
+                break;
+            }
+        }
+
+        if (clickedPop) {
+            selectedPop = clickedPop;
+            console.log(`Pop selected. Position: (${selectedPop.x.toFixed(0)}, ${selectedPop.y.toFixed(0)}), State: ${selectedPop.state}`);
+        }
+        // If clicked on empty ground, do nothing (keep current selection)
+    });
+
+    // ---- RIGHT CLICK ----
+    scene.input.on('pointerdown', function (pointer) {
+        if (!pointer.rightButtonDown()) return;
+
+        if (!selectedPop) {
+            console.log('No pop selected. Left-click a pop first.');
+            return;
+        }
+
+        // Check if target cell has forage density
+        const targetCell = worldToCell(pointer.x, pointer.y);
+        const targetCellData = getCell(targetCell.cx, targetCell.cy);
+        const density = targetCellData.forageDensity;
+
+        if (density > 0) {
+            // Set task to forage, will start automatically on arrival
+            selectedPop.task = { type: 'forage', location: { x: pointer.x, y: pointer.y } };
+            selectedPop.moveTo(pointer.x, pointer.y);
+            console.log(`Moving pop to forage at (${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)}), density: ${(density * 100).toFixed(1)}%`);
+        } else {
+            // No forage here, just move
+            selectedPop.task = null;
+            selectedPop.moveTo(pointer.x, pointer.y);
+            console.log(`Moving pop to (${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)}) - no forage`);
+        }
+
+        // Destination marker
+        const marker = scene.add.circle(pointer.x, pointer.y, 5, 0xffffff, 0.5).setDepth(50);
+        scene.time.delayedCall(1000, function () {
+            marker.destroy();
+        });
+    });
+}
+
+// preload: load any external assets (images, spritesheets, etc.)
+// For now, we have no assets, so this function is empty.
+function preload() {
+    // nothing to load yet
+}
+
+// create: called once after preload. We set up the initial scene.
+function create() {
+    // Initialize the spatial grid and forage density
+    createGrid();
+    initializeForageDensity();
+
+    // Debug visualization: draw each cell as a colored rectangle
+    const graphics = this.add.graphics();
+    gridGraphics = graphics;  // store reference
+
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            const cell = getCell(cx, cy);
+            const density = cell.forageDensity;
+
+            // Choose color based on density (precise intervals)
+            let color;
+            if (density >= 0.90) {
+                color = 0x1a4d0a;  // dark green (90-100%)
+            } else if (density >= 0.75) {
+                color = 0x2d6b14;  // medium green (75-89%)
+            } else if (density >= 0.50) {
+                color = 0x4a8c1f;  // light green (50-74%)
+            } else if (density >= 0.25) {
+                color = 0xc4a80b;  // yellow (25-49%)
+            } else if (density >= 0.05) {
+                color = 0xc46e0b;  // orange (5-24%)
+            } else if (density > 0.00) {
+                color = 0x8b1a0a;  // red (0-4%)
+            } else {
+                continue; // density = 0, skip (show background)
+            }
+
+            const x = cx * CELL_SIZE;
+            const y = cy * CELL_SIZE;
+            graphics.fillStyle(color, 1); // full opacity
+            graphics.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        }
+    }
+
+    // Add debug text
+    this.add.text(10, 10, 'Debug: Forage Density Grid (green = food)', {
+        fontSize: '14px',
+        fill: '#ffffff'
+    });
+
+    // Enable debug click on cells
+    enableDebugClick(this);
+
+        // Store reference to the scene for use in update
+    gameScene = this;
+
+    // Create a Pop at the camp position
+    myPop = new Pop(CAMP_X, CAMP_Y, 10);
+    pops.push(myPop);
+    // Auto-select the only pop at start
+    selectedPop = myPop;
+
+    // Graphics object for drawing pops (circles)
+    popGraphics = this.add.graphics();
+
+    // Draw the initial pop position and camp
+    drawPops();
+    drawCamp();
+}
+
+// Draw all pops as circles on the screen
+function drawPops() {
+    if (!popGraphics) return;
+    popGraphics.clear();
+    for (const pop of pops) {
+        // White circle for the pop
+        popGraphics.fillStyle(0xffffff, 1);
+        popGraphics.fillCircle(pop.x, pop.y, 8);
+
+        // Green indicator when working
+        if (pop.state === 'working') {
+            popGraphics.fillStyle(0x00ff00, 0.6);
+            popGraphics.fillCircle(pop.x, pop.y, 5);
+        }
+
+        // Yellow ring around selected pop
+        if (pop === selectedPop) {
+            popGraphics.lineStyle(2, 0xffff00, 0.8);
+            popGraphics.strokeCircle(pop.x, pop.y, 10);
+        }
+
+        // Thin line to target if moving
+        if (pop.state === 'moving') {
+            popGraphics.lineStyle(1, 0xffffff, 0.3);
+            popGraphics.beginPath();
+            popGraphics.moveTo(pop.x, pop.y);
+            popGraphics.lineTo(pop.targetX, pop.targetY);
+            popGraphics.strokePath();
+        }
+    }
+}
+
+// Draw the camp as a visual placeholder
+function drawCamp() {
+    if (!gameScene) return;
+    const campGraphics = gameScene.add.graphics();
+    // Brown square for the camp
+    campGraphics.fillStyle(0x8b5e3c, 1);
+    campGraphics.fillRect(CAMP_X - 15, CAMP_Y - 15, 30, 30);
+    // Border
+    campGraphics.lineStyle(2, 0xc4a46c, 1);
+    campGraphics.strokeRect(CAMP_X - 15, CAMP_Y - 15, 30, 30);
+
+    // Label
+    gameScene.add.text(CAMP_X, CAMP_Y - 25, 'CAMP', {
+        fontSize: '12px',
+        fill: '#ffffff',
+        backgroundColor: '#00000088',
+        padding: { x: 3, y: 1 }
+    }).setOrigin(0.5, 0.5);
+}
+
+// Redraw the grid colors based on current densities
+function drawGrid() {
+    // We need to keep a reference to the grid graphics
+    if (!gameScene || !gridGraphics) return;
+    gridGraphics.clear();
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            const cell = getCell(cx, cy);
+            const density = cell.forageDensity;
+
+            let color;
+            if (density >= 0.90) {
+                color = 0x1a4d0a;
+            } else if (density >= 0.75) {
+                color = 0x2d6b14;
+            } else if (density >= 0.50) {
+                color = 0x4a8c1f;
+            } else if (density >= 0.25) {
+                color = 0xc4a80b;
+            } else if (density >= 0.05) {
+                color = 0xc46e0b;
+            } else if (density > 0.00) {
+                color = 0x8b1a0a;
+            } else {
+                continue;
+            }
+
+            const x = cx * CELL_SIZE;
+            const y = cy * CELL_SIZE;
+            gridGraphics.fillStyle(color, 1);
+            gridGraphics.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        }
+    }
+}
+
+// update: called every frame (about 60 times per second).
+// time: the current time in milliseconds since the game started.
+// delta: the time difference since the last frame in milliseconds.
+function update(time, delta) {
+    // Convert delta from ms to seconds for consistent movement speed
+    const deltaSec = delta / 1000;
+
+    // Update all pops
+    for (const pop of pops) {
+        pop.update(deltaSec);
+    }
+
+    // Redraw pops at new positions
+    drawPops();
+    drawGrid();   // update grid colors
+}
+
+```
+
+## FILE: js\resources.js
+```
+
+```
+
+## FILE: js\time.js
+```
+
+```
+
+## FILE: js\ui.js
+```
+
+```
+
+## FILE: js\units.js
+```
+// units.js - Mobile entities: Pop (group of people) and Herd (animals, future)
+
+// ---- Pop class ----
+// Represents a group of people that can move and perform tasks.
+
+class Pop {
+    /**
+     * @param {number} x - starting world x position (pixels)
+     * @param {number} y - starting world y position (pixels)
+     * @param {number} population - number of individuals in this group
+     */
+    constructor(x, y, population = 10) {
+        this.id = 'pop_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        this.type = 'pop';
+        this.x = x;
+        this.y = y;
+        this.population = population;
+
+        // Movement
+        this.targetX = x;      // destination x (pixels)
+        this.targetY = y;      // destination y (pixels)
+        this.speed = 80;       // pixels per second at 1x speed
+        this.state = 'idle';   // 'idle' | 'moving' | 'working'
+
+        // Task and inventory (used in future batches)
+        this.task = null;      // { type: string, location: {x, y} }
+        this.inventory = { food: 0, wood: 0 };
+        this.rations = 0;      // food carried for the journey (future)
+    }
+
+    /**
+     * Set a new movement destination.
+     * @param {number} worldX
+     * @param {number} worldY
+     */
+    moveTo(worldX, worldY) {
+        this.targetX = worldX;
+        this.targetY = worldY;
+        this.state = 'moving';
+    }
+
+    /**
+     * Update the pop's position each frame.
+     * @param {number} delta - time since last frame in seconds (game time)
+     */
+    update(delta) {
+        if (this.state === 'moving') {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 2) {
+                // Arrived at destination
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.state = 'idle';
+                // If there is a pending task, start it automatically
+                if (this.task && this.task.type) {
+                    this.state = 'working';
+                    console.log(`Pop started ${this.task.type} at (${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
+                }
+                return;
+            }
+
+            // Move towards target
+            const step = this.speed * delta;
+            const ratio = Math.min(step / dist, 1);
+            this.x += dx * ratio;
+            this.y += dy * ratio;
+        } else if (this.state === 'working') {
+            if (!this.task || !this.task.type) {
+                this.state = 'idle';
+                return;
+            }
+
+            // Execute task based on type
+            if (this.task.type === 'forage') {
+                // Check if inventory is full
+                if (this.inventory.food >= 20) {
+                    console.log('Inventory full, stop foraging.');
+                    this.state = 'idle';
+                    this.task = null;
+                    return;
+                }
+
+                const cell = worldToCell(this.x, this.y);
+                const cellData = getCell(cell.cx, cell.cy);
+                const density = cellData.forageDensity;
+
+                if (density <= 0) {
+                    console.log('Cell exhausted, stop foraging.');
+                    this.state = 'idle';
+                    this.task = null;
+                    return;
+                }
+
+                // Gather rate: density * 1.5 food per second
+                const gatherRate = density * 1.5 * delta;
+                this.inventory.food += gatherRate;
+
+                // Reduce local density
+                modifyDensity(this.x, this.y, 'forageDensity', -0.1 * delta, CELL_SIZE * 0.8);
+            }
+        }
+    }
+
+        /**
+     * Start a task at the current location.
+     * @param {string} taskType - type of task ('forage', 'gatherWood', etc.)
+     */
+    startTask(taskType) {
+        this.task = {
+            type: taskType,
+            location: { x: this.x, y: this.y }
+        };
+        this.state = 'working';
+        console.log(`Pop ${this.id} started task: ${taskType}`);
+    }
+}
+
+// ---- Global list of pops (for prototype simplicity) ----
+const pops = [];
+```
+
+## FILE: js\world.js
+```
+// world.js - Spatial grid and density layers for natural resources
+// Uses a hidden square grid to optimize spatial queries and store density values.
+
+// ---- Constants ----
+const CELL_SIZE = 64;           // pixels per cell
+const GRID_COLS = Math.ceil(1280 / CELL_SIZE);  // 20 columns
+const GRID_ROWS = Math.ceil(720 / CELL_SIZE);   // 12 rows
+
+// ---- Grid data structure ----
+// A 2D array of cell objects. Each cell has:
+//   x, y   - grid coordinates (integer)
+//   entities - array of mobile entities currently in this cell (empty for now)
+//   forageDensity - float 0..1 (vegetation / small game / fish combined for MVP1)
+const grid = [];
+
+// ---- Functions ----
+
+// Convert world pixel coordinates to grid cell coordinates.
+function worldToCell(worldX, worldY) {
+    const cx = Math.floor(worldX / CELL_SIZE);
+    const cy = Math.floor(worldY / CELL_SIZE);
+    return { cx, cy };
+}
+
+// Get the cell at given grid coordinates. Creates it if it doesn't exist.
+function getCell(cx, cy) {
+    if (!grid[cy]) {
+        grid[cy] = [];
+    }
+    if (!grid[cy][cx]) {
+        grid[cy][cx] = {
+            cx: cx,
+            cy: cy,
+            entities: [],
+            forageDensity: 0.0
+        };
+    }
+    return grid[cy][cx];
+}
+
+// Initialize the grid for all cells within the visible area.
+function createGrid() {
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            getCell(cx, cy); // ensures the cell exists
+        }
+    }
+}
+
+// Set initial forage density values to create visible "food zones".
+// This is a simple procedural generation: a few patches of high density.
+function initializeForageDensity() {
+    // Helper to set density for a circular patch
+    function setPatch(centerCX, centerCY, radius, peakDensity) {
+        for (let cy = 0; cy < GRID_ROWS; cy++) {
+            for (let cx = 0; cx < GRID_COLS; cx++) {
+                const dist = Math.sqrt((cx - centerCX) ** 2 + (cy - centerCY) ** 2);
+                if (dist <= radius) {
+                    const cell = getCell(cx, cy);
+                    // Linear falloff from peak at center to 0 at edge
+                    const density = peakDensity * (1 - dist / radius);
+                    cell.forageDensity = Math.max(cell.forageDensity, density);
+                }
+            }
+        }
+    }
+
+    // Define some food patches (centerX, centerY, radius, peakDensity)
+    setPatch(5, 3, 4, 0.9);    // Large rich patch
+    setPatch(14, 7, 3, 0.7);   // Medium patch
+    setPatch(3, 9, 2, 0.5);    // Small patch
+    setPatch(10, 2, 2, 0.4);   // Sparse patch
+    setPatch(17, 4, 3, 0.8);   // Another rich patch
+}
+
+// Query entities within a radius of a world position.
+// For now, just returns an empty array (no entities yet).
+function getEntitiesInRadius(worldX, worldY, radius) {
+    // Future implementation: query grid cells and filter by distance.
+    return [];
+}
+
+// Modify density of a specific layer around a world position.
+// layer: string name of the density property (e.g., 'forageDensity').
+// amount: negative to reduce, positive to add.
+// impactRadius: world pixels radius of the modification area.
+function modifyDensity(worldX, worldY, layer, amount, impactRadius) {
+    const center = worldToCell(worldX, worldY);
+    const cellRadius = Math.ceil(impactRadius / CELL_SIZE);
+
+    for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+        for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+            const cx = center.cx + dx;
+            const cy = center.cy + dy;
+            if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                const cell = getCell(cx, cy);
+                const dist = Math.sqrt(dx * dx + dy * dy) * CELL_SIZE;
+                if (dist <= impactRadius) {
+                    // Linear falloff
+                    const factor = 1 - dist / impactRadius;
+                    cell[layer] = Math.max(0, Math.min(1, cell[layer] + amount * factor));
+                }
+            }
+        }
+    }
+}
+```

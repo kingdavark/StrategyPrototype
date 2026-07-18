@@ -26,6 +26,7 @@ let gameScene;
 let popGraphics;
 let myPop;
 let selectedPop = null;   // currently selected pop (left-click to select)
+let gridGraphics;  // reference to grid graphics for dynamic updates
 
 // Enable click: left-click to select pop, right-click to move selected pop,
 // Shift+left-click to inspect cell (debug).
@@ -33,12 +34,12 @@ function enableDebugClick(scene) {
     // Prevent the browser's right-click context menu on the canvas
     scene.input.mouse.disableContextMenu();
 
-    // Left mouse button (button 0) or touch
+    // ---- LEFT CLICK (or touch) ----
     scene.input.on('pointerdown', function (pointer) {
         // Ignore right-click here, it's handled separately
         if (pointer.rightButtonDown()) return;
 
-        // Shift+click: inspect cell (debug)
+        // Shift+left-click: inspect cell (debug)
         if (pointer.event.shiftKey) {
             const cell = worldToCell(pointer.x, pointer.y);
             const cx = cell.cx;
@@ -78,12 +79,11 @@ function enableDebugClick(scene) {
         if (clickedPop) {
             selectedPop = clickedPop;
             console.log(`Pop selected. Position: (${selectedPop.x.toFixed(0)}, ${selectedPop.y.toFixed(0)}), State: ${selectedPop.state}`);
-        } else {
-            // Clicked on empty ground: optionally deselect? We'll leave selection unchanged.
         }
+        // If clicked on empty ground, do nothing (keep current selection)
     });
 
-    // Right mouse button: move the selected pop to target
+    // ---- RIGHT CLICK ----
     scene.input.on('pointerdown', function (pointer) {
         if (!pointer.rightButtonDown()) return;
 
@@ -92,8 +92,22 @@ function enableDebugClick(scene) {
             return;
         }
 
-        selectedPop.moveTo(pointer.x, pointer.y);
-        console.log(`Moving pop to (${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)})`);
+        // Check if target cell has forage density
+        const targetCell = worldToCell(pointer.x, pointer.y);
+        const targetCellData = getCell(targetCell.cx, targetCell.cy);
+        const density = targetCellData.forageDensity;
+
+        if (density > 0) {
+            // Set task to forage, will start automatically on arrival
+            selectedPop.task = { type: 'forage', location: { x: pointer.x, y: pointer.y } };
+            selectedPop.moveTo(pointer.x, pointer.y);
+            console.log(`Moving pop to forage at (${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)}), density: ${(density * 100).toFixed(1)}%`);
+        } else {
+            // No forage here, just move
+            selectedPop.task = null;
+            selectedPop.moveTo(pointer.x, pointer.y);
+            console.log(`Moving pop to (${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)}) - no forage`);
+        }
 
         // Destination marker
         const marker = scene.add.circle(pointer.x, pointer.y, 5, 0xffffff, 0.5).setDepth(50);
@@ -117,6 +131,8 @@ function create() {
 
     // Debug visualization: draw each cell as a colored rectangle
     const graphics = this.add.graphics();
+    gridGraphics = graphics;  // store reference
+
     for (let cy = 0; cy < GRID_ROWS; cy++) {
         for (let cx = 0; cx < GRID_COLS; cx++) {
             const cell = getCell(cx, cy);
@@ -182,6 +198,12 @@ function drawPops() {
         popGraphics.fillStyle(0xffffff, 1);
         popGraphics.fillCircle(pop.x, pop.y, 8);
 
+        // Green indicator when working
+        if (pop.state === 'working') {
+            popGraphics.fillStyle(0x00ff00, 0.6);
+            popGraphics.fillCircle(pop.x, pop.y, 5);
+        }
+
         // Yellow ring around selected pop
         if (pop === selectedPop) {
             popGraphics.lineStyle(2, 0xffff00, 0.8);
@@ -219,6 +241,41 @@ function drawCamp() {
     }).setOrigin(0.5, 0.5);
 }
 
+// Redraw the grid colors based on current densities
+function drawGrid() {
+    // We need to keep a reference to the grid graphics
+    if (!gameScene || !gridGraphics) return;
+    gridGraphics.clear();
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            const cell = getCell(cx, cy);
+            const density = cell.forageDensity;
+
+            let color;
+            if (density >= 0.90) {
+                color = 0x1a4d0a;
+            } else if (density >= 0.75) {
+                color = 0x2d6b14;
+            } else if (density >= 0.50) {
+                color = 0x4a8c1f;
+            } else if (density >= 0.25) {
+                color = 0xc4a80b;
+            } else if (density >= 0.05) {
+                color = 0xc46e0b;
+            } else if (density > 0.00) {
+                color = 0x8b1a0a;
+            } else {
+                continue;
+            }
+
+            const x = cx * CELL_SIZE;
+            const y = cy * CELL_SIZE;
+            gridGraphics.fillStyle(color, 1);
+            gridGraphics.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        }
+    }
+}
+
 // update: called every frame (about 60 times per second).
 // time: the current time in milliseconds since the game started.
 // delta: the time difference since the last frame in milliseconds.
@@ -233,4 +290,5 @@ function update(time, delta) {
 
     // Redraw pops at new positions
     drawPops();
+    drawGrid();   // update grid colors
 }
