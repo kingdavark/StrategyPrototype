@@ -191,15 +191,22 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
   disponibili nell’accampamento) da mandare a raccogliere una specifica
   risorsa
 
-- Il giocatore può cliccare sull'accampamento per ordinare al pop di
-  tornare e scaricare il cibo raccolto. Tendenzialmente però i pop fanno
-  avanti e indietro in automatico
-
 - Un contatore globale mostra le scorte di cibo della tribù.
 
-- Introduzione del consumo: ogni giorno di gioco (intervallo
-  configurabile) una quantità di cibo viene sottratta dalle scorte in
-  base al numero di pop presenti.
+- Introduzione del consumo: Ogni giorno di gioco, una quantità di cibo
+  viene consumata dalle scorte in base alla popolazione totale (campo +
+  spedizioni).
+
+<!-- -->
+
+- Quando l'inventario è pieno o le provviste sono insufficienti per il
+  ritorno, la spedizione torna automaticamente al campo, deposita il
+  cibo nelle scorte globali, e i lavoratori rientrano nel Pop.
+
+- Dopo un breve cooldown, la spedizione riparte automaticamente verso la
+  stessa area, se ci sono ancora lavoratori disponibili.
+
+<!-- -->
 
 - Se le scorte arrivano a zero, per ora viene mostrato un avviso; in
   futuro comporterà la morte dei pop.
@@ -212,27 +219,54 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 **Batch 6 – Controlli del tempo (pausa, play, velocità)**
 
-- Implementazione del TimeManager (time.js).
+- Implementazione del **TimeManager** (time.js): tre velocità di
+  simulazione (1x, 2x, pausa). La raccolta, il movimento, il consumo e
+  la rigenerazione dipendono dal tempo di gioco effettivo.
 
-- Tre velocità di simulazione: 1x (normale), 2x (accelerata), 0x
-  (pausa).
+- Interfaccia minima per i controlli del tempo: pulsanti UI o tasti
+  rapidi (es. spazio per pausa, +/- per velocità).
 
-- Interfaccia minima: pulsanti o tasti per cambiare velocità.
+- **Pannello di debug** (rudimentale, via UI o console):
 
-- La raccolta, il movimento e il consumo dipendono dal tempo di gioco
-  effettivo, non dal framerate.
+  - Visualizzare e modificare in tempo reale le variabili chiave: tasso
+    di consumo cibo, velocità raccolta, soglia di abbandono, cooldown
+    riposo spedizioni, raggio di raccolta.
 
-- Meccanica: il giocatore può mettere in pausa per pianificare con
-  calma, o accelerare quando non ci sono decisioni urgenti. Questo è il
-  primo passo verso il pilastro "tempo reale con controllo del ritmo".
+  - Modificare anche le scorte di cibo e la popolazione per test rapidi.
+
+  - Rendere dinamiche queste variabili nel codice, in modo da poi
+    andarle a cambiare solo in un punto
+
+- **Selezione e ispezione delle spedizioni:**
+
+  - Click sinistro su una spedizione attiva (cerchio bianco sulla mappa)
+    per selezionarla.
+
+  - Visualizzazione delle informazioni base: numero lavoratori,
+    provviste, inventario, stato, area di raccolta.
+
+  - L'area di raccolta assegnata e il percorso seguito vengono
+    evidenziati sulla mappa (es. cerchio tratteggiato).
+
+- **Cancellazione di una spedizione:**
+
+  - Comando "cancella spedizione" (tasto o pulsante) quando una
+    spedizione è selezionata.
+
+  - La spedizione interrompe la raccolta, torna immediatamente al campo,
+    deposita il cibo già raccolto, e i lavoratori rientrano nel Pop.
+
+- **Ribilanciamento**: definire la durata di un giorno e settare tutti i
+  consumi su consumo/giorno
+
+- **Meccanica:** il giocatore può ora gestire attivamente le spedizioni
+  e bilanciare i parametri di gioco per testare il loop di sopravvivenza
+  in varie condizioni.
 
 **Batch 7 – Rigenerazione base del cibo**
 
 - Le celle con forageDensity si rigenerano lentamente nel tempo (es. una
   piccola frazione al giorno).
-
-- La rigenerazione è più rapida in celle con densità bassa, per simulare
-  la ricrescita naturale.
 
 - Una zona completamente esaurita (densità zero) impiega più tempo a
   iniziare a rigenerare.
@@ -240,6 +274,12 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 - Meccanica: il giocatore non può esaurire una zona per sempre, ma deve
   ruotare le aree di raccolta per non restare senza cibo. Questo
   introduce una prima forma di gestione sostenibile delle risorse.
+
+- Nota: la rigenerazione qui implementata sarà una versione semplificata
+  e temporanea. In futuro sarà legata alla tipologia di terreno e
+  seguirà una curva di crescita più realistica (rigenerazione più rapida
+  a densità più alte). I valori attuali andranno poi bilanciati tramite
+  il pannello di debug (Batch 6).
 
 **Dopo il Batch 7\
 Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
@@ -256,20 +296,70 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
 
 **NOTE FINE MVP1**
 
-- Tool per disegnare la mappa (apporre foreste, pesci, gathering food
-  ecc. con dei pennelli) \[è forse troppo presto\]
+1.  Tool per disegnare la mappa (apporre foreste, pesci, gathering food
+    ecc. con dei pennelli) \[è forse troppo presto\]
 
-- Creazione di algoritmo per creazione foreste e cibo in base a
-  tipologia terreno delle celle \[anche questo forse da vedere più
-  avanti\]
+2.  Creazione di algoritmo per creazione foreste e cibo in base a
+    tipologia terreno delle celle \[anche questo forse da vedere più
+    avanti\]
 
-- Non abbiamo minimamente lavorato sulla tipologia del terreno
-  (montagna, acqua, acqua profonda, collina, pianura) e le
-  caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base
-  del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque,
-  le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da
-  forse vedere subito dopo MVP1? Implementiamo già diversi layer di
-  visualizzazione (terreno, cibo, risorse varie ecc.)?
+3.  Non abbiamo minimamente lavorato sulla tipologia del terreno
+    (montagna, acqua, acqua profonda, collina, pianura) e le
+    caratteristiche di esso (foresta, erba ecc.). Questo perché sulla
+    base del tipo di terreno poi dipende il cibo (la pesca è solo nelle
+    acque, le aree di pianura con erba vicino ai fiumi hanno più cibo
+    ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi
+    layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
+
+4.  Spedizioni multi-pop con dinamiche di coesione interna (es.
+    conflitti o collaborazioni tra individui di etnie/religioni diverse
+    nello stesso gruppo).
+
+5.  Campo base che si sposta fisicamente sulla mappa durante le
+    migrazioni o il nomadismo, e conseguente aggiornamento del punto di
+    ritorno per le spedizioni attive.
+
+6.  Rotazione automatica delle aree di raccolta da parte delle
+    spedizioni, per evitare l'impoverimento permanente di una singola
+    zona (comportamento di raccolta più conservativo e sostenibile).
+
+7.  Algoritmo di raccolta con priorità alle celle a media densità (es.
+    0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
+
+8.  Rigenerazione e “fertilità” celle sulla base anche del terreno
+
+9.  Meccaniche di frizione/resistenza al cambio di pop della popolazione
+    (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso,
+    tipo uomini giovani infelice se assegnati a gathering perché
+    disonorevole). Da capire come fare distinzione popolazione per sesso
+    ma soprattutto per età senza dover monitorare ogni singolo abitante
+
+10. Icone diverse per tipologia di pop con di fianco barre informative
+    (tipo provviste o che)
+
+11. Giocatore seleziona manualmente il numero di pop da mandare in
+    spedizione (con anche tasti rapidi di scelta)
+
+12. Aggiungere crescita demografica: più cibo c’è, più la popolazione
+    cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione
+    finisce scorte, iniziano a morire o a consumare cibo raccolto
+
+13. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno
+    di partenza e con che tecnologie? In quanti anni arrivare a creare
+    una città, in modo che il gioco non risulti troppo lento e noioso
+    all’inizio (ma senza nemmeno fare come civilization che dura questa
+    età come una roba da 10 minuti). Vogliamo fare che in realtà è un
+    gruppo di superstiti che riparte e recupera le tecnologie già
+    apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi
+    tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo
+    andare sul lungo termine come civilization 4 cavemen to cosmos e
+    quindi comunque rendere intriganti le meccaniche di sopravvivenza
+    della tribù (e praticamente fare solo un gioco su questo, magari
+    come primo titolo di una serie)
+
+14. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
+    unità e meccaniche intorno e link di timeline del progresso (wiki e
+    altri link se funzionano)
 
 **MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)**
 

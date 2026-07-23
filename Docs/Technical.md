@@ -84,6 +84,136 @@ La griglia è memorizzata in un array 2D o in una Map con chiave "cx,cy".
 
 # Entità mobili
 
+## Camp
+
+L'accampamento è il punto di riferimento della tribù. Contiene:
+
+- \`foodStock\` – scorte globali di cibo.
+
+- \`unassignedPopulation\` – numero di individui non ancora assegnati a
+  nessun Pop.
+
+- \`pops\` – lista di Pop (gruppi specializzati) presenti al campo.
+
+- \`expeditions\` – lista delle spedizioni attive.
+
+All'inizio del gioco, tutta la popolazione è \`unassignedPopulation\`.
+Quando il giocatore crea una spedizione, una parte di essa viene
+assegnata a un Pop (es. Gatherers) e contestualmente parte la
+spedizione.
+
+## Pop
+
+Un Pop rappresenta un insieme di individui con le stesse caratteristiche
+(occupazione, cultura, religione, status). Per il prototipo attuale,
+l'unica occupazione è "Gatherers".
+
+Proprietà:
+
+- \`type\` – es. 'gatherer'
+
+- \`totalWorkers\` – numero totale di individui che appartengono a
+  questo Pop.
+
+- \`availableWorkers\` – lavoratori attualmente al campo, pronti per
+  essere mandati in spedizione. Includono anche i lavoratori
+  "disoccupati" che non sono attualmente in viaggio, sia perché sono a
+  riposo, sia perché non sono legati ad alcuna spedizione. Non tornano
+  automaticamente al pool unassignedPopulation; solo un'azione esplicita
+  del giocatore (non ancora implementata) potrebbe riconvertirli.
+
+- \`assignedWorkers\` – lavoratori attualmente in spedizione.
+
+Quando una spedizione torna, i lavoratori rientrano in
+\`availableWorkers\`. Se una spedizione viene cancellata, i lavoratori
+possono tornare al pool \`unassignedPopulation\` (riconvertiti in
+popolazione generica).
+
+In futuro, potranno esistere più Pop con diverse specializzazioni
+(cacciatori, pescatori, artigiani) e anche con diverse etnie/religioni.
+Spedizioni miste (individui da più Pop) saranno possibili quando
+introdurremo la possibilità di comporre gruppi eterogenei (MVP2+).
+
+## Expedition
+
+Una spedizione è un'entità mobile sulla mappa, creata prelevando \`n\`
+lavoratori da un Pop (o dalla popolazione non assegnata, creando il Pop
+al volo).
+
+Proprietà:
+
+- \`id\` – identificativo univoco.
+
+- \`popType\` – tipo di Pop da cui proviene (es. 'gatherer').
+
+- \`workerCount\` – numero di individui in questa spedizione.
+
+- \`state\` – 'travellingToArea', 'gathering', 'returningToCamp',
+  'resting'.
+
+- \`inventory\` – quantità di cibo raccolto (e in futuro altre risorse).
+
+- \`provisions\` – cibo portato per il viaggio, consumato durante il
+  tragitto e la raccolta.
+
+- \`areaCenter\` – {x, y} centro dell'area di raccolta assegnata.
+
+- \`areaRadius\` – raggio dell'area di raccolta (es. 150 pixel).
+
+- \`campRef\` – riferimento all'accampamento per il ritorno.
+
+- \`cooldownRemaining\` – secondi di riposo rimanenti dopo il rientro.
+
+### Comportamento automatico
+
+1.  **Partenza:** la spedizione riceve una quantità di provviste dalle
+    scorte del campo, proporzionale al numero di lavoratori e alla
+    distanza.
+
+2.  **Viaggio di andata:** si muove verso \`areaCenter\`.
+
+3.  **Raccolta:** arrivata all'area, la spedizione individua la cella
+    con \`forageDensity\` più alta entro il raggio. Inizia a raccogliere
+    da quella cella. Quando la densità della cella corrente scende sotto
+    una **\*\*soglia di abbandono\*\*** (inizialmente 0.2), la
+    spedizione cerca l'altra cella più vicina con la densità più elevata
+    con forageDensity maggiore di 0. Se ne trova una, si sposta e
+    riprende la raccolta. Se nessuna cella supera la soglia, continua
+    sulla cella corrente fino a esaurimento o fino a quando le provviste
+    lo permettono. Questa regola evita di distruggere completamente le
+    zone ricche, lasciandole in grado di rigenerarsi più velocemente in
+    futuro. La soglia di abbandono sarà configurabile in modalità debug
+    (Batch 6).
+
+4.  **\*\*Ritorno:\*\*** quando l'inventario è pieno o le provviste
+    scendono sotto una soglia minima per il viaggio di ritorno, la
+    spedizione torna al campo.
+
+5.  **\*\*Scarico e riposo:\*\*** arrivata al campo, deposita il cibo
+    raccolto in \`foodStock\`, i lavoratori rientrano
+    nell'\`availableWorkers\` del Pop, e la spedizione entra in stato
+    \`resting\` per un tempo configurabile (\`cooldown\`).
+
+6.  **\*\*Ripartenza:\*\*** terminato il riposo, se ci sono ancora
+    lavoratori disponibili nel Pop e l'area non è stata disattivata dal
+    giocatore, la spedizione riparte automaticamente con nuove provviste
+    verso la stessa area.
+
+### Interazione del giocatore (per ora)
+
+- Con il tasto destro su un'area di raccolta, se c'è un Pop selezionato
+  (o seleziona automaticamente il Pop Gatherers), viene creata una
+  spedizione che parte immediatamente.
+
+- Implementeremo la cancellazione in un secondo momento.
+
+**Nota a lungo termine:** in futuro, le spedizioni potranno essere
+composte da individui di Pop diversi (es. un gatherer cristiano e uno
+musulmano), e il campo potrà spostarsi. Quando il campo si sposta, tutte
+le spedizioni attive aggiorneranno il punto di ritorno alla nuova
+posizione del campo. Queste funzionalità verranno implementate dopo
+MVP1.
+
 ## Unità generica
 
 Ogni entità mobile (pop, branco) possiede almeno:
