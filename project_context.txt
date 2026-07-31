@@ -710,15 +710,22 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
   disponibili nell’accampamento) da mandare a raccogliere una specifica
   risorsa
 
-- Il giocatore può cliccare sull'accampamento per ordinare al pop di
-  tornare e scaricare il cibo raccolto. Tendenzialmente però i pop fanno
-  avanti e indietro in automatico
-
 - Un contatore globale mostra le scorte di cibo della tribù.
 
-- Introduzione del consumo: ogni giorno di gioco (intervallo
-  configurabile) una quantità di cibo viene sottratta dalle scorte in
-  base al numero di pop presenti.
+- Introduzione del consumo: Ogni giorno di gioco, una quantità di cibo
+  viene consumata dalle scorte in base alla popolazione totale (campo +
+  spedizioni).
+
+<!-- -->
+
+- Quando l'inventario è pieno o le provviste sono insufficienti per il
+  ritorno, la spedizione torna automaticamente al campo, deposita il
+  cibo nelle scorte globali, e i lavoratori rientrano nel Pop.
+
+- Dopo un breve cooldown, la spedizione riparte automaticamente verso la
+  stessa area, se ci sono ancora lavoratori disponibili.
+
+<!-- -->
 
 - Se le scorte arrivano a zero, per ora viene mostrato un avviso; in
   futuro comporterà la morte dei pop.
@@ -731,27 +738,54 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 **Batch 6 – Controlli del tempo (pausa, play, velocità)**
 
-- Implementazione del TimeManager (time.js).
+- Implementazione del **TimeManager** (time.js): tre velocità di
+  simulazione (1x, 2x, pausa). La raccolta, il movimento, il consumo e
+  la rigenerazione dipendono dal tempo di gioco effettivo.
 
-- Tre velocità di simulazione: 1x (normale), 2x (accelerata), 0x
-  (pausa).
+- Interfaccia minima per i controlli del tempo: pulsanti UI o tasti
+  rapidi (es. spazio per pausa, +/- per velocità).
 
-- Interfaccia minima: pulsanti o tasti per cambiare velocità.
+- **Pannello di debug** (rudimentale, via UI o console):
 
-- La raccolta, il movimento e il consumo dipendono dal tempo di gioco
-  effettivo, non dal framerate.
+  - Visualizzare e modificare in tempo reale le variabili chiave: tasso
+    di consumo cibo, velocità raccolta, soglia di abbandono, cooldown
+    riposo spedizioni, raggio di raccolta.
 
-- Meccanica: il giocatore può mettere in pausa per pianificare con
-  calma, o accelerare quando non ci sono decisioni urgenti. Questo è il
-  primo passo verso il pilastro "tempo reale con controllo del ritmo".
+  - Modificare anche le scorte di cibo e la popolazione per test rapidi.
+
+  - Rendere dinamiche queste variabili nel codice, in modo da poi
+    andarle a cambiare solo in un punto
+
+- **Selezione e ispezione delle spedizioni:**
+
+  - Click sinistro su una spedizione attiva (cerchio bianco sulla mappa)
+    per selezionarla.
+
+  - Visualizzazione delle informazioni base: numero lavoratori,
+    provviste, inventario, stato, area di raccolta.
+
+  - L'area di raccolta assegnata e il percorso seguito vengono
+    evidenziati sulla mappa (es. cerchio tratteggiato).
+
+- **Cancellazione di una spedizione:**
+
+  - Comando "cancella spedizione" (tasto o pulsante) quando una
+    spedizione è selezionata.
+
+  - La spedizione interrompe la raccolta, torna immediatamente al campo,
+    deposita il cibo già raccolto, e i lavoratori rientrano nel Pop.
+
+- **Ribilanciamento**: definire la durata di un giorno e settare tutti i
+  consumi su consumo/giorno
+
+- **Meccanica:** il giocatore può ora gestire attivamente le spedizioni
+  e bilanciare i parametri di gioco per testare il loop di sopravvivenza
+  in varie condizioni.
 
 **Batch 7 – Rigenerazione base del cibo**
 
 - Le celle con forageDensity si rigenerano lentamente nel tempo (es. una
   piccola frazione al giorno).
-
-- La rigenerazione è più rapida in celle con densità bassa, per simulare
-  la ricrescita naturale.
 
 - Una zona completamente esaurita (densità zero) impiega più tempo a
   iniziare a rigenerare.
@@ -759,6 +793,12 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 - Meccanica: il giocatore non può esaurire una zona per sempre, ma deve
   ruotare le aree di raccolta per non restare senza cibo. Questo
   introduce una prima forma di gestione sostenibile delle risorse.
+
+- Nota: la rigenerazione qui implementata sarà una versione semplificata
+  e temporanea. In futuro sarà legata alla tipologia di terreno e
+  seguirà una curva di crescita più realistica (rigenerazione più rapida
+  a densità più alte). I valori attuali andranno poi bilanciati tramite
+  il pannello di debug (Batch 6).
 
 **Dopo il Batch 7\
 Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
@@ -775,20 +815,70 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
 
 **NOTE FINE MVP1**
 
-- Tool per disegnare la mappa (apporre foreste, pesci, gathering food
-  ecc. con dei pennelli) \[è forse troppo presto\]
+1.  Tool per disegnare la mappa (apporre foreste, pesci, gathering food
+    ecc. con dei pennelli) \[è forse troppo presto\]
 
-- Creazione di algoritmo per creazione foreste e cibo in base a
-  tipologia terreno delle celle \[anche questo forse da vedere più
-  avanti\]
+2.  Creazione di algoritmo per creazione foreste e cibo in base a
+    tipologia terreno delle celle \[anche questo forse da vedere più
+    avanti\]
 
-- Non abbiamo minimamente lavorato sulla tipologia del terreno
-  (montagna, acqua, acqua profonda, collina, pianura) e le
-  caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base
-  del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque,
-  le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da
-  forse vedere subito dopo MVP1? Implementiamo già diversi layer di
-  visualizzazione (terreno, cibo, risorse varie ecc.)?
+3.  Non abbiamo minimamente lavorato sulla tipologia del terreno
+    (montagna, acqua, acqua profonda, collina, pianura) e le
+    caratteristiche di esso (foresta, erba ecc.). Questo perché sulla
+    base del tipo di terreno poi dipende il cibo (la pesca è solo nelle
+    acque, le aree di pianura con erba vicino ai fiumi hanno più cibo
+    ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi
+    layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
+
+4.  Spedizioni multi-pop con dinamiche di coesione interna (es.
+    conflitti o collaborazioni tra individui di etnie/religioni diverse
+    nello stesso gruppo).
+
+5.  Campo base che si sposta fisicamente sulla mappa durante le
+    migrazioni o il nomadismo, e conseguente aggiornamento del punto di
+    ritorno per le spedizioni attive.
+
+6.  Rotazione automatica delle aree di raccolta da parte delle
+    spedizioni, per evitare l'impoverimento permanente di una singola
+    zona (comportamento di raccolta più conservativo e sostenibile).
+
+7.  Algoritmo di raccolta con priorità alle celle a media densità (es.
+    0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
+
+8.  Rigenerazione e “fertilità” celle sulla base anche del terreno
+
+9.  Meccaniche di frizione/resistenza al cambio di pop della popolazione
+    (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso,
+    tipo uomini giovani infelice se assegnati a gathering perché
+    disonorevole). Da capire come fare distinzione popolazione per sesso
+    ma soprattutto per età senza dover monitorare ogni singolo abitante
+
+10. Icone diverse per tipologia di pop con di fianco barre informative
+    (tipo provviste o che)
+
+11. Giocatore seleziona manualmente il numero di pop da mandare in
+    spedizione (con anche tasti rapidi di scelta)
+
+12. Aggiungere crescita demografica: più cibo c’è, più la popolazione
+    cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione
+    finisce scorte, iniziano a morire o a consumare cibo raccolto
+
+13. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno
+    di partenza e con che tecnologie? In quanti anni arrivare a creare
+    una città, in modo che il gioco non risulti troppo lento e noioso
+    all’inizio (ma senza nemmeno fare come civilization che dura questa
+    età come una roba da 10 minuti). Vogliamo fare che in realtà è un
+    gruppo di superstiti che riparte e recupera le tecnologie già
+    apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi
+    tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo
+    andare sul lungo termine come civilization 4 cavemen to cosmos e
+    quindi comunque rendere intriganti le meccaniche di sopravvivenza
+    della tribù (e praticamente fare solo un gioco su questo, magari
+    come primo titolo di una serie)
+
+14. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
+    unità e meccaniche intorno e link di timeline del progresso (wiki e
+    altri link se funzionano)
 
 **MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)**
 
@@ -1008,6 +1098,136 @@ La griglia è memorizzata in un array 2D o in una Map con chiave "cx,cy".
 | Fertilità | fertility | Per uso futuro (agricoltura). |
 
 # Entità mobili
+
+## Camp
+
+L'accampamento è il punto di riferimento della tribù. Contiene:
+
+- \`foodStock\` – scorte globali di cibo.
+
+- \`unassignedPopulation\` – numero di individui non ancora assegnati a
+  nessun Pop.
+
+- \`pops\` – lista di Pop (gruppi specializzati) presenti al campo.
+
+- \`expeditions\` – lista delle spedizioni attive.
+
+All'inizio del gioco, tutta la popolazione è \`unassignedPopulation\`.
+Quando il giocatore crea una spedizione, una parte di essa viene
+assegnata a un Pop (es. Gatherers) e contestualmente parte la
+spedizione.
+
+## Pop
+
+Un Pop rappresenta un insieme di individui con le stesse caratteristiche
+(occupazione, cultura, religione, status). Per il prototipo attuale,
+l'unica occupazione è "Gatherers".
+
+Proprietà:
+
+- \`type\` – es. 'gatherer'
+
+- \`totalWorkers\` – numero totale di individui che appartengono a
+  questo Pop.
+
+- \`availableWorkers\` – lavoratori attualmente al campo, pronti per
+  essere mandati in spedizione. Includono anche i lavoratori
+  "disoccupati" che non sono attualmente in viaggio, sia perché sono a
+  riposo, sia perché non sono legati ad alcuna spedizione. Non tornano
+  automaticamente al pool unassignedPopulation; solo un'azione esplicita
+  del giocatore (non ancora implementata) potrebbe riconvertirli.
+
+- \`assignedWorkers\` – lavoratori attualmente in spedizione.
+
+Quando una spedizione torna, i lavoratori rientrano in
+\`availableWorkers\`. Se una spedizione viene cancellata, i lavoratori
+possono tornare al pool \`unassignedPopulation\` (riconvertiti in
+popolazione generica).
+
+In futuro, potranno esistere più Pop con diverse specializzazioni
+(cacciatori, pescatori, artigiani) e anche con diverse etnie/religioni.
+Spedizioni miste (individui da più Pop) saranno possibili quando
+introdurremo la possibilità di comporre gruppi eterogenei (MVP2+).
+
+## Expedition
+
+Una spedizione è un'entità mobile sulla mappa, creata prelevando \`n\`
+lavoratori da un Pop (o dalla popolazione non assegnata, creando il Pop
+al volo).
+
+Proprietà:
+
+- \`id\` – identificativo univoco.
+
+- \`popType\` – tipo di Pop da cui proviene (es. 'gatherer').
+
+- \`workerCount\` – numero di individui in questa spedizione.
+
+- \`state\` – 'travellingToArea', 'gathering', 'returningToCamp',
+  'resting'.
+
+- \`inventory\` – quantità di cibo raccolto (e in futuro altre risorse).
+
+- \`provisions\` – cibo portato per il viaggio, consumato durante il
+  tragitto e la raccolta.
+
+- \`areaCenter\` – {x, y} centro dell'area di raccolta assegnata.
+
+- \`areaRadius\` – raggio dell'area di raccolta (es. 150 pixel).
+
+- \`campRef\` – riferimento all'accampamento per il ritorno.
+
+- \`cooldownRemaining\` – secondi di riposo rimanenti dopo il rientro.
+
+### Comportamento automatico
+
+1.  **Partenza:** la spedizione riceve una quantità di provviste dalle
+    scorte del campo, proporzionale al numero di lavoratori e alla
+    distanza.
+
+2.  **Viaggio di andata:** si muove verso \`areaCenter\`.
+
+3.  **Raccolta:** arrivata all'area, la spedizione individua la cella
+    con \`forageDensity\` più alta entro il raggio. Inizia a raccogliere
+    da quella cella. Quando la densità della cella corrente scende sotto
+    una **\*\*soglia di abbandono\*\*** (inizialmente 0.2), la
+    spedizione cerca l'altra cella più vicina con la densità più elevata
+    con forageDensity maggiore di 0. Se ne trova una, si sposta e
+    riprende la raccolta. Se nessuna cella supera la soglia, continua
+    sulla cella corrente fino a esaurimento o fino a quando le provviste
+    lo permettono. Questa regola evita di distruggere completamente le
+    zone ricche, lasciandole in grado di rigenerarsi più velocemente in
+    futuro. La soglia di abbandono sarà configurabile in modalità debug
+    (Batch 6).
+
+4.  **\*\*Ritorno:\*\*** quando l'inventario è pieno o le provviste
+    scendono sotto una soglia minima per il viaggio di ritorno, la
+    spedizione torna al campo.
+
+5.  **\*\*Scarico e riposo:\*\*** arrivata al campo, deposita il cibo
+    raccolto in \`foodStock\`, i lavoratori rientrano
+    nell'\`availableWorkers\` del Pop, e la spedizione entra in stato
+    \`resting\` per un tempo configurabile (\`cooldown\`).
+
+6.  **\*\*Ripartenza:\*\*** terminato il riposo, se ci sono ancora
+    lavoratori disponibili nel Pop e l'area non è stata disattivata dal
+    giocatore, la spedizione riparte automaticamente con nuove provviste
+    verso la stessa area.
+
+### Interazione del giocatore (per ora)
+
+- Con il tasto destro su un'area di raccolta, se c'è un Pop selezionato
+  (o seleziona automaticamente il Pop Gatherers), viene creata una
+  spedizione che parte immediatamente.
+
+- Implementeremo la cancellazione in un secondo momento.
+
+**Nota a lungo termine:** in futuro, le spedizioni potranno essere
+composte da individui di Pop diversi (es. un gatherer cristiano e uno
+musulmano), e il campo potrà spostarsi. Quando il campo si sposta, tutte
+le spedizioni attive aggiorneranno il punto di ritorno alla nuova
+posizione del campo. Queste funzionalità verranno implementate dopo
+MVP1.
 
 ## Unità generica
 
@@ -1281,6 +1501,16 @@ spiegazione che copra:
   ai commenti già presenti nel codice e serve a dare una visione
   d'insieme prima di entrare nei dettagli implementativi.
 
+- **Ordine e completezza del codice:** le spiegazioni relative a un
+  blocco di codice devono sempre **precedere** il blocco stesso, mai
+  seguirlo. Se per brevità si omette una parte di codice (es. con
+  commenti come \`// ...\`), l'assistente deve segnalarlo esplicitamente
+  **prima** del blocco con un avviso chiaro (es. "Attenzione: il codice
+  seguente contiene una parte omessa, sostituisci solo la porzione
+  indicata"). Non si devono mai usare commenti ambigui che lascino
+  intendere "codice identico a prima", perché l'utente potrebbe copiare
+  l'intero blocco e perdere funzionalità.
+
 Questo approccio garantisce che ogni decisione implementativa sia
 consapevole e allineata ai pilastri del design, e che il prototipo
 evolva in modo coerente.
@@ -1418,22 +1648,24 @@ const CAMP_Y = 100;
 // Global references for the game scene (set in create)
 let gameScene;
 let popGraphics;
-let myPop;
-let selectedPop = null;   // currently selected pop (left-click to select)
 let gridGraphics;  // reference to grid graphics for dynamic updates
+let campGraphics;
+let dayAccumulator = 0;          // accumulator for game time in seconds
+const DAY_LENGTH = 5;            // 5 real seconds = 1 game day
+let campSelected = false;      // whether camp is currently selected
+let selectedExpedition = null; // currently selected expedition
+let infoText;                  // UI text for selected expedition info
 
 // Enable click: left-click to select pop, right-click to move selected pop,
 // Shift+left-click to inspect cell (debug).
 function enableDebugClick(scene) {
-    // Prevent the browser's right-click context menu on the canvas
     scene.input.mouse.disableContextMenu();
 
-    // ---- LEFT CLICK (or touch) ----
+    // Left click handler
     scene.input.on('pointerdown', function (pointer) {
-        // Ignore right-click here, it's handled separately
         if (pointer.rightButtonDown()) return;
 
-        // Shift+left-click: inspect cell (debug)
+                // Shift+click: inspect cell (debug)
         if (pointer.event.shiftKey) {
             const cell = worldToCell(pointer.x, pointer.y);
             const cx = cell.cx;
@@ -1460,54 +1692,145 @@ function enableDebugClick(scene) {
             return;
         }
 
-        // Normal left-click: attempt to select a pop under cursor
-        let clickedPop = null;
-        for (const pop of pops) {
-            const dist = Phaser.Math.Distance.Between(pointer.x, pointer.y, pop.x, pop.y);
-            if (dist < 10) {
-                clickedPop = pop;
+        // Check if clicked on an expedition
+        let clickedExp = null;
+        for (const exp of expeditions) {
+            if (Phaser.Math.Distance.Between(pointer.x, pointer.y, exp.x, exp.y) < 10) {
+                clickedExp = exp;
                 break;
             }
         }
 
-        if (clickedPop) {
-            selectedPop = clickedPop;
-            console.log(`Pop selected. Position: (${selectedPop.x.toFixed(0)}, ${selectedPop.y.toFixed(0)}), State: ${selectedPop.state}`);
-        }
-        // If clicked on empty ground, do nothing (keep current selection)
-    });
-
-    // ---- RIGHT CLICK ----
-    scene.input.on('pointerdown', function (pointer) {
-        if (!pointer.rightButtonDown()) return;
-
-        if (!selectedPop) {
-            console.log('No pop selected. Left-click a pop first.');
+        if (clickedExp) {
+            // Select expedition, deselect camp
+            selectedExpedition = clickedExp;
+            campSelected = false;
+            updateInfoText();
+            console.log(`Selected expedition ${clickedExp.id}`);
             return;
         }
 
-        // Check if target cell has forage density
-        const targetCell = worldToCell(pointer.x, pointer.y);
-        const targetCellData = getCell(targetCell.cx, targetCell.cy);
-        const density = targetCellData.forageDensity;
-
-        if (density > 0) {
-            // Set task to forage, will start automatically on arrival
-            selectedPop.task = { type: 'forage', location: { x: pointer.x, y: pointer.y } };
-            selectedPop.moveTo(pointer.x, pointer.y);
-            console.log(`Moving pop to forage at (${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)}), density: ${(density * 100).toFixed(1)}%`);
-        } else {
-            // No forage here, just move
-            selectedPop.task = null;
-            selectedPop.moveTo(pointer.x, pointer.y);
-            console.log(`Moving pop to (${pointer.x.toFixed(0)}, ${pointer.y.toFixed(0)}) - no forage`);
+        // Check if clicked on camp
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) {
+            campSelected = true;
+            selectedExpedition = null;
+            updateInfoText();
+            console.log('Camp selected');
+            return;
         }
 
-        // Destination marker
-        const marker = scene.add.circle(pointer.x, pointer.y, 5, 0xffffff, 0.5).setDepth(50);
-        scene.time.delayedCall(1000, function () {
-            marker.destroy();
-        });
+        // Clicked on empty ground: deselect everything
+        campSelected = false;
+        selectedExpedition = null;
+        updateInfoText();
+    });
+
+    // Right click handler
+    scene.input.on('pointerdown', function (pointer) {
+        if (!pointer.rightButtonDown()) return;
+
+        // If neither camp nor an expedition is selected, ignore
+        if (!campSelected && !selectedExpedition) {
+            console.log('Select camp or an expedition first.');
+            return;
+        }
+
+        // Check if we clicked on the camp itself (ignore for now)
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) return;
+
+        // If an expedition is selected, update its area and restart cycle
+        if (selectedExpedition) {
+            selectedExpedition.areaCenter = { x: pointer.x, y: pointer.y };
+            // Force expedition to go to new area: reset state to travellingToArea
+            selectedExpedition.targetX = pointer.x;
+            selectedExpedition.targetY = pointer.y;
+            selectedExpedition.state = 'travellingToArea';
+            // Optionally clear inventory? I'd keep it, but provisions may need adjustment.
+            console.log(`Expedition ${selectedExpedition.id} area updated.`);
+            updateInfoText();
+            return;
+        }
+    
+        // Create a gathering expedition
+        let pop = camp.pops.find(p => p.type === 'gatherer');
+        if (!pop) {
+            // Create gatherer pop if it doesn't exist
+            pop = new Pop('gatherer');
+            camp.pops.push(pop);
+        }
+
+        // Determine how many workers to take (priority: unassigned, then available gatherers)
+        let workersToTake = 0;
+        if (camp.unassignedPopulation > 0) {
+            // Move unassigned to gatherers, then take them
+            const moveCount = Math.min(5, camp.unassignedPopulation);
+            camp.unassignedPopulation -= moveCount;
+            pop.addWorkers(moveCount);
+            workersToTake = moveCount;
+        } else if (pop.availableWorkers > 0) {
+            workersToTake = Math.min(5, pop.availableWorkers);
+        } else {
+            console.log('No available workers.');
+            return;
+        }
+
+        // Take the workers (will deduct from available)
+        const taken = pop.takeWorkers(workersToTake);
+        if (taken === 0) return;
+
+        // Determine if forced (Shift held during right-click)
+        const forced = pointer.event.shiftKey;
+        const autoMode = pointer.event.ctrlKey; // Ctrl+right-click = automatic mode
+
+
+        // Create expedition
+        const id = 'exp_' + Date.now();
+        const areaRadius = 150;
+        const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, pointer.x, pointer.y, areaRadius, camp);
+        exp.isForced = forced;
+        if (autoMode) {
+            exp.useAssignedArea = false;
+        }
+
+        // Give provisions from camp stock, respecting inventory capacity
+        const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
+        const needed = taken * (dist / 100) * 0.5;
+        // Cannot exceed camp food, nor the expedition's max capacity
+        const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
+        exp.inventory.provisions = given;
+        camp.foodStock -= given;
+
+        expeditions.push(exp);
+        updateInfoText();
+        console.log(`Expedition ${id} started with ${taken} workers, ${given.toFixed(1)} provisions.`);
+    });
+
+    // Keyboard 'R' to return selected expedition
+    scene.input.keyboard.on('keydown-R', function () {
+        if (selectedExpedition && selectedExpedition.state !== 'returningToCamp' && selectedExpedition.state !== 'resting') {
+            selectedExpedition.targetX = camp.x;
+            selectedExpedition.targetY = camp.y;
+            selectedExpedition.state = 'returningToCamp';
+            console.log(`Expedition ${selectedExpedition.id} manually recalled.`);
+        }
+    });
+
+    // Keyboard 'F' to toggle forced mode on selected expedition
+    scene.input.keyboard.on('keydown-F', function () {
+        if (selectedExpedition) {
+            selectedExpedition.isForced = !selectedExpedition.isForced;
+            console.log(`Expedition ${selectedExpedition.id} forced mode: ${selectedExpedition.isForced}`);
+            updateInfoText();
+        }
+    });
+
+    // Keyboard 'A' to toggle automatic mode (free roaming vs assigned area)
+    scene.input.keyboard.on('keydown-A', function () {
+        if (selectedExpedition) {
+            selectedExpedition.useAssignedArea = !selectedExpedition.useAssignedArea;
+            console.log(`Expedition ${selectedExpedition.id} auto mode: ${!selectedExpedition.useAssignedArea}`);
+            updateInfoText();
+        }
     });
 }
 
@@ -1526,6 +1849,7 @@ function create() {
     // Debug visualization: draw each cell as a colored rectangle
     const graphics = this.add.graphics();
     gridGraphics = graphics;  // store reference
+    campGraphics = this.add.graphics();
 
     for (let cy = 0; cy < GRID_ROWS; cy++) {
         for (let cx = 0; cx < GRID_COLS; cx++) {
@@ -1569,11 +1893,18 @@ function create() {
         // Store reference to the scene for use in update
     gameScene = this;
 
-    // Create a Pop at the camp position
-    myPop = new Pop(CAMP_X, CAMP_Y, 10);
-    pops.push(myPop);
-    // Auto-select the only pop at start
-    selectedPop = myPop;
+    // Create info text (upper right)
+    infoText = this.add.text(1280 - 200, 10, '', {
+        fontSize: '12px',
+        fill: '#ffffff',
+        backgroundColor: '#00000088',
+        padding: { x: 4, y: 2 },
+        align: 'left'
+    }).setDepth(200);
+
+    // Camp info text (bottom left) – we can reuse campText from before, define it
+    campText = this.add.text(10, 720 - 30, '', { fontSize: '14px', fill: '#ffffff' });
+    updateCampText();
 
     // Graphics object for drawing pops (circles)
     popGraphics = this.add.graphics();
@@ -1587,45 +1918,89 @@ function create() {
 function drawPops() {
     if (!popGraphics) return;
     popGraphics.clear();
-    for (const pop of pops) {
-        // White circle for the pop
-        popGraphics.fillStyle(0xffffff, 1);
-        popGraphics.fillCircle(pop.x, pop.y, 8);
 
-        // Green indicator when working
-        if (pop.state === 'working') {
-            popGraphics.fillStyle(0x00ff00, 0.6);
-            popGraphics.fillCircle(pop.x, pop.y, 5);
+    for (const exp of expeditions) {
+        let color = 0xffffff; // default white
+        if (exp.state === 'gathering') color = 0x00ff00;
+        else if (exp.state === 'returningToCamp') color = 0xff8800; // orange
+        else if (exp.state === 'resting') color = 0x888888;
+
+        popGraphics.fillStyle(color, 1);
+        popGraphics.fillCircle(exp.x, exp.y, 8);
+
+        // Red border for forced expeditions
+        if (exp.isForced) {
+            popGraphics.lineStyle(2, 0xff0000, 1);
+            popGraphics.strokeCircle(exp.x, exp.y, 10);
         }
 
-        // Yellow ring around selected pop
-        if (pop === selectedPop) {
+        // Blue dashed border for auto mode
+        if (!exp.useAssignedArea) {
+            popGraphics.lineStyle(1, 0x0000ff, 0.6);
+            popGraphics.strokeCircle(exp.x, exp.y, 12);
+        }
+
+        // Selected indicator
+        if (exp === selectedExpedition) {
             popGraphics.lineStyle(2, 0xffff00, 0.8);
-            popGraphics.strokeCircle(pop.x, pop.y, 10);
+            popGraphics.strokeCircle(exp.x, exp.y, 10);
+            // Draw dashed path from camp to area center
+            drawDashedLine(popGraphics, camp.x, camp.y, exp.areaCenter.x, exp.areaCenter.y, 10, 5);
+            // Draw area radius
+            popGraphics.lineStyle(1, 0xffff00, 0.2);
+            popGraphics.strokeCircle(exp.areaCenter.x, exp.areaCenter.y, exp.areaRadius);
         }
 
-        // Thin line to target if moving
-        if (pop.state === 'moving') {
+        // Line to target if moving
+        if (exp.state === 'travellingToArea' || exp.state === 'returningToCamp') {
             popGraphics.lineStyle(1, 0xffffff, 0.3);
             popGraphics.beginPath();
-            popGraphics.moveTo(pop.x, pop.y);
-            popGraphics.lineTo(pop.targetX, pop.targetY);
+            popGraphics.moveTo(exp.x, exp.y);
+            popGraphics.lineTo(exp.targetX, exp.targetY);
             popGraphics.strokePath();
         }
     }
 }
 
+// Utility to draw a dashed line (simple implementation)
+function drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    const steps = Math.floor(dist / (dashLength + gapLength));
+    const stepX = dx / steps, stepY = dy / steps;
+    let drawing = true;
+    let cx = x1, cy = y1;
+    for (let i = 0; i < steps; i++) {
+        if (drawing) {
+            graphics.lineStyle(1, 0xffff00, 0.4);
+            graphics.beginPath();
+            graphics.moveTo(cx, cy);
+            const nx = cx + stepX * dashLength / (dashLength+gapLength);
+            const ny = cy + stepY * dashLength / (dashLength+gapLength);
+            graphics.lineTo(nx, ny);
+            graphics.strokePath();
+        }
+        cx += stepX;
+        cy += stepY;
+        drawing = !drawing;
+    }
+}
+
 // Draw the camp as a visual placeholder
 function drawCamp() {
-    if (!gameScene) return;
-    const campGraphics = gameScene.add.graphics();
-    // Brown square for the camp
+    if (!campGraphics) return;
+    campGraphics.clear();
+    // Brown square
     campGraphics.fillStyle(0x8b5e3c, 1);
     campGraphics.fillRect(CAMP_X - 15, CAMP_Y - 15, 30, 30);
     // Border
     campGraphics.lineStyle(2, 0xc4a46c, 1);
     campGraphics.strokeRect(CAMP_X - 15, CAMP_Y - 15, 30, 30);
-
+    // Selection highlight
+    if (campSelected) {
+        campGraphics.lineStyle(2, 0xffff00, 1);
+        campGraphics.strokeRect(CAMP_X - 17, CAMP_Y - 17, 34, 34);
+    }
     // Label
     gameScene.add.text(CAMP_X, CAMP_Y - 25, 'CAMP', {
         fontSize: '12px',
@@ -1670,21 +2045,55 @@ function drawGrid() {
     }
 }
 
+function updateCampText() {
+    let totalPop = camp.unassignedPopulation;
+    for (const pop of camp.pops) totalPop += pop.totalWorkers;
+    campText.setText(`Food: ${camp.foodStock.toFixed(0)} | Pop: ${totalPop} | Unassigned: ${camp.unassignedPopulation}`);
+}
+
+function updateInfoText() {
+    if (!infoText) return;
+    let str = '';
+    if (selectedExpedition) {
+        const exp = selectedExpedition;
+        const used = exp.inventory.food + exp.inventory.provisions;
+        str = `Expedition ${exp.id}\nWorkers: ${exp.workerCount}\nState: ${exp.state}\nProvisions: ${exp.inventory.provisions.toFixed(1)}\nFood: ${exp.inventory.food.toFixed(1)}\nCapacity: ${used.toFixed(1)}/${exp.maxCapacity}`;
+        if (exp.isForced) str += `\n[FORCED]`;
+        if (!exp.useAssignedArea) str += '\n[AUTO]';
+    } else if (campSelected) {
+        str = `Camp\nFood: ${camp.foodStock.toFixed(0)}\nUnassigned: ${camp.unassignedPopulation}`;
+        for (const pop of camp.pops) {
+            str += `\n${pop.type}: ${pop.availableWorkers}/${pop.totalWorkers} avail, ${pop.assignedWorkers} out`;
+        }
+    } else {
+        str = '';
+    }
+    infoText.setText(str);
+}
+
 // update: called every frame (about 60 times per second).
 // time: the current time in milliseconds since the game started.
 // delta: the time difference since the last frame in milliseconds.
 function update(time, delta) {
-    // Convert delta from ms to seconds for consistent movement speed
     const deltaSec = delta / 1000;
+    for (const exp of expeditions) exp.update(deltaSec);
 
-    // Update all pops
-    for (const pop of pops) {
-        pop.update(deltaSec);
+    // Day cycle
+    dayAccumulator += deltaSec;
+    if (dayAccumulator >= DAY_LENGTH) {
+        dayAccumulator -= DAY_LENGTH;
+        let totalPop = camp.unassignedPopulation;
+        for (const pop of camp.pops) totalPop += pop.totalWorkers;
+        const consumed = totalPop * 0.1;
+        camp.foodStock -= consumed;
+        if (camp.foodStock < 0) camp.foodStock = 0;
+        updateCampText();
     }
 
-    // Redraw pops at new positions
+    updateInfoText(); // refresh selected info
+    drawGrid();
     drawPops();
-    drawGrid();   // update grid colors
+    drawCamp();
 }
 
 ```
@@ -1706,128 +2115,276 @@ function update(time, delta) {
 
 ## FILE: js\units.js
 ```
-// units.js - Mobile entities: Pop (group of people) and Herd (animals, future)
+// units.js - Mobile entities: Expedition, Pop (specialized workers), and Camp
 
-// ---- Pop class ----
-// Represents a group of people that can move and perform tasks.
+const camp = {
+    x: 100,
+    y: 100,
+    foodStock: 50,
+    unassignedPopulation: 20,
+    pops: [],
+    expeditions: []
+};
 
 class Pop {
-    /**
-     * @param {number} x - starting world x position (pixels)
-     * @param {number} y - starting world y position (pixels)
-     * @param {number} population - number of individuals in this group
-     */
-    constructor(x, y, population = 10) {
-        this.id = 'pop_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        this.type = 'pop';
-        this.x = x;
-        this.y = y;
-        this.population = population;
-
-        // Movement
-        this.targetX = x;      // destination x (pixels)
-        this.targetY = y;      // destination y (pixels)
-        this.speed = 80;       // pixels per second at 1x speed
-        this.state = 'idle';   // 'idle' | 'moving' | 'working'
-
-        // Task and inventory (used in future batches)
-        this.task = null;      // { type: string, location: {x, y} }
-        this.inventory = { food: 0, wood: 0 };
-        this.rations = 0;      // food carried for the journey (future)
+    constructor(type) {
+        this.type = type;
+        this.totalWorkers = 0;
+        this.availableWorkers = 0;
+        this.assignedWorkers = 0;
     }
 
-    /**
-     * Set a new movement destination.
-     * @param {number} worldX
-     * @param {number} worldY
-     */
-    moveTo(worldX, worldY) {
-        this.targetX = worldX;
-        this.targetY = worldY;
-        this.state = 'moving';
+    addWorkers(count) {
+        this.totalWorkers += count;
+        this.availableWorkers += count;
     }
 
-    /**
-     * Update the pop's position each frame.
-     * @param {number} delta - time since last frame in seconds (game time)
-     */
-    update(delta) {
-        if (this.state === 'moving') {
-            const dx = this.targetX - this.x;
-            const dy = this.targetY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+    takeWorkers(count) {
+        const taken = Math.min(count, this.availableWorkers);
+        this.availableWorkers -= taken;
+        this.assignedWorkers += taken;
+        return taken;
+    }
 
-            if (dist < 2) {
-                // Arrived at destination
-                this.x = this.targetX;
-                this.y = this.targetY;
-                this.state = 'idle';
-                // If there is a pending task, start it automatically
-                if (this.task && this.task.type) {
-                    this.state = 'working';
-                    console.log(`Pop started ${this.task.type} at (${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
+    returnWorkers(count) {
+        this.assignedWorkers -= count;
+        this.availableWorkers += count;
+    }
+}
+
+class Expedition {
+    constructor(id, popType, workerCount, startX, startY, areaX, areaY, areaRadius, campRef) {
+        this.id = id;
+        this.popType = popType;
+        this.workerCount = workerCount;
+        this.x = startX;
+        this.y = startY;
+        this.targetX = areaX;
+        this.targetY = areaY;
+        this.speed = 60;
+        this.state = 'travellingToArea';
+        this.maxCapacity = workerCount * 2;
+        this.inventory = { provisions: 0, food: 0 };
+        this.areaCenter = { x: areaX, y: areaY };
+        this.areaRadius = areaRadius;
+        this.campRef = campRef;
+        this.cooldownRemaining = 0;
+        this.lastCellEvaluation = 0;
+        this.isForced = false; // if true, expedition ignores provision limits
+        this.useAssignedArea = true; // if true, gathering is restricted to the area around areaCenter
+    }
+
+    // Calculate score for a cell from the expedition's current position
+    cellScore(cx, cy) {
+        const cell = getCell(cx, cy);
+        if (!cell) return -Infinity;
+        const density = cell.forageDensity;
+        if (density <= 0) return -Infinity;
+        const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
+        const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
+        const dist = Phaser.Math.Distance.Between(this.x, this.y, cellWorldX, cellWorldY);
+        return density * 100 - dist * 0.2;
+    }
+
+    // Find the best cell around the expedition's current position (auto mode)
+    findBetterCell() {
+        const centerCell = worldToCell(this.x, this.y);
+        const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
+        let bestScore = -Infinity;
+        let bestCx = -1, bestCy = -1;
+
+        for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+            for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+                const cx = centerCell.cx + dx;
+                const cy = centerCell.cy + dy;
+                if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                    const score = this.cellScore(cx, cy);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestCx = cx;
+                        bestCy = cy;
+                    }
                 }
+            }
+        }
+        return { cx: bestCx, cy: bestCy, score: bestScore };
+    }
+
+    // Find the best cell within the assigned area (centered on areaCenter),
+    // calculating distances from the given origin point.
+    findBestCellInArea(fromX, fromY) {
+        const centerCell = worldToCell(this.areaCenter.x, this.areaCenter.y);
+        const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
+        let bestScore = -Infinity;
+        let bestCx = -1, bestCy = -1;
+
+        for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+            for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+                const cx = centerCell.cx + dx;
+                const cy = centerCell.cy + dy;
+                if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                    const cell = getCell(cx, cy);
+                    const density = cell.forageDensity;
+                    if (density <= 0) continue;
+                    const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
+                    const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
+                    const dist = Phaser.Math.Distance.Between(fromX, fromY, cellWorldX, cellWorldY);
+                    const score = density * 100 - dist * 0.2;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestCx = cx;
+                        bestCy = cy;
+                    }
+                }
+            }
+        }
+        return { cx: bestCx, cy: bestCy, score: bestScore };
+    }
+
+    update(delta) {
+        // --- RESTING ---
+        if (this.state === 'resting') {
+            this.cooldownRemaining -= delta;
+            if (this.cooldownRemaining <= 0) {
+                this.cooldownRemaining = 0;
+                // Take provisions
+                const distToArea = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, this.areaCenter.x, this.areaCenter.y);
+                const needed = this.workerCount * (distToArea / 100) * 0.5;
+                const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
+                this.inventory.provisions = taken;
+                this.campRef.foodStock -= taken;
+
+                // Decide where to go based on mode
+                if (this.useAssignedArea) {
+                    const best = this.findBestCellInArea(this.campRef.x, this.campRef.y);
+                    if (best.cx >= 0) {
+                        this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
+                        this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                    } else {
+                        this.targetX = this.areaCenter.x;
+                        this.targetY = this.areaCenter.y;
+                    }
+                } else {
+                    // Auto mode: head towards areaCenter (will re-evaluate on arrival)
+                    this.targetX = this.areaCenter.x;
+                    this.targetY = this.areaCenter.y;
+                }
+                this.state = 'travellingToArea';
+            }
+            return;
+        }
+
+        // --- TRAVELLING / MOVING / RETURNING ---
+        if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToCamp') {
+            const consumed = this.workerCount * 0.01 * delta;
+            this.inventory.provisions -= consumed;
+            if (this.inventory.provisions < 0) this.inventory.provisions = 0;
+
+            // Return early if provisions exhausted and not forced
+            if (!this.isForced && this.inventory.provisions <= 0) {
+                this.inventory.provisions = 0;
+                this.targetX = this.campRef.x;
+                this.targetY = this.campRef.y;
+                this.state = 'returningToCamp';
                 return;
             }
 
-            // Move towards target
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 2) {
+                this.x = this.targetX;
+                this.y = this.targetY;
+                if (this.state === 'travellingToArea' || this.state === 'movingToCell') {
+                    this.state = 'gathering';
+                } else if (this.state === 'returningToCamp') {
+                    this.campRef.foodStock += this.inventory.food;
+                    this.inventory.food = 0;
+                    this.inventory.provisions = 0;
+                    this.cooldownRemaining = 3;
+                    this.state = 'resting';
+                }
+                return;
+            }
             const step = this.speed * delta;
             const ratio = Math.min(step / dist, 1);
             this.x += dx * ratio;
             this.y += dy * ratio;
-        } else if (this.state === 'working') {
-            if (!this.task || !this.task.type) {
-                this.state = 'idle';
+            return;
+        }
+
+        // --- GATHERING ---
+        if (this.state === 'gathering') {
+            const consumed = this.workerCount * 0.02 * delta;
+            this.inventory.provisions -= consumed;
+            if (!this.isForced && this.inventory.provisions <= 0) {
+                this.inventory.provisions = 0;
+                this.targetX = this.campRef.x;
+                this.targetY = this.campRef.y;
+                this.state = 'returningToCamp';
                 return;
             }
 
-            // Execute task based on type
-            if (this.task.type === 'forage') {
-                // Check if inventory is full
-                if (this.inventory.food >= 20) {
-                    console.log('Inventory full, stop foraging.');
-                    this.state = 'idle';
-                    this.task = null;
-                    return;
+            if (this.inventory.food + this.inventory.provisions >= this.maxCapacity) {
+                this.targetX = this.campRef.x;
+                this.targetY = this.campRef.y;
+                this.state = 'returningToCamp';
+                return;
+            }
+
+            // Evaluate cell switching periodically
+            this.lastCellEvaluation += delta;
+            if (this.lastCellEvaluation >= 1.0) {
+                this.lastCellEvaluation = 0;
+                const current = worldToCell(this.x, this.y);
+                const currentDensity = getCell(current.cx, current.cy) ? getCell(current.cx, current.cy).forageDensity : 0;
+                const currentScore = this.cellScore(current.cx, current.cy);
+
+                let best;
+                if (this.useAssignedArea) {
+                    best = this.findBestCellInArea(this.x, this.y);
+                } else {
+                    best = this.findBetterCell();
                 }
 
-                const cell = worldToCell(this.x, this.y);
-                const cellData = getCell(cell.cx, cell.cy);
-                const density = cellData.forageDensity;
-
-                if (density <= 0) {
-                    console.log('Cell exhausted, stop foraging.');
-                    this.state = 'idle';
-                    this.task = null;
+                if (best.cx >= 0 && best.score > currentScore * 1.1 && getCell(best.cx, best.cy).forageDensity >= 0.2) {
+                    this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
+                    this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                    this.state = 'movingToCell';
                     return;
                 }
+            }
 
-                // Gather rate: density * 1.5 food per second
-                const gatherRate = density * 1.5 * delta;
+            // Gather from current cell
+            const cell = worldToCell(this.x, this.y);
+            const cellData = getCell(cell.cx, cell.cy);
+            const density = cellData ? cellData.forageDensity : 0;
+            if (density > 0) {
+                const gatherRate = 0.5 * density * delta * this.workerCount;
                 this.inventory.food += gatherRate;
-
-                // Reduce local density
-                modifyDensity(this.x, this.y, 'forageDensity', -0.1 * delta, CELL_SIZE * 0.8);
+                const densityReduction = gatherRate * 0.005;
+                modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * 0.6);
+            } else {
+                // Cell exhausted, find another or return
+                let best;
+                if (this.useAssignedArea) {
+                    best = this.findBestCellInArea(this.x, this.y);
+                } else {
+                    best = this.findBetterCell();
+                }
+                if (best.cx >= 0 && getCell(best.cx, best.cy).forageDensity > 0) {
+                    this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
+                    this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                    this.state = 'movingToCell';
+                } else {
+                    this.targetX = this.campRef.x;
+                    this.targetY = this.campRef.y;
+                    this.state = 'returningToCamp';
+                }
             }
         }
     }
-
-        /**
-     * Start a task at the current location.
-     * @param {string} taskType - type of task ('forage', 'gatherWood', etc.)
-     */
-    startTask(taskType) {
-        this.task = {
-            type: taskType,
-            location: { x: this.x, y: this.y }
-        };
-        this.state = 'working';
-        console.log(`Pop ${this.id} started task: ${taskType}`);
-    }
 }
-
-// ---- Global list of pops (for prototype simplicity) ----
-const pops = [];
 ```
 
 ## FILE: js\world.js

@@ -41,9 +41,30 @@ function enableDebugClick(scene) {
     scene.input.on('pointerdown', function (pointer) {
         if (pointer.rightButtonDown()) return;
 
-        // Shift+click for cell inspect (unchanged)
+                // Shift+click: inspect cell (debug)
         if (pointer.event.shiftKey) {
-            // ... (codice identico a prima, lo ometto per brevità)
+            const cell = worldToCell(pointer.x, pointer.y);
+            const cx = cell.cx;
+            const cy = cell.cy;
+            if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                const cellData = getCell(cx, cy);
+                const density = cellData.forageDensity;
+                console.log(`Cell (${cx}, ${cy}) - Forage Density: ${density.toFixed(4)}`);
+                const infoText = scene.add.text(
+                    pointer.x + 15,
+                    pointer.y - 15,
+                    `Cell: ${cx}, ${cy}\nForage: ${(density * 100).toFixed(1)}%`,
+                    {
+                        fontSize: '12px',
+                        fill: '#ffffff',
+                        backgroundColor: '#000000aa',
+                        padding: { x: 4, y: 2 }
+                    }
+                ).setDepth(100);
+                scene.time.delayedCall(2000, function () {
+                    infoText.destroy();
+                });
+            }
             return;
         }
 
@@ -90,8 +111,51 @@ function enableDebugClick(scene) {
             return;
         }
 
-        // Check if we clicked on the camp itself (ignore for now)
-        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) return;
+        // If we clicked on the camp, create an automatic expedition (free roaming)
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) {
+            // Only work if camp is selected
+            if (!campSelected) return;
+
+            let pop = camp.pops.find(p => p.type === 'gatherer');
+            if (!pop) {
+                pop = new Pop('gatherer');
+                camp.pops.push(pop);
+            }
+
+            let workersToTake = 0;
+            if (camp.unassignedPopulation > 0) {
+                const moveCount = Math.min(5, camp.unassignedPopulation);
+                camp.unassignedPopulation -= moveCount;
+                pop.addWorkers(moveCount);
+                workersToTake = moveCount;
+            } else if (pop.availableWorkers > 0) {
+                workersToTake = Math.min(5, pop.availableWorkers);
+            } else {
+                console.log('No available workers.');
+                return;
+            }
+
+            const taken = pop.takeWorkers(workersToTake);
+            if (taken === 0) return;
+
+            const id = 'exp_' + Date.now();
+            const areaRadius = 150;
+            // Create auto expedition starting from camp, target area = current camp position
+            const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, camp.x, camp.y, areaRadius, camp);
+            exp.useAssignedArea = false; // auto mode
+
+            // Give provisions
+            const dist = 0; // starting from camp, no distance
+            const needed = taken * 0.5; // base provisions
+            const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
+            exp.inventory.provisions = given;
+            camp.foodStock -= given;
+
+            expeditions.push(exp);
+            updateInfoText();
+            console.log(`Auto expedition ${id} started with ${taken} workers.`);
+            return;
+        }
 
         // If an expedition is selected, update its area and restart cycle
         if (selectedExpedition) {
@@ -133,10 +197,14 @@ function enableDebugClick(scene) {
         const taken = pop.takeWorkers(workersToTake);
         if (taken === 0) return;
 
+        // Determine if forced (Shift held during right-click)
+        const forced = pointer.event.shiftKey;
+
         // Create expedition
         const id = 'exp_' + Date.now();
         const areaRadius = 150;
         const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, pointer.x, pointer.y, areaRadius, camp);
+        exp.isForced = forced;
 
         // Give provisions from camp stock, respecting inventory capacity
         const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
@@ -158,6 +226,24 @@ function enableDebugClick(scene) {
             selectedExpedition.targetY = camp.y;
             selectedExpedition.state = 'returningToCamp';
             console.log(`Expedition ${selectedExpedition.id} manually recalled.`);
+        }
+    });
+
+    // Keyboard 'F' to toggle forced mode on selected expedition
+    scene.input.keyboard.on('keydown-F', function () {
+        if (selectedExpedition) {
+            selectedExpedition.isForced = !selectedExpedition.isForced;
+            console.log(`Expedition ${selectedExpedition.id} forced mode: ${selectedExpedition.isForced}`);
+            updateInfoText();
+        }
+    });
+
+    // Keyboard 'A' to toggle automatic mode (free roaming vs assigned area)
+    scene.input.keyboard.on('keydown-A', function () {
+        if (selectedExpedition) {
+            selectedExpedition.useAssignedArea = !selectedExpedition.useAssignedArea;
+            console.log(`Expedition ${selectedExpedition.id} auto mode: ${!selectedExpedition.useAssignedArea}`);
+            updateInfoText();
         }
     });
 }
@@ -255,6 +341,18 @@ function drawPops() {
 
         popGraphics.fillStyle(color, 1);
         popGraphics.fillCircle(exp.x, exp.y, 8);
+
+        // Red border for forced expeditions
+        if (exp.isForced) {
+            popGraphics.lineStyle(2, 0xff0000, 1);
+            popGraphics.strokeCircle(exp.x, exp.y, 10);
+        }
+
+        // Blue dashed border for auto mode
+        if (!exp.useAssignedArea) {
+            popGraphics.lineStyle(1, 0x0000ff, 0.6);
+            popGraphics.strokeCircle(exp.x, exp.y, 12);
+        }
 
         // Selected indicator
         if (exp === selectedExpedition) {
@@ -374,6 +472,8 @@ function updateInfoText() {
         const exp = selectedExpedition;
         const used = exp.inventory.food + exp.inventory.provisions;
         str = `Expedition ${exp.id}\nWorkers: ${exp.workerCount}\nState: ${exp.state}\nProvisions: ${exp.inventory.provisions.toFixed(1)}\nFood: ${exp.inventory.food.toFixed(1)}\nCapacity: ${used.toFixed(1)}/${exp.maxCapacity}`;
+        if (exp.isForced) str += `\n[FORCED]`;
+        if (!exp.useAssignedArea) str += '\n[AUTO]';
     } else if (campSelected) {
         str = `Camp\nFood: ${camp.foodStock.toFixed(0)}\nUnassigned: ${camp.unassignedPopulation}`;
         for (const pop of camp.pops) {
@@ -405,6 +505,7 @@ function update(time, delta) {
     }
 
     updateInfoText(); // refresh selected info
+    updateCampText(); // refresh camp counter every frame
     drawGrid();
     drawPops();
     drawCamp();

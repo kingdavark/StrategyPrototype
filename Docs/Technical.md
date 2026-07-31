@@ -486,6 +486,16 @@ spiegazione che copra:
   ai commenti già presenti nel codice e serve a dare una visione
   d'insieme prima di entrare nei dettagli implementativi.
 
+- **Ordine e completezza del codice:** le spiegazioni relative a un
+  blocco di codice devono sempre **precedere** il blocco stesso, mai
+  seguirlo. Se per brevità si omette una parte di codice (es. con
+  commenti come \`// ...\`), l'assistente deve segnalarlo esplicitamente
+  **prima** del blocco con un avviso chiaro (es. "Attenzione: il codice
+  seguente contiene una parte omessa, sostituisci solo la porzione
+  indicata"). Non si devono mai usare commenti ambigui che lascino
+  intendere "codice identico a prima", perché l'utente potrebbe copiare
+  l'intero blocco e perdere funzionalità.
+
 Questo approccio garantisce che ogni decisione implementativa sia
 consapevole e allineata ai pilastri del design, e che il prototipo
 evolva in modo coerente.

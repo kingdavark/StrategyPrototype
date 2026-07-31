@@ -53,8 +53,11 @@ class Expedition {
         this.campRef = campRef;
         this.cooldownRemaining = 0;
         this.lastCellEvaluation = 0;
+        this.isForced = false; // if true, expedition ignores provision limits
+        this.useAssignedArea = true; // if true, gathering is restricted to the area around areaCenter
     }
 
+    // Calculate score for a cell from the expedition's current position
     cellScore(cx, cy) {
         const cell = getCell(cx, cy);
         if (!cell) return -Infinity;
@@ -63,9 +66,10 @@ class Expedition {
         const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
         const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
         const dist = Phaser.Math.Distance.Between(this.x, this.y, cellWorldX, cellWorldY);
-        return density * 100 - dist * 0.2;   // adjusted weight for distance
+        return density * 100 - dist * 0.2;
     }
 
+    // Find the best cell around the expedition's current position (auto mode)
     findBetterCell() {
         const centerCell = worldToCell(this.x, this.y);
         const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
@@ -89,31 +93,123 @@ class Expedition {
         return { cx: bestCx, cy: bestCy, score: bestScore };
     }
 
+    // Find the best cell within the assigned area (centered on areaCenter),
+    // calculating distances from the given origin point.
+    findBestCellInArea(fromX, fromY) {
+        const centerCell = worldToCell(this.areaCenter.x, this.areaCenter.y);
+        const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
+        let bestScore = -Infinity;
+        let bestCx = -1, bestCy = -1;
+
+        for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+            for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+                const cx = centerCell.cx + dx;
+                const cy = centerCell.cy + dy;
+                if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                    const cell = getCell(cx, cy);
+                    const density = cell.forageDensity;
+                    if (density <= 0) continue;
+                    const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
+                    const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
+                    const dist = Phaser.Math.Distance.Between(fromX, fromY, cellWorldX, cellWorldY);
+                    const score = density * 100 - dist * 0.2;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestCx = cx;
+                        bestCy = cy;
+                    }
+                }
+            }
+        }
+        return { cx: bestCx, cy: bestCy, score: bestScore };
+    }
+
     update(delta) {
+        // --- RESTING ---
         if (this.state === 'resting') {
             this.cooldownRemaining -= delta;
             if (this.cooldownRemaining <= 0) {
                 this.cooldownRemaining = 0;
-                const distToArea = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, this.areaCenter.x, this.areaCenter.y);
-                const needed = this.workerCount * (distToArea / 100) * 0.5;
-                const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
-                this.inventory.provisions = taken;
-                this.campRef.foodStock -= taken;
-                this.targetX = this.areaCenter.x;
-                this.targetY = this.areaCenter.y;
-                this.state = 'travellingToArea';
+                // Determine target and distance to calculate provisions
+                let targetDist = 0;
+                let targetFound = false;
+
+                if (this.useAssignedArea) {
+                    // Assigned area: target is areaCenter
+                    targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, this.areaCenter.x, this.areaCenter.y);
+                    targetFound = true;
+                } else {
+                    // Auto mode: find the best cell around camp
+                    const best = this.findBetterCell();
+                    if (best.cx >= 0) {
+                        const targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
+                        const targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                        targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
+                        targetFound = true;
+                        // Save target for later use (avoid recomputing)
+                        this.targetX = targetX;
+                        this.targetY = targetY;
+                    }
+                }
+
+                if (targetFound) {
+                    // Calculate provisions based on target distance
+                    const needed = this.workerCount * (targetDist / 100) * 0.5;
+                    const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
+                    this.inventory.provisions = taken;
+                    this.campRef.foodStock -= taken;
+                } else {
+                    // No target found: don't take provisions, stay resting
+                    this.cooldownRemaining = 5;
+                    return;
+                }
+
+                if (targetFound) {
+                    this.state = 'travellingToArea';
+                } else {
+                    // No cells available: return provisions and stay resting
+                    this.campRef.foodStock += this.inventory.provisions;
+                    this.inventory.provisions = 0;
+                    this.cooldownRemaining = 5; // check again in 5 seconds
+                }
             }
             return;
         }
 
+        // --- TRAVELLING / MOVING / RETURNING ---
         if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToCamp') {
+            // Consume provisions while moving
             const consumed = this.workerCount * 0.01 * delta;
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
+            // If returning and already at camp, go directly to resting
+            if (this.state === 'returningToCamp') {
+                const distToCamp = Phaser.Math.Distance.Between(this.x, this.y, this.campRef.x, this.campRef.y);
+                if (distToCamp < 5) {
+                    // Deposit food and rest
+                    this.campRef.foodStock += this.inventory.food;
+                    this.inventory.food = 0;
+                    this.inventory.provisions = 0;
+                    this.cooldownRemaining = 3;
+                    this.state = 'resting';
+                    return;
+                }
+            }
+
+            // Return early if provisions exhausted and not forced (but don't override resting)
+            if (!this.isForced && this.inventory.provisions <= 0) {
+                this.inventory.provisions = 0;
+                this.targetX = this.campRef.x;
+                this.targetY = this.campRef.y;
+                this.state = 'returningToCamp';
+                return;
+            }
+
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
+
             if (dist < 2) {
                 this.x = this.targetX;
                 this.y = this.targetY;
@@ -135,10 +231,11 @@ class Expedition {
             return;
         }
 
+        // --- GATHERING ---
         if (this.state === 'gathering') {
             const consumed = this.workerCount * 0.02 * delta;
             this.inventory.provisions -= consumed;
-            if (this.inventory.provisions <= 0) {
+            if (!this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
                 this.targetX = this.campRef.x;
                 this.targetY = this.campRef.y;
@@ -153,13 +250,20 @@ class Expedition {
                 return;
             }
 
+            // Evaluate cell switching periodically
             this.lastCellEvaluation += delta;
             if (this.lastCellEvaluation >= 1.0) {
                 this.lastCellEvaluation = 0;
                 const current = worldToCell(this.x, this.y);
                 const currentDensity = getCell(current.cx, current.cy) ? getCell(current.cx, current.cy).forageDensity : 0;
                 const currentScore = this.cellScore(current.cx, current.cy);
-                const best = this.findBetterCell();
+
+                let best;
+                if (this.useAssignedArea) {
+                    best = this.findBestCellInArea(this.x, this.y);
+                } else {
+                    best = this.findBetterCell();
+                }
 
                 if (best.cx >= 0 && best.score > currentScore * 1.1 && getCell(best.cx, best.cy).forageDensity >= 0.2) {
                     this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
@@ -169,17 +273,23 @@ class Expedition {
                 }
             }
 
+            // Gather from current cell
             const cell = worldToCell(this.x, this.y);
             const cellData = getCell(cell.cx, cell.cy);
             const density = cellData ? cellData.forageDensity : 0;
             if (density > 0) {
                 const gatherRate = 0.5 * density * delta * this.workerCount;
                 this.inventory.food += gatherRate;
-                // Much slower density reduction: 0.005 per food gathered
                 const densityReduction = gatherRate * 0.005;
                 modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * 0.6);
             } else {
-                const best = this.findBetterCell();
+                // Cell exhausted, find another or return
+                let best;
+                if (this.useAssignedArea) {
+                    best = this.findBestCellInArea(this.x, this.y);
+                } else {
+                    best = this.findBetterCell();
+                }
                 if (best.cx >= 0 && getCell(best.cx, best.cy).forageDensity > 0) {
                     this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
                     this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
