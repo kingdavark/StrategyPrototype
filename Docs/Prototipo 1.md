@@ -219,49 +219,44 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 **Batch 6 – Controlli del tempo (pausa, play, velocità)**
 
-- Implementazione del **TimeManager** (time.js): tre velocità di
-  simulazione (1x, 2x, pausa). La raccolta, il movimento, il consumo e
-  la rigenerazione dipendono dal tempo di gioco effettivo.
+**6.1 – Time Manager (pausa/play/velocità)**
 
-- Interfaccia minima per i controlli del tempo: pulsanti UI o tasti
-  rapidi (es. spazio per pausa, +/- per velocità).
+- Implementare time.js con tre velocità (0x, 1x, 2x)
 
-- **Pannello di debug** (rudimentale, via UI o console):
+- Modificare update in main.js per usare il gameDelta dal TimeManager
 
-  - Visualizzare e modificare in tempo reale le variabili chiave: tasso
-    di consumo cibo, velocità raccolta, soglia di abbandono, cooldown
-    riposo spedizioni, raggio di raccolta.
+- Tasti rapidi: spazio per pausa, 1/2 per velocità
 
-  - Modificare anche le scorte di cibo e la popolazione per test rapidi.
+**6.4 – Selezione e ispezione avanzata delle spedizioni**
 
-  - Rendere dinamiche queste variabili nel codice, in modo da poi
-    andarle a cambiare solo in un punto
+- Completare l'info panel con il percorso tratteggiato
 
-- **Selezione e ispezione delle spedizioni:**
+- Aggiungere la visualizzazione dell'area di raccolta per le spedizioni
+  automatiche
 
-  - Click sinistro su una spedizione attiva (cerchio bianco sulla mappa)
-    per selezionarla.
+**6.5 – Cancellazione spedizioni**
 
-  - Visualizzazione delle informazioni base: numero lavoratori,
-    provviste, inventario, stato, area di raccolta.
+- Tasto C per cancellare la spedizione selezionata
 
-  - L'area di raccolta assegnata e il percorso seguito vengono
-    evidenziati sulla mappa (es. cerchio tratteggiato).
+- La spedizione torna al campo, deposita il cibo, restituisce i
+  lavoratori al pop
 
-- **Cancellazione di una spedizione:**
+**6.2 – Pannello di debug via console**
 
-  - Comando "cancella spedizione" (tasto o pulsante) quando una
-    spedizione è selezionata.
+- Rendere accessibili e modificabili da console le variabili chiave
+  (tasso consumo, velocità raccolta, soglia abbandono, cooldown, raggio)
 
-  - La spedizione interrompe la raccolta, torna immediatamente al campo,
-    deposita il cibo già raccolto, e i lavoratori rientrano nel Pop.
+**6.3 – Pannello di debug UI (INSIEME A 6.2)**
 
-- **Ribilanciamento**: definire la durata di un giorno e settare tutti i
-  consumi su consumo/giorno
+- Creare un pannello UI sovrapposto al canvas con input per le variabili
 
-- **Meccanica:** il giocatore può ora gestire attivamente le spedizioni
-  e bilanciare i parametri di gioco per testare il loop di sopravvivenza
-  in varie condizioni.
+- Collegarlo alle variabili di gioco
+
+**6.6 – Ribilanciamento e parametri esposti**
+
+- Esporre tutti i parametri di gioco nel pannello di debug
+
+- Testare diverse combinazioni per trovare un bilanciamento iniziale
 
 **Batch 7 – Rigenerazione base del cibo**
 
@@ -357,7 +352,9 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
     della tribù (e praticamente fare solo un gioco su questo, magari
     come primo titolo di una serie)
 
-14. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
+14. Ragionare sull’acqua
+
+15. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
     unità e meccaniche intorno e link di timeline del progresso (wiki e
     altri link se funzionano)
 

@@ -28,9 +28,12 @@ let gridGraphics;  // reference to grid graphics for dynamic updates
 let campGraphics;
 let dayAccumulator = 0;          // accumulator for game time in seconds
 const DAY_LENGTH = 5;            // 5 real seconds = 1 game day
+let gameDay = 1; // Day counter
 let campSelected = false;      // whether camp is currently selected
 let selectedExpedition = null; // currently selected expedition
 let infoText;                  // UI text for selected expedition info
+let speedText; // UI text for current simulation speed
+
 
 // Enable click: left-click to select pop, right-click to move selected pop,
 // Shift+left-click to inspect cell (debug).
@@ -246,6 +249,62 @@ function enableDebugClick(scene) {
             updateInfoText();
         }
     });
+
+    // ---- Time controls (keyboard) ----
+    scene.input.keyboard.on('keydown-SPACE', function () {
+        TimeManager.togglePause();
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-ZERO', function () {
+        TimeManager.setSpeedIndex(1); // 1x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-ONE', function () {
+        TimeManager.setSpeedIndex(2); // 1x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-TWO', function () {
+        TimeManager.setSpeedIndex(3); // 2x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-THREE', function () {
+        TimeManager.setSpeedIndex(4); // 2x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-FOUR', function () {
+        TimeManager.setSpeedIndex(5); // 2x
+        updateSpeedText();
+    });
+
+    // Increase speed with '+' (same key without shift)
+    scene.input.keyboard.on('keydown-NUMPAD_ADD', function (event) {
+        event.preventDefault();
+        TimeManager.increaseSpeed();
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-PLUS', function (event) {
+        event.preventDefault();
+        TimeManager.increaseSpeed();
+        updateSpeedText();
+    });
+
+    // Decrease speed with '-' (both numpad and standard)
+    scene.input.keyboard.on('keydown-NUMPAD_SUBTRACT', function (event) {
+        event.preventDefault();
+        TimeManager.decreaseSpeed();
+        updateSpeedText();
+    });
+    scene.input.keyboard.on('keydown-MINUS', function (event) {
+        event.preventDefault();
+        TimeManager.decreaseSpeed();
+        updateSpeedText();
+    });
 }
 
 // preload: load any external assets (images, spritesheets, etc.)
@@ -319,6 +378,14 @@ function create() {
     // Camp info text (bottom left) – we can reuse campText from before, define it
     campText = this.add.text(10, 720 - 30, '', { fontSize: '14px', fill: '#ffffff' });
     updateCampText();
+
+    // Speed indicator text
+    speedText = this.add.text(10, 30, 'Speed: 1x', {
+        fontSize: '14px',
+        fill: '#ffffff',
+        backgroundColor: '#00000088',
+        padding: { x: 4, y: 2 }
+    });
 
     // Graphics object for drawing pops (circles)
     popGraphics = this.add.graphics();
@@ -462,9 +529,20 @@ function drawGrid() {
 function updateCampText() {
     let totalPop = camp.unassignedPopulation;
     for (const pop of camp.pops) totalPop += pop.totalWorkers;
-    campText.setText(`Food: ${camp.foodStock.toFixed(0)} | Pop: ${totalPop} | Unassigned: ${camp.unassignedPopulation}`);
+    campText.setText(
+        `Food: ${camp.foodStock.toFixed(0)} | Pop: ${totalPop} | Unassigned: ${camp.unassignedPopulation}\n` +
+        `Day: ${gameDay}`
+    );
 }
 
+//Main UI info text
+function updateSpeedText() {
+    if (speedText) {
+        speedText.setText('Speed: ' + TimeManager.getSpeedLabel());
+    }
+}
+
+//Info text tha appears when clicking on the camp
 function updateInfoText() {
     if (!infoText) return;
     let str = '';
@@ -489,23 +567,28 @@ function updateInfoText() {
 // time: the current time in milliseconds since the game started.
 // delta: the time difference since the last frame in milliseconds.
 function update(time, delta) {
-    const deltaSec = delta / 1000;
+    const realDeltaSec = delta / 1000;
+    const deltaSec = TimeManager.getGameDelta(realDeltaSec);
     for (const exp of expeditions) exp.update(deltaSec);
 
     // Day cycle
     dayAccumulator += deltaSec;
     if (dayAccumulator >= DAY_LENGTH) {
+        // Advance day counter
+        gameDay++;
         dayAccumulator -= DAY_LENGTH;
         let totalPop = camp.unassignedPopulation;
         for (const pop of camp.pops) totalPop += pop.totalWorkers;
         const consumed = totalPop * 0.1;
         camp.foodStock -= consumed;
         if (camp.foodStock < 0) camp.foodStock = 0;
-        updateCampText();
     }
 
     updateInfoText(); // refresh selected info
     updateCampText(); // refresh camp counter every frame
+    updateInfoText();
+    updateSpeedText();
+    updateCampText();
     drawGrid();
     drawPops();
     drawCamp();

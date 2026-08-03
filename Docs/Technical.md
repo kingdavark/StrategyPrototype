@@ -348,6 +348,15 @@ l'assistente deve:
 
 - Solo dopo questa verifica, procedere con la proposta di modifica.
 
+- **Brief prima del codice**: prima di fornire qualsiasi blocco di
+  codice, l'assistente farà un breve riepilogo di ciò che sta per
+  proporre, spiegando le modifiche in linguaggio semplice e chiedendo
+  conferma esplicita all'utente. Solo dopo la conferma, mostrerà il
+  codice. Questo evita di dover cancellare o riscrivere codice non
+  desiderato e mantiene il flusso di lavoro ordinato.
+
+- 
+
 Durante la sessione:
 
 - **Modifiche a file esistenti:** l'assistente fornisce solo la porzione

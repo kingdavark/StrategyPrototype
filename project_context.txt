@@ -738,49 +738,44 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 **Batch 6 – Controlli del tempo (pausa, play, velocità)**
 
-- Implementazione del **TimeManager** (time.js): tre velocità di
-  simulazione (1x, 2x, pausa). La raccolta, il movimento, il consumo e
-  la rigenerazione dipendono dal tempo di gioco effettivo.
+**6.1 – Time Manager (pausa/play/velocità)**
 
-- Interfaccia minima per i controlli del tempo: pulsanti UI o tasti
-  rapidi (es. spazio per pausa, +/- per velocità).
+- Implementare time.js con tre velocità (0x, 1x, 2x)
 
-- **Pannello di debug** (rudimentale, via UI o console):
+- Modificare update in main.js per usare il gameDelta dal TimeManager
 
-  - Visualizzare e modificare in tempo reale le variabili chiave: tasso
-    di consumo cibo, velocità raccolta, soglia di abbandono, cooldown
-    riposo spedizioni, raggio di raccolta.
+- Tasti rapidi: spazio per pausa, 1/2 per velocità
 
-  - Modificare anche le scorte di cibo e la popolazione per test rapidi.
+**6.4 – Selezione e ispezione avanzata delle spedizioni**
 
-  - Rendere dinamiche queste variabili nel codice, in modo da poi
-    andarle a cambiare solo in un punto
+- Completare l'info panel con il percorso tratteggiato
 
-- **Selezione e ispezione delle spedizioni:**
+- Aggiungere la visualizzazione dell'area di raccolta per le spedizioni
+  automatiche
 
-  - Click sinistro su una spedizione attiva (cerchio bianco sulla mappa)
-    per selezionarla.
+**6.5 – Cancellazione spedizioni**
 
-  - Visualizzazione delle informazioni base: numero lavoratori,
-    provviste, inventario, stato, area di raccolta.
+- Tasto C per cancellare la spedizione selezionata
 
-  - L'area di raccolta assegnata e il percorso seguito vengono
-    evidenziati sulla mappa (es. cerchio tratteggiato).
+- La spedizione torna al campo, deposita il cibo, restituisce i
+  lavoratori al pop
 
-- **Cancellazione di una spedizione:**
+**6.2 – Pannello di debug via console**
 
-  - Comando "cancella spedizione" (tasto o pulsante) quando una
-    spedizione è selezionata.
+- Rendere accessibili e modificabili da console le variabili chiave
+  (tasso consumo, velocità raccolta, soglia abbandono, cooldown, raggio)
 
-  - La spedizione interrompe la raccolta, torna immediatamente al campo,
-    deposita il cibo già raccolto, e i lavoratori rientrano nel Pop.
+**6.3 – Pannello di debug UI (INSIEME A 6.2)**
 
-- **Ribilanciamento**: definire la durata di un giorno e settare tutti i
-  consumi su consumo/giorno
+- Creare un pannello UI sovrapposto al canvas con input per le variabili
 
-- **Meccanica:** il giocatore può ora gestire attivamente le spedizioni
-  e bilanciare i parametri di gioco per testare il loop di sopravvivenza
-  in varie condizioni.
+- Collegarlo alle variabili di gioco
+
+**6.6 – Ribilanciamento e parametri esposti**
+
+- Esporre tutti i parametri di gioco nel pannello di debug
+
+- Testare diverse combinazioni per trovare un bilanciamento iniziale
 
 **Batch 7 – Rigenerazione base del cibo**
 
@@ -876,7 +871,9 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
     della tribù (e praticamente fare solo un gioco su questo, magari
     come primo titolo di una serie)
 
-14. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
+14. Ragionare sull’acqua
+
+15. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
     unità e meccaniche intorno e link di timeline del progresso (wiki e
     altri link se funzionano)
 
@@ -1363,6 +1360,15 @@ l'assistente deve:
 
 - Solo dopo questa verifica, procedere con la proposta di modifica.
 
+- **Brief prima del codice**: prima di fornire qualsiasi blocco di
+  codice, l'assistente farà un breve riepilogo di ciò che sta per
+  proporre, spiegando le modifiche in linguaggio semplice e chiedendo
+  conferma esplicita all'utente. Solo dopo la conferma, mostrerà il
+  codice. Questo evita di dover cancellare o riscrivere codice non
+  desiderato e mantiene il flusso di lavoro ordinato.
+
+- 
+
 Durante la sessione:
 
 - **Modifiche a file esistenti:** l'assistente fornisce solo la porzione
@@ -1652,9 +1658,12 @@ let gridGraphics;  // reference to grid graphics for dynamic updates
 let campGraphics;
 let dayAccumulator = 0;          // accumulator for game time in seconds
 const DAY_LENGTH = 5;            // 5 real seconds = 1 game day
+let gameDay = 1; // Day counter
 let campSelected = false;      // whether camp is currently selected
 let selectedExpedition = null; // currently selected expedition
 let infoText;                  // UI text for selected expedition info
+let speedText; // UI text for current simulation speed
+
 
 // Enable click: left-click to select pop, right-click to move selected pop,
 // Shift+left-click to inspect cell (debug).
@@ -1735,8 +1744,51 @@ function enableDebugClick(scene) {
             return;
         }
 
-        // Check if we clicked on the camp itself (ignore for now)
-        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) return;
+        // If we clicked on the camp, create an automatic expedition (free roaming)
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) {
+            // Only work if camp is selected
+            if (!campSelected) return;
+
+            let pop = camp.pops.find(p => p.type === 'gatherer');
+            if (!pop) {
+                pop = new Pop('gatherer');
+                camp.pops.push(pop);
+            }
+
+            let workersToTake = 0;
+            if (camp.unassignedPopulation > 0) {
+                const moveCount = Math.min(5, camp.unassignedPopulation);
+                camp.unassignedPopulation -= moveCount;
+                pop.addWorkers(moveCount);
+                workersToTake = moveCount;
+            } else if (pop.availableWorkers > 0) {
+                workersToTake = Math.min(5, pop.availableWorkers);
+            } else {
+                console.log('No available workers.');
+                return;
+            }
+
+            const taken = pop.takeWorkers(workersToTake);
+            if (taken === 0) return;
+
+            const id = 'exp_' + Date.now();
+            const areaRadius = 150;
+            // Create auto expedition starting from camp, target area = current camp position
+            const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, camp.x, camp.y, areaRadius, camp);
+            exp.useAssignedArea = false; // auto mode
+
+            // Give provisions
+            const dist = 0; // starting from camp, no distance
+            const needed = taken * 0.5; // base provisions
+            const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
+            exp.inventory.provisions = given;
+            camp.foodStock -= given;
+
+            expeditions.push(exp);
+            updateInfoText();
+            console.log(`Auto expedition ${id} started with ${taken} workers.`);
+            return;
+        }
 
         // If an expedition is selected, update its area and restart cycle
         if (selectedExpedition) {
@@ -1780,17 +1832,12 @@ function enableDebugClick(scene) {
 
         // Determine if forced (Shift held during right-click)
         const forced = pointer.event.shiftKey;
-        const autoMode = pointer.event.ctrlKey; // Ctrl+right-click = automatic mode
-
 
         // Create expedition
         const id = 'exp_' + Date.now();
         const areaRadius = 150;
         const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, pointer.x, pointer.y, areaRadius, camp);
         exp.isForced = forced;
-        if (autoMode) {
-            exp.useAssignedArea = false;
-        }
 
         // Give provisions from camp stock, respecting inventory capacity
         const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
@@ -1831,6 +1878,62 @@ function enableDebugClick(scene) {
             console.log(`Expedition ${selectedExpedition.id} auto mode: ${!selectedExpedition.useAssignedArea}`);
             updateInfoText();
         }
+    });
+
+    // ---- Time controls (keyboard) ----
+    scene.input.keyboard.on('keydown-SPACE', function () {
+        TimeManager.togglePause();
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-ZERO', function () {
+        TimeManager.setSpeedIndex(1); // 1x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-ONE', function () {
+        TimeManager.setSpeedIndex(2); // 1x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-TWO', function () {
+        TimeManager.setSpeedIndex(3); // 2x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-THREE', function () {
+        TimeManager.setSpeedIndex(4); // 2x
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-FOUR', function () {
+        TimeManager.setSpeedIndex(5); // 2x
+        updateSpeedText();
+    });
+
+    // Increase speed with '+' (same key without shift)
+    scene.input.keyboard.on('keydown-NUMPAD_ADD', function (event) {
+        event.preventDefault();
+        TimeManager.increaseSpeed();
+        updateSpeedText();
+    });
+
+    scene.input.keyboard.on('keydown-PLUS', function (event) {
+        event.preventDefault();
+        TimeManager.increaseSpeed();
+        updateSpeedText();
+    });
+
+    // Decrease speed with '-' (both numpad and standard)
+    scene.input.keyboard.on('keydown-NUMPAD_SUBTRACT', function (event) {
+        event.preventDefault();
+        TimeManager.decreaseSpeed();
+        updateSpeedText();
+    });
+    scene.input.keyboard.on('keydown-MINUS', function (event) {
+        event.preventDefault();
+        TimeManager.decreaseSpeed();
+        updateSpeedText();
     });
 }
 
@@ -1905,6 +2008,14 @@ function create() {
     // Camp info text (bottom left) – we can reuse campText from before, define it
     campText = this.add.text(10, 720 - 30, '', { fontSize: '14px', fill: '#ffffff' });
     updateCampText();
+
+    // Speed indicator text
+    speedText = this.add.text(10, 30, 'Speed: 1x', {
+        fontSize: '14px',
+        fill: '#ffffff',
+        backgroundColor: '#00000088',
+        padding: { x: 4, y: 2 }
+    });
 
     // Graphics object for drawing pops (circles)
     popGraphics = this.add.graphics();
@@ -2048,9 +2159,20 @@ function drawGrid() {
 function updateCampText() {
     let totalPop = camp.unassignedPopulation;
     for (const pop of camp.pops) totalPop += pop.totalWorkers;
-    campText.setText(`Food: ${camp.foodStock.toFixed(0)} | Pop: ${totalPop} | Unassigned: ${camp.unassignedPopulation}`);
+    campText.setText(
+        `Food: ${camp.foodStock.toFixed(0)} | Pop: ${totalPop} | Unassigned: ${camp.unassignedPopulation}\n` +
+        `Day: ${gameDay}`
+    );
 }
 
+//Main UI info text
+function updateSpeedText() {
+    if (speedText) {
+        speedText.setText('Speed: ' + TimeManager.getSpeedLabel());
+    }
+}
+
+//Info text tha appears when clicking on the camp
 function updateInfoText() {
     if (!infoText) return;
     let str = '';
@@ -2075,22 +2197,28 @@ function updateInfoText() {
 // time: the current time in milliseconds since the game started.
 // delta: the time difference since the last frame in milliseconds.
 function update(time, delta) {
-    const deltaSec = delta / 1000;
+    const realDeltaSec = delta / 1000;
+    const deltaSec = TimeManager.getGameDelta(realDeltaSec);
     for (const exp of expeditions) exp.update(deltaSec);
 
     // Day cycle
     dayAccumulator += deltaSec;
     if (dayAccumulator >= DAY_LENGTH) {
+        // Advance day counter
+        gameDay++;
         dayAccumulator -= DAY_LENGTH;
         let totalPop = camp.unassignedPopulation;
         for (const pop of camp.pops) totalPop += pop.totalWorkers;
         const consumed = totalPop * 0.1;
         camp.foodStock -= consumed;
         if (camp.foodStock < 0) camp.foodStock = 0;
-        updateCampText();
     }
 
     updateInfoText(); // refresh selected info
+    updateCampText(); // refresh camp counter every frame
+    updateInfoText();
+    updateSpeedText();
+    updateCampText();
     drawGrid();
     drawPops();
     drawCamp();
@@ -2105,7 +2233,68 @@ function update(time, delta) {
 
 ## FILE: js\time.js
 ```
+// time.js - Time Manager for controlling simulation speed
 
+const TimeManager = {
+    speeds: [0, 0.5, 1, 2, 4, 8],  // available speed multipliers
+    speedIndex: 2,                   // index of current speed in the array (default 1x)
+    lastNonZeroIndex: 2,             // remember last non-zero speed for resume (default 1x)
+
+    get speed() {
+        return this.speeds[this.speedIndex];
+    },
+
+    // Set speed by index in the speeds array. Updates lastNonZeroIndex if not pausing.
+    setSpeedIndex(newIndex) {
+        if (newIndex >= 0 && newIndex < this.speeds.length) {
+            this.speedIndex = newIndex;
+            if (newIndex !== 0) {
+                this.lastNonZeroIndex = newIndex;
+            }
+            console.log(`Speed set to ${this.getSpeedLabel()}`);
+        }
+    },
+
+    // Increase speed (cycle forward)
+    increaseSpeed() {
+        const newIndex = (this.speedIndex + 1) % this.speeds.length;
+        this.setSpeedIndex(newIndex);
+    },
+
+    // Decrease speed (cycle backward)
+    decreaseSpeed() {
+        const newIndex = (this.speedIndex - 1 + this.speeds.length) % this.speeds.length;
+        this.setSpeedIndex(newIndex);
+    },
+
+    // Toggle between pause and the last non-zero speed
+    togglePause() {
+        if (this.speedIndex === 0) {
+            // Resume to last non-zero speed
+            this.setSpeedIndex(this.lastNonZeroIndex);
+        } else {
+            // Pause
+            this.setSpeedIndex(0);
+        }
+    },
+
+    // Return the actual delta time considering the current speed
+    getGameDelta(deltaSec) {
+        return deltaSec * this.speed;
+    },
+
+    // Return a human-readable label for the current speed
+    getSpeedLabel() {
+        const s = this.speed;
+        if (s === 0) return 'Paused';
+        if (s === 0.5) return '0.5x';
+        if (s === 1) return '1x';
+        if (s === 2) return '2x';
+        if (s === 4) return '4x';
+        if (s === 8) return '8x';
+        return `${s}x`;
+    }
+};
 ```
 
 ## FILE: js\ui.js
@@ -2247,40 +2436,74 @@ class Expedition {
             this.cooldownRemaining -= delta;
             if (this.cooldownRemaining <= 0) {
                 this.cooldownRemaining = 0;
-                // Take provisions
-                const distToArea = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, this.areaCenter.x, this.areaCenter.y);
-                const needed = this.workerCount * (distToArea / 100) * 0.5;
-                const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
-                this.inventory.provisions = taken;
-                this.campRef.foodStock -= taken;
+                // Determine target and distance to calculate provisions
+                let targetDist = 0;
+                let targetFound = false;
 
-                // Decide where to go based on mode
                 if (this.useAssignedArea) {
-                    const best = this.findBestCellInArea(this.campRef.x, this.campRef.y);
-                    if (best.cx >= 0) {
-                        this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
-                        this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
-                    } else {
-                        this.targetX = this.areaCenter.x;
-                        this.targetY = this.areaCenter.y;
-                    }
+                    // Assigned area: target is areaCenter
+                    targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, this.areaCenter.x, this.areaCenter.y);
+                    targetFound = true;
                 } else {
-                    // Auto mode: head towards areaCenter (will re-evaluate on arrival)
-                    this.targetX = this.areaCenter.x;
-                    this.targetY = this.areaCenter.y;
+                    // Auto mode: find the best cell around camp
+                    const best = this.findBetterCell();
+                    if (best.cx >= 0) {
+                        const targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
+                        const targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                        targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
+                        targetFound = true;
+                        // Save target for later use (avoid recomputing)
+                        this.targetX = targetX;
+                        this.targetY = targetY;
+                    }
                 }
-                this.state = 'travellingToArea';
+
+                if (targetFound) {
+                    // Calculate provisions based on target distance
+                    const needed = this.workerCount * (targetDist / 100) * 0.5;
+                    const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
+                    this.inventory.provisions = taken;
+                    this.campRef.foodStock -= taken;
+                } else {
+                    // No target found: don't take provisions, stay resting
+                    this.cooldownRemaining = 5;
+                    return;
+                }
+
+                if (targetFound) {
+                    this.state = 'travellingToArea';
+                } else {
+                    // No cells available: return provisions and stay resting
+                    this.campRef.foodStock += this.inventory.provisions;
+                    this.inventory.provisions = 0;
+                    this.cooldownRemaining = 5; // check again in 5 seconds
+                }
             }
             return;
         }
 
         // --- TRAVELLING / MOVING / RETURNING ---
         if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToCamp') {
+            // Consume provisions while moving
             const consumed = this.workerCount * 0.01 * delta;
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
-            // Return early if provisions exhausted and not forced
+            // If returning and already at camp, go directly to resting
+            if (this.state === 'returningToCamp') {
+                const distToCamp = Phaser.Math.Distance.Between(this.x, this.y, this.campRef.x, this.campRef.y);
+                if (distToCamp < 5) {
+                    // Deposit food and rest
+                    this.campRef.foodStock += this.inventory.food;
+                    this.inventory.food = 0;
+                    this.inventory.provisions = 0;
+                    this.cooldownRemaining = 3;
+                    this.state = 'resting';
+                    return;
+                }
+            }
+
+            // Return early if provisions exhausted and not forced (but don't override resting)
             if (!this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
                 this.targetX = this.campRef.x;
@@ -2292,6 +2515,7 @@ class Expedition {
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
+
             if (dist < 2) {
                 this.x = this.targetX;
                 this.y = this.targetY;
@@ -2385,6 +2609,8 @@ class Expedition {
         }
     }
 }
+
+const expeditions = camp.expeditions;
 ```
 
 ## FILE: js\world.js
