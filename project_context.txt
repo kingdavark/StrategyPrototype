@@ -777,6 +777,17 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 - Testare diverse combinazioni per trovare un bilanciamento iniziale
 
+FIX:
+
+- Se io rimando una spedizione e ho gatherers disponibili, non prende
+  quelli, ma ne crea di nuovi (se vi sono gathers disponibili, prendi
+  prima quelli, questa stessa logica sarà applicata su tutti i tipi di
+  spedizioni ma, in futuro, potremmo volere che il giocatore scelga da
+  quale pool pescare i gahterers
+
+- Spedizione va fuori dall’area (perché va su una casella sul bordo e da
+  lì, nel suo raggio, vede un’altra casella migliore?)
+
 **Batch 7 – Rigenerazione base del cibo**
 
 - Le celle con forageDensity si rigenerano lentamente nel tempo (es. una
@@ -1935,6 +1946,37 @@ function enableDebugClick(scene) {
         TimeManager.decreaseSpeed();
         updateSpeedText();
     });
+
+    // Keyboard 'C' to cancel selected expedition (forces return, then disbands)
+    scene.input.keyboard.on('keydown-C', function () {
+        if (selectedExpedition) {
+            const exp = selectedExpedition;
+            
+            // If already at camp (resting or idle), disband immediately
+            if (exp.state === 'resting' || exp.state === 'idle') {
+                camp.foodStock += exp.inventory.food;
+                const pop = camp.pops.find(p => p.type === exp.popType);
+                if (pop) pop.returnWorkers(exp.workerCount);
+                const index = expeditions.indexOf(exp);
+                if (index > -1) expeditions.splice(index, 1);
+                selectedExpedition = null;
+                updateInfoText();
+                updateCampText();
+                console.log(`Expedition ${exp.id} disbanded at camp.`);
+                return;
+            }
+            
+            // Otherwise, force return to camp and mark for disbanding
+            exp.toBeDisbanded = true;
+            exp.targetX = camp.x;
+            exp.targetY = camp.y;
+            exp.state = 'returningToCamp';
+            // Clear selection
+            selectedExpedition = null;
+            updateInfoText();
+            console.log(`Expedition ${exp.id} will disband on arrival at camp.`);
+        }
+    });
 }
 
 // preload: load any external assets (images, spritesheets, etc.)
@@ -2370,6 +2412,7 @@ class Expedition {
         this.lastCellEvaluation = 0;
         this.isForced = false; // if true, expedition ignores provision limits
         this.useAssignedArea = true; // if true, gathering is restricted to the area around areaCenter
+        this.toBeDisbanded = false; // if true, expedition will disband on arrival at camp
     }
 
     // Calculate score for a cell from the expedition's current position
@@ -2498,11 +2541,25 @@ class Expedition {
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
-            // If returning and already at camp, go directly to resting
+            // If returning and already at camp, go directly to resting or disband
             if (this.state === 'returningToCamp') {
                 const distToCamp = Phaser.Math.Distance.Between(this.x, this.y, this.campRef.x, this.campRef.y);
                 if (distToCamp < 5) {
-                    // Deposit food and rest
+                    this.x = this.campRef.x;
+                    this.y = this.campRef.y;
+                    if (this.toBeDisbanded) {
+                        // Disband: deposit food, return workers, and remove
+                        this.campRef.foodStock += this.inventory.food;
+                        this.inventory.food = 0;
+                        this.inventory.provisions = 0;
+                        const pop = this.campRef.pops.find(p => p.type === this.popType);
+                        if (pop) pop.returnWorkers(this.workerCount);
+                        const index = this.campRef.expeditions.indexOf(this);
+                        if (index > -1) this.campRef.expeditions.splice(index, 1);
+                        // Note: updateUI will be called from main.js via the update loop
+                        return;
+                    }
+                    // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
@@ -2531,6 +2588,18 @@ class Expedition {
                 if (this.state === 'travellingToArea' || this.state === 'movingToCell') {
                     this.state = 'gathering';
                 } else if (this.state === 'returningToCamp') {
+                    if (this.toBeDisbanded) {
+                        // Disband on arrival
+                        this.campRef.foodStock += this.inventory.food;
+                        this.inventory.food = 0;
+                        this.inventory.provisions = 0;
+                        const pop = this.campRef.pops.find(p => p.type === this.popType);
+                        if (pop) pop.returnWorkers(this.workerCount);
+                        const index = this.campRef.expeditions.indexOf(this);
+                        if (index > -1) this.campRef.expeditions.splice(index, 1);
+                        return;
+                    }
+                    // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;

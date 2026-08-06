@@ -55,6 +55,7 @@ class Expedition {
         this.lastCellEvaluation = 0;
         this.isForced = false; // if true, expedition ignores provision limits
         this.useAssignedArea = true; // if true, gathering is restricted to the area around areaCenter
+        this.toBeDisbanded = false; // if true, expedition will disband on arrival at camp
     }
 
     // Calculate score for a cell from the expedition's current position
@@ -183,11 +184,25 @@ class Expedition {
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
-            // If returning and already at camp, go directly to resting
+            // If returning and already at camp, go directly to resting or disband
             if (this.state === 'returningToCamp') {
                 const distToCamp = Phaser.Math.Distance.Between(this.x, this.y, this.campRef.x, this.campRef.y);
                 if (distToCamp < 5) {
-                    // Deposit food and rest
+                    this.x = this.campRef.x;
+                    this.y = this.campRef.y;
+                    if (this.toBeDisbanded) {
+                        // Disband: deposit food, return workers, and remove
+                        this.campRef.foodStock += this.inventory.food;
+                        this.inventory.food = 0;
+                        this.inventory.provisions = 0;
+                        const pop = this.campRef.pops.find(p => p.type === this.popType);
+                        if (pop) pop.returnWorkers(this.workerCount);
+                        const index = this.campRef.expeditions.indexOf(this);
+                        if (index > -1) this.campRef.expeditions.splice(index, 1);
+                        // Note: updateUI will be called from main.js via the update loop
+                        return;
+                    }
+                    // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
@@ -216,6 +231,18 @@ class Expedition {
                 if (this.state === 'travellingToArea' || this.state === 'movingToCell') {
                     this.state = 'gathering';
                 } else if (this.state === 'returningToCamp') {
+                    if (this.toBeDisbanded) {
+                        // Disband on arrival
+                        this.campRef.foodStock += this.inventory.food;
+                        this.inventory.food = 0;
+                        this.inventory.provisions = 0;
+                        const pop = this.campRef.pops.find(p => p.type === this.popType);
+                        if (pop) pop.returnWorkers(this.workerCount);
+                        const index = this.campRef.expeditions.indexOf(this);
+                        if (index > -1) this.campRef.expeditions.splice(index, 1);
+                        return;
+                    }
+                    // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;

@@ -258,6 +258,17 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 - Testare diverse combinazioni per trovare un bilanciamento iniziale
 
+FIX:
+
+- Se io rimando una spedizione e ho gatherers disponibili, non prende
+  quelli, ma ne crea di nuovi (se vi sono gathers disponibili, prendi
+  prima quelli, questa stessa logica sarà applicata su tutti i tipi di
+  spedizioni ma, in futuro, potremmo volere che il giocatore scelga da
+  quale pool pescare i gahterers
+
+- Spedizione va fuori dall’area (perché va su una casella sul bordo e da
+  lì, nel suo raggio, vede un’altra casella migliore?)
+
 **Batch 7 – Rigenerazione base del cibo**
 
 - Le celle con forageDensity si rigenerano lentamente nel tempo (es. una

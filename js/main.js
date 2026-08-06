@@ -305,6 +305,37 @@ function enableDebugClick(scene) {
         TimeManager.decreaseSpeed();
         updateSpeedText();
     });
+
+    // Keyboard 'C' to cancel selected expedition (forces return, then disbands)
+    scene.input.keyboard.on('keydown-C', function () {
+        if (selectedExpedition) {
+            const exp = selectedExpedition;
+            
+            // If already at camp (resting or idle), disband immediately
+            if (exp.state === 'resting' || exp.state === 'idle') {
+                camp.foodStock += exp.inventory.food;
+                const pop = camp.pops.find(p => p.type === exp.popType);
+                if (pop) pop.returnWorkers(exp.workerCount);
+                const index = expeditions.indexOf(exp);
+                if (index > -1) expeditions.splice(index, 1);
+                selectedExpedition = null;
+                updateInfoText();
+                updateCampText();
+                console.log(`Expedition ${exp.id} disbanded at camp.`);
+                return;
+            }
+            
+            // Otherwise, force return to camp and mark for disbanding
+            exp.toBeDisbanded = true;
+            exp.targetX = camp.x;
+            exp.targetY = camp.y;
+            exp.state = 'returningToCamp';
+            // Clear selection
+            selectedExpedition = null;
+            updateInfoText();
+            console.log(`Expedition ${exp.id} will disband on arrival at camp.`);
+        }
+    });
 }
 
 // preload: load any external assets (images, spritesheets, etc.)
