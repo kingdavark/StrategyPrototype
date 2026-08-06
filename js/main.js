@@ -425,11 +425,20 @@ function drawPops() {
         if (exp === selectedExpedition) {
             popGraphics.lineStyle(2, 0xffff00, 0.8);
             popGraphics.strokeCircle(exp.x, exp.y, 10);
-            // Draw dashed path from camp to area center
-            drawDashedLine(popGraphics, camp.x, camp.y, exp.areaCenter.x, exp.areaCenter.y, 10, 5);
-            // Draw area radius
-            popGraphics.lineStyle(1, 0xffff00, 0.2);
-            popGraphics.strokeCircle(exp.areaCenter.x, exp.areaCenter.y, exp.areaRadius);
+            
+            if (!exp.useAssignedArea) {
+                // Auto mode: draw path from camp to current position
+                drawDashedLine(popGraphics, camp.x, camp.y, exp.x, exp.y, 10, 5);
+                // Draw area radius around the expedition
+                popGraphics.lineStyle(1, 0xffff00, 0.2);
+                popGraphics.strokeCircle(exp.x, exp.y, exp.areaRadius);
+            } else {
+                // Manual mode: draw path from camp to area center
+                drawDashedLine(popGraphics, camp.x, camp.y, exp.areaCenter.x, exp.areaCenter.y, 10, 5);
+                // Draw area radius around area center
+                popGraphics.lineStyle(1, 0xffff00, 0.2);
+                popGraphics.strokeCircle(exp.areaCenter.x, exp.areaCenter.y, exp.areaRadius);
+            }
         }
 
         // Line to target if moving
