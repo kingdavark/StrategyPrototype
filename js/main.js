@@ -18,8 +18,8 @@ const config = {
 const game = new Phaser.Game(config);
 
 // Camp position (visual placeholder, functionality comes later)
-const CAMP_X = 100;
-const CAMP_Y = 100;
+const CAMP_X = GameConfig.campX;
+const CAMP_Y = GameConfig.campY;
 
 // Global references for the game scene (set in create)
 let gameScene;
@@ -27,13 +27,17 @@ let popGraphics;
 let gridGraphics;  // reference to grid graphics for dynamic updates
 let campGraphics;
 let dayAccumulator = 0;          // accumulator for game time in seconds
-const DAY_LENGTH = 5;            // 5 real seconds = 1 game day
 let gameDay = 1; // Day counter
 let campSelected = false;      // whether camp is currently selected
 let selectedExpedition = null; // currently selected expedition
 let infoText;                  // UI text for selected expedition info
 let speedText; // UI text for current simulation speed
 
+// Helper: check if an HTML input is focused (to avoid game hotkeys while typing)
+function isInputFocused() {
+    const active = document.activeElement;
+    return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+}
 
 // Enable click: left-click to select pop, right-click to move selected pop,
 // Shift+left-click to inspect cell (debug).
@@ -127,12 +131,12 @@ function enableDebugClick(scene) {
 
             let workersToTake = 0;
             if (camp.unassignedPopulation > 0) {
-                const moveCount = Math.min(5, camp.unassignedPopulation);
+                const moveCount = Math.min(GameConfig.startingExpeditionWorkers, camp.unassignedPopulation);
                 camp.unassignedPopulation -= moveCount;
                 pop.addWorkers(moveCount);
                 workersToTake = moveCount;
             } else if (pop.availableWorkers > 0) {
-                workersToTake = Math.min(5, pop.availableWorkers);
+                workersToTake = Math.min(GameConfig.startingExpeditionWorkers, pop.availableWorkers);
             } else {
                 console.log('No available workers.');
                 return;
@@ -142,14 +146,13 @@ function enableDebugClick(scene) {
             if (taken === 0) return;
 
             const id = 'exp_' + Date.now();
-            const areaRadius = 150;
+            const areaRadius = GameConfig.areaRadius;
             // Create auto expedition starting from camp, target area = current camp position
             const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, camp.x, camp.y, areaRadius, camp);
             exp.useAssignedArea = false; // auto mode
 
             // Give provisions
-            const dist = 0; // starting from camp, no distance
-            const needed = taken * 0.5; // base provisions
+            const needed = taken * GameConfig.provisionsAutoBase; // base provisions
             const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
             exp.inventory.provisions = given;
             camp.foodStock -= given;
@@ -167,12 +170,11 @@ function enableDebugClick(scene) {
             selectedExpedition.targetX = pointer.x;
             selectedExpedition.targetY = pointer.y;
             selectedExpedition.state = 'travellingToArea';
-            // Optionally clear inventory? I'd keep it, but provisions may need adjustment.
             console.log(`Expedition ${selectedExpedition.id} area updated.`);
             updateInfoText();
             return;
         }
-    
+
         // Create a gathering expedition
         let pop = camp.pops.find(p => p.type === 'gatherer');
         if (!pop) {
@@ -185,12 +187,12 @@ function enableDebugClick(scene) {
         let workersToTake = 0;
         if (camp.unassignedPopulation > 0) {
             // Move unassigned to gatherers, then take them
-            const moveCount = Math.min(5, camp.unassignedPopulation);
+            const moveCount = Math.min(GameConfig.startingExpeditionWorkers, camp.unassignedPopulation);
             camp.unassignedPopulation -= moveCount;
             pop.addWorkers(moveCount);
             workersToTake = moveCount;
         } else if (pop.availableWorkers > 0) {
-            workersToTake = Math.min(5, pop.availableWorkers);
+            workersToTake = Math.min(GameConfig.startingExpeditionWorkers, pop.availableWorkers);
         } else {
             console.log('No available workers.');
             return;
@@ -205,13 +207,13 @@ function enableDebugClick(scene) {
 
         // Create expedition
         const id = 'exp_' + Date.now();
-        const areaRadius = 150;
+        const areaRadius = GameConfig.areaRadius;
         const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, pointer.x, pointer.y, areaRadius, camp);
         exp.isForced = forced;
 
         // Give provisions from camp stock, respecting inventory capacity
         const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
-        const needed = taken * (dist / 100) * 0.5;
+        const needed = taken * (dist / 100) * GameConfig.provisionsBaseMultiplier;
         // Cannot exceed camp food, nor the expedition's max capacity
         const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
         exp.inventory.provisions = given;
@@ -224,6 +226,7 @@ function enableDebugClick(scene) {
 
     // Keyboard 'R' to return selected expedition
     scene.input.keyboard.on('keydown-R', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition && selectedExpedition.state !== 'returningToCamp' && selectedExpedition.state !== 'resting') {
             selectedExpedition.targetX = camp.x;
             selectedExpedition.targetY = camp.y;
@@ -234,6 +237,7 @@ function enableDebugClick(scene) {
 
     // Keyboard 'F' to toggle forced mode on selected expedition
     scene.input.keyboard.on('keydown-F', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition) {
             selectedExpedition.isForced = !selectedExpedition.isForced;
             console.log(`Expedition ${selectedExpedition.id} forced mode: ${selectedExpedition.isForced}`);
@@ -243,6 +247,7 @@ function enableDebugClick(scene) {
 
     // Keyboard 'A' to toggle automatic mode (free roaming vs assigned area)
     scene.input.keyboard.on('keydown-A', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition) {
             selectedExpedition.useAssignedArea = !selectedExpedition.useAssignedArea;
             console.log(`Expedition ${selectedExpedition.id} auto mode: ${!selectedExpedition.useAssignedArea}`);
@@ -252,43 +257,51 @@ function enableDebugClick(scene) {
 
     // ---- Time controls (keyboard) ----
     scene.input.keyboard.on('keydown-SPACE', function () {
+        if (isInputFocused()) return;
         TimeManager.togglePause();
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-ZERO', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(1); // 1x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-ONE', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(2); // 1x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-TWO', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(3); // 2x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-THREE', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(4); // 2x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-FOUR', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(5); // 2x
         updateSpeedText();
     });
 
     // Increase speed with '+' (same key without shift)
     scene.input.keyboard.on('keydown-NUMPAD_ADD', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.increaseSpeed();
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-PLUS', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.increaseSpeed();
         updateSpeedText();
@@ -296,11 +309,13 @@ function enableDebugClick(scene) {
 
     // Decrease speed with '-' (both numpad and standard)
     scene.input.keyboard.on('keydown-NUMPAD_SUBTRACT', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.decreaseSpeed();
         updateSpeedText();
     });
     scene.input.keyboard.on('keydown-MINUS', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.decreaseSpeed();
         updateSpeedText();
@@ -308,9 +323,10 @@ function enableDebugClick(scene) {
 
     // Keyboard 'C' to cancel selected expedition (forces return, then disbands)
     scene.input.keyboard.on('keydown-C', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition) {
             const exp = selectedExpedition;
-            
+
             // If already at camp (resting or idle), disband immediately
             if (exp.state === 'resting' || exp.state === 'idle') {
                 camp.foodStock += exp.inventory.food;
@@ -324,7 +340,7 @@ function enableDebugClick(scene) {
                 console.log(`Expedition ${exp.id} disbanded at camp.`);
                 return;
             }
-            
+
             // Otherwise, force return to camp and mark for disbanding
             exp.toBeDisbanded = true;
             exp.targetX = camp.x;
@@ -456,7 +472,7 @@ function drawPops() {
         if (exp === selectedExpedition) {
             popGraphics.lineStyle(2, 0xffff00, 0.8);
             popGraphics.strokeCircle(exp.x, exp.y, 10);
-            
+
             if (!exp.useAssignedArea) {
                 // Auto mode: draw path from camp to current position
                 drawDashedLine(popGraphics, camp.x, camp.y, exp.x, exp.y, 10, 5);
@@ -611,24 +627,22 @@ function update(time, delta) {
     const deltaSec = TimeManager.getGameDelta(realDeltaSec);
     for (const exp of expeditions) exp.update(deltaSec);
 
-    // Day cycle
+    // Day cycle (uses GameConfig.dayLengthSeconds dynamically)
     dayAccumulator += deltaSec;
-    if (dayAccumulator >= DAY_LENGTH) {
+    if (dayAccumulator >= GameConfig.dayLengthSeconds) {
         // Advance day counter
         gameDay++;
-        dayAccumulator -= DAY_LENGTH;
+        dayAccumulator -= GameConfig.dayLengthSeconds;
         let totalPop = camp.unassignedPopulation;
         for (const pop of camp.pops) totalPop += pop.totalWorkers;
-        const consumed = totalPop * 0.1;
+        const consumed = totalPop * GameConfig.foodConsumptionPerPersonPerDay;
         camp.foodStock -= consumed;
         if (camp.foodStock < 0) camp.foodStock = 0;
     }
 
     updateInfoText(); // refresh selected info
-    updateCampText(); // refresh camp counter every frame
-    updateInfoText();
     updateSpeedText();
-    updateCampText();
+    updateCampText(); // refresh camp counter every frame
     drawGrid();
     drawPops();
     drawCamp();

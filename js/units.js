@@ -1,10 +1,10 @@
 // units.js - Mobile entities: Expedition, Pop (specialized workers), and Camp
 
 const camp = {
-    x: 100,
-    y: 100,
-    foodStock: 50,
-    unassignedPopulation: 20,
+    x: GameConfig.campX,
+    y: GameConfig.campY,
+    foodStock: GameConfig.startingFoodStock,
+    unassignedPopulation: GameConfig.startingUnassignedPopulation,
     pops: [],
     expeditions: []
 };
@@ -44,9 +44,9 @@ class Expedition {
         this.y = startY;
         this.targetX = areaX;
         this.targetY = areaY;
-        this.speed = 60;
+        this.speed = GameConfig.expeditionSpeed;
         this.state = 'travellingToArea';
-        this.maxCapacity = workerCount * 2;
+        this.maxCapacity = workerCount * GameConfig.maxCapacityPerWorker;
         this.inventory = { provisions: 0, food: 0 };
         this.areaCenter = { x: areaX, y: areaY };
         this.areaRadius = areaRadius;
@@ -67,7 +67,7 @@ class Expedition {
         const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
         const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
         const dist = Phaser.Math.Distance.Between(this.x, this.y, cellWorldX, cellWorldY);
-        return density * 100 - dist * 0.2;
+        return density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
     }
 
     // Find the best cell around the expedition's current position (auto mode)
@@ -113,7 +113,7 @@ class Expedition {
                     const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
                     const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
                     const dist = Phaser.Math.Distance.Between(fromX, fromY, cellWorldX, cellWorldY);
-                    const score = density * 100 - dist * 0.2;
+                    const score = density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
                     if (score > bestScore) {
                         bestScore = score;
                         bestCx = cx;
@@ -126,6 +126,9 @@ class Expedition {
     }
 
     update(delta) {
+        // Dynamically update capacity and speed from GameConfig
+        this.maxCapacity = this.workerCount * GameConfig.maxCapacityPerWorker;
+
         // --- RESTING ---
         if (this.state === 'resting') {
             this.cooldownRemaining -= delta;
@@ -155,13 +158,13 @@ class Expedition {
 
                 if (targetFound) {
                     // Calculate provisions based on target distance
-                    const needed = this.workerCount * (targetDist / 100) * 0.5;
+                    const needed = this.workerCount * (targetDist / 100) * GameConfig.provisionsBaseMultiplier;
                     const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
                     this.inventory.provisions = taken;
                     this.campRef.foodStock -= taken;
                 } else {
                     // No target found: don't take provisions, stay resting
-                    this.cooldownRemaining = 5;
+                    this.cooldownRemaining = GameConfig.cooldownSeconds;
                     return;
                 }
 
@@ -171,7 +174,7 @@ class Expedition {
                     // No cells available: return provisions and stay resting
                     this.campRef.foodStock += this.inventory.provisions;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = 5; // check again in 5 seconds
+                    this.cooldownRemaining = GameConfig.cooldownSeconds; // check again in 5 seconds
                 }
             }
             return;
@@ -180,7 +183,7 @@ class Expedition {
         // --- TRAVELLING / MOVING / RETURNING ---
         if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToCamp') {
             // Consume provisions while moving
-            const consumed = this.workerCount * 0.01 * delta;
+            const consumed = this.workerCount * GameConfig.provisionConsumptionTravelling * delta;
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
@@ -199,14 +202,13 @@ class Expedition {
                         if (pop) pop.returnWorkers(this.workerCount);
                         const index = this.campRef.expeditions.indexOf(this);
                         if (index > -1) this.campRef.expeditions.splice(index, 1);
-                        // Note: updateUI will be called from main.js via the update loop
                         return;
                     }
                     // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = 3;
+                    this.cooldownRemaining = GameConfig.cooldownSeconds;
                     this.state = 'resting';
                     return;
                 }
@@ -246,12 +248,12 @@ class Expedition {
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = 3;
+                    this.cooldownRemaining = GameConfig.cooldownSeconds;
                     this.state = 'resting';
                 }
                 return;
             }
-            const step = this.speed * delta;
+            const step = GameConfig.expeditionSpeed * delta;
             const ratio = Math.min(step / dist, 1);
             this.x += dx * ratio;
             this.y += dy * ratio;
@@ -260,7 +262,7 @@ class Expedition {
 
         // --- GATHERING ---
         if (this.state === 'gathering') {
-            const consumed = this.workerCount * 0.02 * delta;
+            const consumed = this.workerCount * GameConfig.provisionConsumptionGathering * delta;
             this.inventory.provisions -= consumed;
             if (!this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
@@ -279,7 +281,7 @@ class Expedition {
 
             // Evaluate cell switching periodically
             this.lastCellEvaluation += delta;
-            if (this.lastCellEvaluation >= 1.0) {
+            if (this.lastCellEvaluation >= GameConfig.cellEvaluationInterval) {
                 this.lastCellEvaluation = 0;
                 const current = worldToCell(this.x, this.y);
                 const currentDensity = getCell(current.cx, current.cy) ? getCell(current.cx, current.cy).forageDensity : 0;
@@ -292,7 +294,7 @@ class Expedition {
                     best = this.findBetterCell();
                 }
 
-                if (best.cx >= 0 && best.score > currentScore * 1.1 && getCell(best.cx, best.cy).forageDensity >= 0.2) {
+                if (best.cx >= 0 && best.score > currentScore * GameConfig.cellSwitchScoreThreshold && getCell(best.cx, best.cy).forageDensity >= GameConfig.cellAbandonThreshold) {
                     this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
                     this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
                     this.state = 'movingToCell';
@@ -305,10 +307,10 @@ class Expedition {
             const cellData = getCell(cell.cx, cell.cy);
             const density = cellData ? cellData.forageDensity : 0;
             if (density > 0) {
-                const gatherRate = 0.5 * density * delta * this.workerCount;
+                const gatherRate = GameConfig.baseGatherRate * density * delta * this.workerCount;
                 this.inventory.food += gatherRate;
-                const densityReduction = gatherRate * 0.005;
-                modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * 0.6);
+                const densityReduction = gatherRate * GameConfig.densityReductionPerFood;
+                modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * GameConfig.gatherImpactRadius);
             } else {
                 // Cell exhausted, find another or return
                 let best;

@@ -10,11 +10,42 @@
 </head>
 <body>
     <!-- The game canvas will be created here automatically by Phaser -->
+    <script src="js/config.js"></script>
     <script src="js/world.js"></script>
     <script src="js/units.js"></script>
     <script src="js/resources.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/time.js"></script>
     <script src="js/main.js"></script>
+
+        <!-- Debug Panel (hidden by default) -->
+    <button id="debug-toggle" style="position:absolute; top:10px; right:10px; z-index:1000;">Debug</button>
+    <div id="debug-panel" style="display:none; position:absolute; top:40px; right:10px; width:300px; background:#222; color:#fff; padding:10px; border:1px solid #555; font-size:12px; z-index:999; max-height:80%; overflow-y:auto;">
+        <h3>Game Config</h3>
+        <label>Day Length (s): <input type="number" id="cfg-dayLengthSeconds" step="0.5"></label><br>
+        <label>Food/Person/Day: <input type="number" id="cfg-foodConsumptionPerPersonPerDay" step="0.001"></label><br>
+        <label>Base Gather Rate: <input type="number" id="cfg-baseGatherRate" step="0.1"></label><br>
+        <label>Density Reduction/Food: <input type="number" id="cfg-densityReductionPerFood" step="0.0001"></label><br>
+        <label>Gather Impact Radius: <input type="number" id="cfg-gatherImpactRadius" step="0.1"></label><br>
+        <label>Expedition Speed: <input type="number" id="cfg-expeditionSpeed" step="10"></label><br>
+        <label>Max Capacity/Worker: <input type="number" id="cfg-maxCapacityPerWorker" step="0.5"></label><br>
+        <label>Provision Cons. Travelling: <input type="number" id="cfg-provisionConsumptionTravelling" step="0.001"></label><br>
+        <label>Provision Cons. Gathering: <input type="number" id="cfg-provisionConsumptionGathering" step="0.001"></label><br>
+        <label>Cooldown (s): <input type="number" id="cfg-cooldownSeconds" step="0.5"></label><br>
+        <label>Provisions Multiplier: <input type="number" id="cfg-provisionsBaseMultiplier" step="0.1"></label><br>
+        <label>Provisions Auto Base: <input type="number" id="cfg-provisionsAutoBase" step="0.5"></label><br>
+        <label>Area Radius: <input type="number" id="cfg-areaRadius" step="10"></label><br>
+        <label>Cell Abandon Threshold: <input type="number" id="cfg-cellAbandonThreshold" step="0.05"></label><br>
+        <label>Cell Switch Score Threshold: <input type="number" id="cfg-cellSwitchScoreThreshold" step="0.05"></label><br>
+        <label>Cell Score Density Weight: <input type="number" id="cfg-cellScoreDensityWeight" step="10"></label><br>
+        <label>Cell Score Distance Weight: <input type="number" id="cfg-cellScoreDistanceWeight" step="0.1"></label><br>
+        <label>Cell Eval Interval (s): <input type="number" id="cfg-cellEvaluationInterval" step="0.1"></label><br>
+        <label>Cell Size: <input type="number" id="cfg-cellSize" step="8"></label><br>
+        <hr>
+        <button id="debug-reset">Reset to Defaults</button>
+        <button id="debug-apply">Apply & Reload</button>
+    </div>
+
+    <script src="js/debug.js"></script>    
 </body>
 </html>

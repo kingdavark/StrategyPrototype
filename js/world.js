@@ -2,9 +2,9 @@
 // Uses a hidden square grid to optimize spatial queries and store density values.
 
 // ---- Constants ----
-const CELL_SIZE = 64;           // pixels per cell
-const GRID_COLS = Math.ceil(1280 / CELL_SIZE);  // 20 columns
-const GRID_ROWS = Math.ceil(720 / CELL_SIZE);   // 12 rows
+const CELL_SIZE = GameConfig.cellSize;
+const GRID_COLS = Math.ceil(GameConfig.worldWidth / CELL_SIZE);
+const GRID_ROWS = Math.ceil(GameConfig.worldHeight / CELL_SIZE);
 
 // ---- Grid data structure ----
 // A 2D array of cell objects. Each cell has:

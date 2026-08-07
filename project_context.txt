@@ -8,6 +8,8 @@
   Docs\Technical.md
   css\style.css
   index.html
+  js\config.js
+  js\debug.js
   js\main.js
   js\resources.js
   js\time.js
@@ -773,6 +775,21 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 **6.6 – Ribilanciamento e parametri esposti**
 
+- Ricalcolare le provviste per spedizione e legare tra di loro variabili
+  sulla base di durata effettiva del giorno e velocità di spostamento
+  (ma anche in generale). Da sistemare:
+
+  - Logica provisions assegnate (vedi reminder)
+
+  - Logica velocità (se 50 pixel è 1km, in un giorno una spedizione può
+    fare quanto?) O meglio fare 10 pixel 1 km?)
+
+  - Logica riposo: forse deve essere basata su durata della spedizione
+    (aggiungere parametro energia/stanchezza?) e possibilità di
+    costringere spedizioni a riposo a ripartire comunque? Sennò al
+    momento basarlo su durata del giorno (riposo = 1 giorno o 1,5/2
+    giorni)
+
 - Esporre tutti i parametri di gioco nel pannello di debug
 
 - Testare diverse combinazioni per trovare un bilanciamento iniziale
@@ -887,6 +904,14 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
 15. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
     unità e meccaniche intorno e link di timeline del progresso (wiki e
     altri link se funzionano)
+
+16. Aggiungere caricamento JSON da Excel per impostare i valori in
+    config
+
+17. Creare script per simulazioni montecarlo. Da simulare in montecarlo
+    il cambio cella e la quantità di provviste da prendere, ma magari
+    non deve sempre essere perfetto ma dipendere dall’esperienza (dei
+    singoli, della civiltà/città/comunità, del livello tecnologico?)
 
 **MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)**
 
@@ -1627,14 +1652,188 @@ canvas {
 </head>
 <body>
     <!-- The game canvas will be created here automatically by Phaser -->
+    <script src="js/config.js"></script>
     <script src="js/world.js"></script>
     <script src="js/units.js"></script>
     <script src="js/resources.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/time.js"></script>
     <script src="js/main.js"></script>
+
+        <!-- Debug Panel (hidden by default) -->
+    <button id="debug-toggle" style="position:absolute; top:10px; right:10px; z-index:1000;">Debug</button>
+    <div id="debug-panel" style="display:none; position:absolute; top:40px; right:10px; width:300px; background:#222; color:#fff; padding:10px; border:1px solid #555; font-size:12px; z-index:999; max-height:80%; overflow-y:auto;">
+        <h3>Game Config</h3>
+        <label>Day Length (s): <input type="number" id="cfg-dayLengthSeconds" step="0.5"></label><br>
+        <label>Food/Person/Day: <input type="number" id="cfg-foodConsumptionPerPersonPerDay" step="0.001"></label><br>
+        <label>Base Gather Rate: <input type="number" id="cfg-baseGatherRate" step="0.1"></label><br>
+        <label>Density Reduction/Food: <input type="number" id="cfg-densityReductionPerFood" step="0.0001"></label><br>
+        <label>Gather Impact Radius: <input type="number" id="cfg-gatherImpactRadius" step="0.1"></label><br>
+        <label>Expedition Speed: <input type="number" id="cfg-expeditionSpeed" step="10"></label><br>
+        <label>Max Capacity/Worker: <input type="number" id="cfg-maxCapacityPerWorker" step="0.5"></label><br>
+        <label>Provision Cons. Travelling: <input type="number" id="cfg-provisionConsumptionTravelling" step="0.001"></label><br>
+        <label>Provision Cons. Gathering: <input type="number" id="cfg-provisionConsumptionGathering" step="0.001"></label><br>
+        <label>Cooldown (s): <input type="number" id="cfg-cooldownSeconds" step="0.5"></label><br>
+        <label>Provisions Multiplier: <input type="number" id="cfg-provisionsBaseMultiplier" step="0.1"></label><br>
+        <label>Provisions Auto Base: <input type="number" id="cfg-provisionsAutoBase" step="0.5"></label><br>
+        <label>Area Radius: <input type="number" id="cfg-areaRadius" step="10"></label><br>
+        <label>Cell Abandon Threshold: <input type="number" id="cfg-cellAbandonThreshold" step="0.05"></label><br>
+        <label>Cell Switch Score Threshold: <input type="number" id="cfg-cellSwitchScoreThreshold" step="0.05"></label><br>
+        <label>Cell Score Density Weight: <input type="number" id="cfg-cellScoreDensityWeight" step="10"></label><br>
+        <label>Cell Score Distance Weight: <input type="number" id="cfg-cellScoreDistanceWeight" step="0.1"></label><br>
+        <label>Cell Eval Interval (s): <input type="number" id="cfg-cellEvaluationInterval" step="0.1"></label><br>
+        <label>Cell Size: <input type="number" id="cfg-cellSize" step="8"></label><br>
+        <hr>
+        <button id="debug-reset">Reset to Defaults</button>
+        <button id="debug-apply">Apply & Reload</button>
+    </div>
+
+    <script src="js/debug.js"></script>    
 </body>
 </html>
+```
+
+## FILE: js\config.js
+```
+// config.js - Centralized game parameters for balancing and debugging
+//
+// HOW TO USE THIS FILE:
+// - Change any value while the game is running via the browser console:
+//   GameConfig.dayLengthSeconds = 3;
+// - Or use the Debug Panel (button in top-right corner).
+// - Some parameters (cellSize, worldWidth, worldHeight) require a page reload to take effect.
+//
+// RELATIONSHIPS BETWEEN VARIABLES:
+//
+// 1. DAY CYCLE
+//    - Every dayLengthSeconds real seconds, one game day passes.
+//    - On each new day, total population * foodConsumptionPerPersonPerDay is subtracted from camp food.
+//
+// 2. EXPEDITION PROVISIONS & MOVEMENT
+//    - When an expedition departs, it receives provisions from the camp.
+//    - Provisions consumed while moving = workerCount * provisionConsumptionTravelling per second.
+//    - Provisions consumed while gathering = workerCount * provisionConsumptionGathering per second.
+//    - If provisions reach 0 and the expedition is not FORCED, it returns to camp immediately.
+//    - Expedition speed (expeditionSpeed) is in pixels per second.
+//    - After returning, the expedition rests for cooldownSeconds before restarting.
+//
+// 3. GATHERING & DENSITY
+//    - Gathering rate per second = baseGatherRate * cellDensity * workerCount.
+//      Example: density=1.0, 5 workers, baseGatherRate=0.5 → 2.5 food/second.
+//    - Density reduction per food gathered = densityReductionPerFood.
+//      Example: gathering 2.5 food → density reduces by 2.5 * 0.005 = 0.0125.
+//    - Impact radius for density reduction = gatherImpactRadius * cellSize.
+//
+// 4. INVENTORY & CAPACITY
+//    - Each worker can carry maxCapacityPerWorker units total (food + provisions).
+//      Example: 5 workers * 2 = 10 capacity.
+//    - If food + provisions >= maxCapacity, the expedition returns to camp.
+//
+// 5. CELL SWITCHING
+//    - Every cellEvaluationInterval seconds, the expedition evaluates whether to move.
+//    - A cell's score = density * cellScoreDensityWeight - distance * cellScoreDistanceWeight.
+//    - If the best cell's score > current cell score * cellSwitchScoreThreshold, and
+//      the best cell's density >= cellAbandonThreshold, the expedition moves there.
+//
+// 6. AREA & RADIUS
+//    - areaRadius (pixels) defines the gathering/search radius around the area center.
+//    - In auto mode, the expedition searches around its current position using this radius.
+//
+
+const GameConfig = {
+    // --- Day cycle ---
+    dayLengthSeconds: 5,                    // real seconds per game day
+    foodConsumptionPerPersonPerDay: 0.01,   // food consumed per person each day
+
+    // --- Gathering ---
+    baseGatherRate: 0.2,                    // food per second per worker at density 1.0
+    densityReductionPerFood: 0.001,         // how much density is removed per food gathered
+    gatherImpactRadius: 0.6,                // multiplier for CELL_SIZE (0.6 * 64 = ~38px)
+
+    // --- Expedition movement ---
+    expeditionSpeed: 60,                    // pixels per second
+    maxCapacityPerWorker: 2,                // inventory slots per worker (food + provisions)
+    provisionConsumptionTravelling: 0.02,   // provisions per worker per second while moving
+    provisionConsumptionGathering: 0.04,    // provisions per worker per second while gathering
+    cooldownSeconds: 3,                     // rest time after returning to camp
+    provisionsBaseMultiplier: 0.5,          // multiplier for distance-based provision calculation
+    provisionsAutoBase: 2,                  // base provisions per worker for auto expeditions
+
+    // --- Area & cell switching ---
+    areaRadius: 150,                        // default gathering area radius in pixels
+    cellAbandonThreshold: 0.2,              // density below which we look for a better cell
+    cellSwitchScoreThreshold: 1.1,          // minimum score ratio to switch (e.g., 1.1 = 10% better)
+    cellScoreDensityWeight: 100,            // weight of density in cell score
+    cellScoreDistanceWeight: 0.2,           // weight of distance in cell score
+    cellEvaluationInterval: 1.0,            // seconds between cell switch evaluations
+
+    // --- World ---
+    cellSize: 50,                           // pixels per cell
+    worldWidth: 1280,                       // game world width in pixels
+    worldHeight: 720,                       // game world height in pixels
+
+    // --- Starting values ---
+    startingFoodStock: 10,
+    startingUnassignedPopulation: 10,
+    startingExpeditionWorkers: 5,           // default workers for a new expedition
+    campX: 100,
+    campY: 100
+};
+```
+
+## FILE: js\debug.js
+```
+// debug.js - Debug panel UI logic
+
+// Store default values for reset
+const defaultConfig = { ...GameConfig };
+
+function populateDebugPanel() {
+    for (const key in GameConfig) {
+        if (GameConfig.hasOwnProperty(key)) {
+            const input = document.getElementById('cfg-' + key);
+            if (input) {
+                input.value = GameConfig[key];
+                // Update GameConfig on input change
+                input.addEventListener('input', function () {
+                    const val = parseFloat(this.value);
+                    if (!isNaN(val)) {
+                        GameConfig[key] = val;
+                        console.log(`GameConfig.${key} set to ${val}`);
+                    }
+                });
+            }
+        }
+    }
+}
+
+// Reset to defaults
+document.getElementById('debug-reset').addEventListener('click', function () {
+    for (const key in defaultConfig) {
+        if (defaultConfig.hasOwnProperty(key)) {
+            GameConfig[key] = defaultConfig[key];
+            const input = document.getElementById('cfg-' + key);
+            if (input) input.value = defaultConfig[key];
+        }
+    }
+    alert('Config reset to defaults. Reload the page to apply cell size/world size changes.');
+});
+
+// Reload page to apply changes that require restart (cell size, world size)
+document.getElementById('debug-apply').addEventListener('click', function () {
+    location.reload();
+});
+
+// Toggle panel visibility
+document.getElementById('debug-toggle').addEventListener('click', function () {
+    const panel = document.getElementById('debug-panel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        populateDebugPanel();
+    } else {
+        panel.style.display = 'none';
+    }
+});
 ```
 
 ## FILE: js\main.js
@@ -1659,8 +1858,8 @@ const config = {
 const game = new Phaser.Game(config);
 
 // Camp position (visual placeholder, functionality comes later)
-const CAMP_X = 100;
-const CAMP_Y = 100;
+const CAMP_X = GameConfig.campX;
+const CAMP_Y = GameConfig.campY;
 
 // Global references for the game scene (set in create)
 let gameScene;
@@ -1668,13 +1867,17 @@ let popGraphics;
 let gridGraphics;  // reference to grid graphics for dynamic updates
 let campGraphics;
 let dayAccumulator = 0;          // accumulator for game time in seconds
-const DAY_LENGTH = 5;            // 5 real seconds = 1 game day
 let gameDay = 1; // Day counter
 let campSelected = false;      // whether camp is currently selected
 let selectedExpedition = null; // currently selected expedition
 let infoText;                  // UI text for selected expedition info
 let speedText; // UI text for current simulation speed
 
+// Helper: check if an HTML input is focused (to avoid game hotkeys while typing)
+function isInputFocused() {
+    const active = document.activeElement;
+    return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+}
 
 // Enable click: left-click to select pop, right-click to move selected pop,
 // Shift+left-click to inspect cell (debug).
@@ -1768,12 +1971,12 @@ function enableDebugClick(scene) {
 
             let workersToTake = 0;
             if (camp.unassignedPopulation > 0) {
-                const moveCount = Math.min(5, camp.unassignedPopulation);
+                const moveCount = Math.min(GameConfig.startingExpeditionWorkers, camp.unassignedPopulation);
                 camp.unassignedPopulation -= moveCount;
                 pop.addWorkers(moveCount);
                 workersToTake = moveCount;
             } else if (pop.availableWorkers > 0) {
-                workersToTake = Math.min(5, pop.availableWorkers);
+                workersToTake = Math.min(GameConfig.startingExpeditionWorkers, pop.availableWorkers);
             } else {
                 console.log('No available workers.');
                 return;
@@ -1783,14 +1986,13 @@ function enableDebugClick(scene) {
             if (taken === 0) return;
 
             const id = 'exp_' + Date.now();
-            const areaRadius = 150;
+            const areaRadius = GameConfig.areaRadius;
             // Create auto expedition starting from camp, target area = current camp position
             const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, camp.x, camp.y, areaRadius, camp);
             exp.useAssignedArea = false; // auto mode
 
             // Give provisions
-            const dist = 0; // starting from camp, no distance
-            const needed = taken * 0.5; // base provisions
+            const needed = taken * GameConfig.provisionsAutoBase; // base provisions
             const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
             exp.inventory.provisions = given;
             camp.foodStock -= given;
@@ -1808,12 +2010,11 @@ function enableDebugClick(scene) {
             selectedExpedition.targetX = pointer.x;
             selectedExpedition.targetY = pointer.y;
             selectedExpedition.state = 'travellingToArea';
-            // Optionally clear inventory? I'd keep it, but provisions may need adjustment.
             console.log(`Expedition ${selectedExpedition.id} area updated.`);
             updateInfoText();
             return;
         }
-    
+
         // Create a gathering expedition
         let pop = camp.pops.find(p => p.type === 'gatherer');
         if (!pop) {
@@ -1826,12 +2027,12 @@ function enableDebugClick(scene) {
         let workersToTake = 0;
         if (camp.unassignedPopulation > 0) {
             // Move unassigned to gatherers, then take them
-            const moveCount = Math.min(5, camp.unassignedPopulation);
+            const moveCount = Math.min(GameConfig.startingExpeditionWorkers, camp.unassignedPopulation);
             camp.unassignedPopulation -= moveCount;
             pop.addWorkers(moveCount);
             workersToTake = moveCount;
         } else if (pop.availableWorkers > 0) {
-            workersToTake = Math.min(5, pop.availableWorkers);
+            workersToTake = Math.min(GameConfig.startingExpeditionWorkers, pop.availableWorkers);
         } else {
             console.log('No available workers.');
             return;
@@ -1846,13 +2047,13 @@ function enableDebugClick(scene) {
 
         // Create expedition
         const id = 'exp_' + Date.now();
-        const areaRadius = 150;
+        const areaRadius = GameConfig.areaRadius;
         const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, pointer.x, pointer.y, areaRadius, camp);
         exp.isForced = forced;
 
         // Give provisions from camp stock, respecting inventory capacity
         const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
-        const needed = taken * (dist / 100) * 0.5;
+        const needed = taken * (dist / 100) * GameConfig.provisionsBaseMultiplier;
         // Cannot exceed camp food, nor the expedition's max capacity
         const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
         exp.inventory.provisions = given;
@@ -1865,6 +2066,7 @@ function enableDebugClick(scene) {
 
     // Keyboard 'R' to return selected expedition
     scene.input.keyboard.on('keydown-R', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition && selectedExpedition.state !== 'returningToCamp' && selectedExpedition.state !== 'resting') {
             selectedExpedition.targetX = camp.x;
             selectedExpedition.targetY = camp.y;
@@ -1875,6 +2077,7 @@ function enableDebugClick(scene) {
 
     // Keyboard 'F' to toggle forced mode on selected expedition
     scene.input.keyboard.on('keydown-F', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition) {
             selectedExpedition.isForced = !selectedExpedition.isForced;
             console.log(`Expedition ${selectedExpedition.id} forced mode: ${selectedExpedition.isForced}`);
@@ -1884,6 +2087,7 @@ function enableDebugClick(scene) {
 
     // Keyboard 'A' to toggle automatic mode (free roaming vs assigned area)
     scene.input.keyboard.on('keydown-A', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition) {
             selectedExpedition.useAssignedArea = !selectedExpedition.useAssignedArea;
             console.log(`Expedition ${selectedExpedition.id} auto mode: ${!selectedExpedition.useAssignedArea}`);
@@ -1893,43 +2097,51 @@ function enableDebugClick(scene) {
 
     // ---- Time controls (keyboard) ----
     scene.input.keyboard.on('keydown-SPACE', function () {
+        if (isInputFocused()) return;
         TimeManager.togglePause();
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-ZERO', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(1); // 1x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-ONE', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(2); // 1x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-TWO', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(3); // 2x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-THREE', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(4); // 2x
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-FOUR', function () {
+        if (isInputFocused()) return;
         TimeManager.setSpeedIndex(5); // 2x
         updateSpeedText();
     });
 
     // Increase speed with '+' (same key without shift)
     scene.input.keyboard.on('keydown-NUMPAD_ADD', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.increaseSpeed();
         updateSpeedText();
     });
 
     scene.input.keyboard.on('keydown-PLUS', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.increaseSpeed();
         updateSpeedText();
@@ -1937,11 +2149,13 @@ function enableDebugClick(scene) {
 
     // Decrease speed with '-' (both numpad and standard)
     scene.input.keyboard.on('keydown-NUMPAD_SUBTRACT', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.decreaseSpeed();
         updateSpeedText();
     });
     scene.input.keyboard.on('keydown-MINUS', function (event) {
+        if (isInputFocused()) return;
         event.preventDefault();
         TimeManager.decreaseSpeed();
         updateSpeedText();
@@ -1949,9 +2163,10 @@ function enableDebugClick(scene) {
 
     // Keyboard 'C' to cancel selected expedition (forces return, then disbands)
     scene.input.keyboard.on('keydown-C', function () {
+        if (isInputFocused()) return;
         if (selectedExpedition) {
             const exp = selectedExpedition;
-            
+
             // If already at camp (resting or idle), disband immediately
             if (exp.state === 'resting' || exp.state === 'idle') {
                 camp.foodStock += exp.inventory.food;
@@ -1965,7 +2180,7 @@ function enableDebugClick(scene) {
                 console.log(`Expedition ${exp.id} disbanded at camp.`);
                 return;
             }
-            
+
             // Otherwise, force return to camp and mark for disbanding
             exp.toBeDisbanded = true;
             exp.targetX = camp.x;
@@ -2097,7 +2312,7 @@ function drawPops() {
         if (exp === selectedExpedition) {
             popGraphics.lineStyle(2, 0xffff00, 0.8);
             popGraphics.strokeCircle(exp.x, exp.y, 10);
-            
+
             if (!exp.useAssignedArea) {
                 // Auto mode: draw path from camp to current position
                 drawDashedLine(popGraphics, camp.x, camp.y, exp.x, exp.y, 10, 5);
@@ -2252,29 +2467,26 @@ function update(time, delta) {
     const deltaSec = TimeManager.getGameDelta(realDeltaSec);
     for (const exp of expeditions) exp.update(deltaSec);
 
-    // Day cycle
+    // Day cycle (uses GameConfig.dayLengthSeconds dynamically)
     dayAccumulator += deltaSec;
-    if (dayAccumulator >= DAY_LENGTH) {
+    if (dayAccumulator >= GameConfig.dayLengthSeconds) {
         // Advance day counter
         gameDay++;
-        dayAccumulator -= DAY_LENGTH;
+        dayAccumulator -= GameConfig.dayLengthSeconds;
         let totalPop = camp.unassignedPopulation;
         for (const pop of camp.pops) totalPop += pop.totalWorkers;
-        const consumed = totalPop * 0.1;
+        const consumed = totalPop * GameConfig.foodConsumptionPerPersonPerDay;
         camp.foodStock -= consumed;
         if (camp.foodStock < 0) camp.foodStock = 0;
     }
 
     updateInfoText(); // refresh selected info
-    updateCampText(); // refresh camp counter every frame
-    updateInfoText();
     updateSpeedText();
-    updateCampText();
+    updateCampText(); // refresh camp counter every frame
     drawGrid();
     drawPops();
     drawCamp();
 }
-
 ```
 
 ## FILE: js\resources.js
@@ -2358,10 +2570,10 @@ const TimeManager = {
 // units.js - Mobile entities: Expedition, Pop (specialized workers), and Camp
 
 const camp = {
-    x: 100,
-    y: 100,
-    foodStock: 50,
-    unassignedPopulation: 20,
+    x: GameConfig.campX,
+    y: GameConfig.campY,
+    foodStock: GameConfig.startingFoodStock,
+    unassignedPopulation: GameConfig.startingUnassignedPopulation,
     pops: [],
     expeditions: []
 };
@@ -2401,9 +2613,9 @@ class Expedition {
         this.y = startY;
         this.targetX = areaX;
         this.targetY = areaY;
-        this.speed = 60;
+        this.speed = GameConfig.expeditionSpeed;
         this.state = 'travellingToArea';
-        this.maxCapacity = workerCount * 2;
+        this.maxCapacity = workerCount * GameConfig.maxCapacityPerWorker;
         this.inventory = { provisions: 0, food: 0 };
         this.areaCenter = { x: areaX, y: areaY };
         this.areaRadius = areaRadius;
@@ -2424,7 +2636,7 @@ class Expedition {
         const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
         const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
         const dist = Phaser.Math.Distance.Between(this.x, this.y, cellWorldX, cellWorldY);
-        return density * 100 - dist * 0.2;
+        return density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
     }
 
     // Find the best cell around the expedition's current position (auto mode)
@@ -2470,7 +2682,7 @@ class Expedition {
                     const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
                     const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
                     const dist = Phaser.Math.Distance.Between(fromX, fromY, cellWorldX, cellWorldY);
-                    const score = density * 100 - dist * 0.2;
+                    const score = density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
                     if (score > bestScore) {
                         bestScore = score;
                         bestCx = cx;
@@ -2483,6 +2695,9 @@ class Expedition {
     }
 
     update(delta) {
+        // Dynamically update capacity and speed from GameConfig
+        this.maxCapacity = this.workerCount * GameConfig.maxCapacityPerWorker;
+
         // --- RESTING ---
         if (this.state === 'resting') {
             this.cooldownRemaining -= delta;
@@ -2512,13 +2727,13 @@ class Expedition {
 
                 if (targetFound) {
                     // Calculate provisions based on target distance
-                    const needed = this.workerCount * (targetDist / 100) * 0.5;
+                    const needed = this.workerCount * (targetDist / 100) * GameConfig.provisionsBaseMultiplier;
                     const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
                     this.inventory.provisions = taken;
                     this.campRef.foodStock -= taken;
                 } else {
                     // No target found: don't take provisions, stay resting
-                    this.cooldownRemaining = 5;
+                    this.cooldownRemaining = GameConfig.cooldownSeconds;
                     return;
                 }
 
@@ -2528,7 +2743,7 @@ class Expedition {
                     // No cells available: return provisions and stay resting
                     this.campRef.foodStock += this.inventory.provisions;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = 5; // check again in 5 seconds
+                    this.cooldownRemaining = GameConfig.cooldownSeconds; // check again in 5 seconds
                 }
             }
             return;
@@ -2537,7 +2752,7 @@ class Expedition {
         // --- TRAVELLING / MOVING / RETURNING ---
         if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToCamp') {
             // Consume provisions while moving
-            const consumed = this.workerCount * 0.01 * delta;
+            const consumed = this.workerCount * GameConfig.provisionConsumptionTravelling * delta;
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
@@ -2556,14 +2771,13 @@ class Expedition {
                         if (pop) pop.returnWorkers(this.workerCount);
                         const index = this.campRef.expeditions.indexOf(this);
                         if (index > -1) this.campRef.expeditions.splice(index, 1);
-                        // Note: updateUI will be called from main.js via the update loop
                         return;
                     }
                     // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = 3;
+                    this.cooldownRemaining = GameConfig.cooldownSeconds;
                     this.state = 'resting';
                     return;
                 }
@@ -2603,12 +2817,12 @@ class Expedition {
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = 3;
+                    this.cooldownRemaining = GameConfig.cooldownSeconds;
                     this.state = 'resting';
                 }
                 return;
             }
-            const step = this.speed * delta;
+            const step = GameConfig.expeditionSpeed * delta;
             const ratio = Math.min(step / dist, 1);
             this.x += dx * ratio;
             this.y += dy * ratio;
@@ -2617,7 +2831,7 @@ class Expedition {
 
         // --- GATHERING ---
         if (this.state === 'gathering') {
-            const consumed = this.workerCount * 0.02 * delta;
+            const consumed = this.workerCount * GameConfig.provisionConsumptionGathering * delta;
             this.inventory.provisions -= consumed;
             if (!this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
@@ -2636,7 +2850,7 @@ class Expedition {
 
             // Evaluate cell switching periodically
             this.lastCellEvaluation += delta;
-            if (this.lastCellEvaluation >= 1.0) {
+            if (this.lastCellEvaluation >= GameConfig.cellEvaluationInterval) {
                 this.lastCellEvaluation = 0;
                 const current = worldToCell(this.x, this.y);
                 const currentDensity = getCell(current.cx, current.cy) ? getCell(current.cx, current.cy).forageDensity : 0;
@@ -2649,7 +2863,7 @@ class Expedition {
                     best = this.findBetterCell();
                 }
 
-                if (best.cx >= 0 && best.score > currentScore * 1.1 && getCell(best.cx, best.cy).forageDensity >= 0.2) {
+                if (best.cx >= 0 && best.score > currentScore * GameConfig.cellSwitchScoreThreshold && getCell(best.cx, best.cy).forageDensity >= GameConfig.cellAbandonThreshold) {
                     this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
                     this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
                     this.state = 'movingToCell';
@@ -2662,10 +2876,10 @@ class Expedition {
             const cellData = getCell(cell.cx, cell.cy);
             const density = cellData ? cellData.forageDensity : 0;
             if (density > 0) {
-                const gatherRate = 0.5 * density * delta * this.workerCount;
+                const gatherRate = GameConfig.baseGatherRate * density * delta * this.workerCount;
                 this.inventory.food += gatherRate;
-                const densityReduction = gatherRate * 0.005;
-                modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * 0.6);
+                const densityReduction = gatherRate * GameConfig.densityReductionPerFood;
+                modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * GameConfig.gatherImpactRadius);
             } else {
                 // Cell exhausted, find another or return
                 let best;
@@ -2697,9 +2911,9 @@ const expeditions = camp.expeditions;
 // Uses a hidden square grid to optimize spatial queries and store density values.
 
 // ---- Constants ----
-const CELL_SIZE = 64;           // pixels per cell
-const GRID_COLS = Math.ceil(1280 / CELL_SIZE);  // 20 columns
-const GRID_ROWS = Math.ceil(720 / CELL_SIZE);   // 12 rows
+const CELL_SIZE = GameConfig.cellSize;
+const GRID_COLS = Math.ceil(GameConfig.worldWidth / CELL_SIZE);
+const GRID_ROWS = Math.ceil(GameConfig.worldHeight / CELL_SIZE);
 
 // ---- Grid data structure ----
 // A 2D array of cell objects. Each cell has:

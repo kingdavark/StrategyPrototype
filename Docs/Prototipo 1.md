@@ -254,6 +254,21 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 **6.6 – Ribilanciamento e parametri esposti**
 
+- Ricalcolare le provviste per spedizione e legare tra di loro variabili
+  sulla base di durata effettiva del giorno e velocità di spostamento
+  (ma anche in generale). Da sistemare:
+
+  - Logica provisions assegnate (vedi reminder)
+
+  - Logica velocità (se 50 pixel è 1km, in un giorno una spedizione può
+    fare quanto?) O meglio fare 10 pixel 1 km?)
+
+  - Logica riposo: forse deve essere basata su durata della spedizione
+    (aggiungere parametro energia/stanchezza?) e possibilità di
+    costringere spedizioni a riposo a ripartire comunque? Sennò al
+    momento basarlo su durata del giorno (riposo = 1 giorno o 1,5/2
+    giorni)
+
 - Esporre tutti i parametri di gioco nel pannello di debug
 
 - Testare diverse combinazioni per trovare un bilanciamento iniziale
@@ -368,6 +383,14 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
 15. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
     unità e meccaniche intorno e link di timeline del progresso (wiki e
     altri link se funzionano)
+
+16. Aggiungere caricamento JSON da Excel per impostare i valori in
+    config
+
+17. Creare script per simulazioni montecarlo. Da simulare in montecarlo
+    il cambio cella e la quantità di provviste da prendere, ma magari
+    non deve sempre essere perfetto ma dipendere dall’esperienza (dei
+    singoli, della civiltà/città/comunità, del livello tecnologico?)
 
 **MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)**
 
