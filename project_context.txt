@@ -412,6 +412,43 @@ spaziali e per memorizzare i dati di densità delle risorse diffuse.
 - I magazzini aumentano la capacità di stoccaggio e riducono il
   deterioramento.
 
+## Consumo e provviste
+
+Il cibo è l'unica risorsa vitale nel prototipo. Il consumo della
+popolazione si divide in base al contesto:
+
+- Popolazione al campo: consuma una razione giornaliera fissa, calcolata
+  per l'intera tribù a fine giornata.
+
+- Spedizioni in viaggio: consumano provviste in modo continuo,
+  proporzionalmente al tempo trascorso e con un moltiplicatore maggiore
+  rispetto al riposo (perché camminare stanca di più).
+
+- Spedizioni durante la raccolta: consumano ancora di più, perché lo
+  sforzo fisico è superiore.
+
+Le provviste assegnate a una spedizione non sono un numero fisso, ma
+vengono calcolate alla partenza e a ogni ripartenza. Il calcolo
+considera:
+
+- La distanza da percorrere (andata e ritorno).
+
+- La velocità di spostamento della spedizione.
+
+- Il numero di lavoratori.
+
+- Un margine di sicurezza che include il tempo di raccolta e gli
+  imprevisti.
+
+Il limite principale è la capacità di carico: se le provviste calcolate
+superano la capacità massima, la spedizione parte con meno provviste e
+tornerà prima.
+
+Dopo una spedizione, i lavoratori devono riposare. Il tempo di riposo è
+proporzionale alla durata della spedizione appena conclusa (una
+percentuale configurabile). Questa regola collega lo sforzo al recupero:
+spedizioni lunghe richiedono riposi più lunghi.
+
 # Popolazione e demografia
 
 - Sistema a pop (gruppi di individui con attributi condivisi)
@@ -514,6 +551,11 @@ spaziali e per memorizzare i dati di densità delle risorse diffuse.
 
 - **Scalabilità:** la struttura a layer di densità e lo spatial hashing
   sono pensati per supportare mappe molto ampie e simulazioni complesse.
+
+- **Configurazione e debug**: i parametri di gioco sono centralizzati in
+  GameConfig (js/config.js) e modificabili a runtime tramite pannello di
+  debug o console. Questo permette di bilanciare il prototipo senza
+  toccare il codice.
 
 ```
 
@@ -794,6 +836,105 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 - Testare diverse combinazioni per trovare un bilanciamento iniziale
 
+**6.7 – Revisione sistema raccolta risorse**
+
+**1. Fix bug spedizioni**
+
+- **Bug 1 – Blocco in **returningToCamp**:** escludere il controllo
+  delle provviste quando lo stato è già returningToCamp. La spedizione
+  deve andare dritta al campo.
+
+- **Bug 2 – Spedizione torna nell'area invece del campo:** la ripartenza
+  delle spedizioni con area assegnata deve usare findBestCellInArea,
+  non areaCenter. Inoltre, le funzioni di ricerca celle devono escludere
+  sempre la cella del campo.
+
+- **Bug 3 – Ritorno prima di riempire l'inventario:** per le spedizioni
+  di gathering, semplificare il consumo. Niente provviste separate per
+  ora: la spedizione parte, raccoglie, torna quando piena o quando il
+  giocatore ordina il rientro.
+
+**ULTIMO BUG DA FIXARE:** spedizione non va in una cella all’interno
+dell’area assegnata, ma nella migliore in generale. Attenzione perché in
+futuro tutte le celle avranno un certo livello di fertilità, e se le
+spedizioni vanno semplicemente nella migliore non all’interno della zona
+assegnata, bé questo è un problema perché consumano magari fertilità
+dove il giocatore voleva farla riprendere
+
+**2. Raccolta locale e gestione cittadini**
+
+- Aggiungere localGatherers al campo (popolazione non assegnata usata
+  per raccolta locale).
+
+- Assegnazione **manuale per cella** entro il raggio locale: ogni cella
+  ha assignedWorkers.
+
+- Il giocatore clicca su una cella nel raggio e assegna/rimuove
+  lavoratori con tasti o pannello.
+
+- I lavoratori locali non sono entità mobili: producono cibo
+  direttamente al campo.
+
+**3. Raggio locale**
+
+- Il raggio locale è definito come **una giornata di viaggio** dai
+  confini del campo.
+
+- Formula: localGatherRadiusKm = walkingSpeedKmh \* 24.
+
+- Convertire in pixel con pixelsPerKm.
+
+- Visualizzare il raggio quando il campo è selezionato.
+
+**4. Previsioni e avvisi**
+
+- **Soglia unica di avviso:** cellWarningThreshold = 0.25.
+
+- Quando una cella con lavoratori scende sotto la soglia, mostrare un
+  avviso unico.
+
+- Nella schermata città, riepilogo giornaliero:
+
+  - Cibo raccolto oggi.
+
+  - Cibo consumato oggi.
+
+  - Cibo rimanente sfruttabile nell'area locale (fino a soglia 0.25) e
+    teorico (fino a 0).
+
+- Queste informazioni saranno offuscate in futuro.
+
+**5. Campo proporzionale a popolazione e scala**
+
+- La dimensione del campo (raggio visivo) dipende da popolazione totale
+  e da cellSizeInKm.
+
+- Formula da definire, ma basata su radice quadrata della popolazione.
+
+**6. Rimozione spedizioni automatiche**
+
+- Il tasto destro sul campo non crea più spedizioni automatiche.
+
+- Restano solo spedizioni manuali verso aree fuori dal raggio locale.
+
+**7. Rivedere le formule di scelta celle per distanze in km**
+
+- Le logiche di scelta cella (per spedizioni e per futuri comportamenti)
+  devono usare km reali, non pixel.
+
+- Introdurre getDistanceKm(pixelDist) basata su pixelsPerKm.
+
+- Il punteggio cella deve considerare densità, distanza in km e costo
+  del viaggio.
+
+**DA CONTROLLARE**:
+
+- c’è logica di cambio casella in config?
+
+- Da cambiare chat: segnalami quando senti che la tua memoria si sta
+  riempiendo, creiamo un recap e portiamo tutto in una nuova chat. Da
+  aggiungere a documentazione tecnica
+
 FIX:
 
 - Se io rimando una spedizione e ho gatherers disponibili, non prende
@@ -838,14 +979,27 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
 
 **NOTE FINE MVP1**
 
+**DA RIORGANIZZARE E RIPRIOTIZZARE IN BASE A QUELLO CHE HA SENSO E NON
+E’ troppo complicato**
+
 1.  Tool per disegnare la mappa (apporre foreste, pesci, gathering food
     ecc. con dei pennelli) \[è forse troppo presto\]
 
-2.  Creazione di algoritmo per creazione foreste e cibo in base a
+2.  Moltiplicatore provisions (dare + o – provisions alle spedizioni)
+
+3.  Consumo di cibo, provisions, velocità ed efficacia spedizione in
+    base a chi la compone (uomini, donne ecc.)
+
+4.  Calcolo stanchezza e felicità per spedizioni (che non si annulli
+    quando sono eliminate)
+
+5.  Alternanza notte giorno (le spedizioni si fermano di notte)?
+
+6.  Creazione di algoritmo per creazione foreste e cibo in base a
     tipologia terreno delle celle \[anche questo forse da vedere più
     avanti\]
 
-3.  Non abbiamo minimamente lavorato sulla tipologia del terreno
+7.  Non abbiamo minimamente lavorato sulla tipologia del terreno
     (montagna, acqua, acqua profonda, collina, pianura) e le
     caratteristiche di esso (foresta, erba ecc.). Questo perché sulla
     base del tipo di terreno poi dipende il cibo (la pesca è solo nelle
@@ -853,40 +1007,40 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
     ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi
     layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
 
-4.  Spedizioni multi-pop con dinamiche di coesione interna (es.
+8.  Spedizioni multi-pop con dinamiche di coesione interna (es.
     conflitti o collaborazioni tra individui di etnie/religioni diverse
     nello stesso gruppo).
 
-5.  Campo base che si sposta fisicamente sulla mappa durante le
+9.  Campo base che si sposta fisicamente sulla mappa durante le
     migrazioni o il nomadismo, e conseguente aggiornamento del punto di
     ritorno per le spedizioni attive.
 
-6.  Rotazione automatica delle aree di raccolta da parte delle
+10. Rotazione automatica delle aree di raccolta da parte delle
     spedizioni, per evitare l'impoverimento permanente di una singola
     zona (comportamento di raccolta più conservativo e sostenibile).
 
-7.  Algoritmo di raccolta con priorità alle celle a media densità (es.
+11. Algoritmo di raccolta con priorità alle celle a media densità (es.
     0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
 
-8.  Rigenerazione e “fertilità” celle sulla base anche del terreno
+12. Rigenerazione e “fertilità” celle sulla base anche del terreno
 
-9.  Meccaniche di frizione/resistenza al cambio di pop della popolazione
+13. Meccaniche di frizione/resistenza al cambio di pop della popolazione
     (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso,
     tipo uomini giovani infelice se assegnati a gathering perché
     disonorevole). Da capire come fare distinzione popolazione per sesso
     ma soprattutto per età senza dover monitorare ogni singolo abitante
 
-10. Icone diverse per tipologia di pop con di fianco barre informative
+14. Icone diverse per tipologia di pop con di fianco barre informative
     (tipo provviste o che)
 
-11. Giocatore seleziona manualmente il numero di pop da mandare in
+15. Giocatore seleziona manualmente il numero di pop da mandare in
     spedizione (con anche tasti rapidi di scelta)
 
-12. Aggiungere crescita demografica: più cibo c’è, più la popolazione
+16. Aggiungere crescita demografica: più cibo c’è, più la popolazione
     cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione
     finisce scorte, iniziano a morire o a consumare cibo raccolto
 
-13. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno
+17. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno
     di partenza e con che tecnologie? In quanti anni arrivare a creare
     una città, in modo che il gioco non risulti troppo lento e noioso
     all’inizio (ma senza nemmeno fare come civilization che dura questa
@@ -899,16 +1053,16 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
     della tribù (e praticamente fare solo un gioco su questo, magari
     come primo titolo di una serie)
 
-14. Ragionare sull’acqua
+18. Ragionare sull’acqua
 
-15. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
+19. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
     unità e meccaniche intorno e link di timeline del progresso (wiki e
     altri link se funzionano)
 
-16. Aggiungere caricamento JSON da Excel per impostare i valori in
+20. Aggiungere caricamento JSON da Excel per impostare i valori in
     config
 
-17. Creare script per simulazioni montecarlo. Da simulare in montecarlo
+21. Creare script per simulazioni montecarlo. Da simulare in montecarlo
     il cambio cella e la quantità di provviste da prendere, ma magari
     non deve sempre essere perfetto ma dipendere dall’esperienza (dei
     singoli, della civiltà/città/comunità, del livello tecnologico?)
@@ -1057,22 +1211,109 @@ strutture sociali e progressi culturali.
 
 - **Struttura file:**
 
-  - index.html – punto di ingresso, carica Phaser e gli script
+  - \- index.html – punto di ingresso, carica Phaser e gli script
 
-  - css/style.css – stili per UI HTML sovrapposta
+  - \- css/style.css – stili per UI HTML sovrapposta
 
-  - js/main.js – inizializzazione di Phaser e configurazione globale
+  - \- js/config.js – parametri di gioco centralizzati nell'oggetto
+    GameConfig
 
-  - js/world.js – griglia spaziale, layer di densità, query spaziali
+  - \- js/world.js – griglia spaziale, layer di densità, query spaziali
 
-  - js/units.js – classi per pop, unità, branchi
+  - \- js/units.js – classi per pop, unità, branchi
 
-  - js/resources.js – logica di raccolta, consumo, deterioramento
+  - \- js/resources.js – logica di raccolta, consumo, deterioramento
     (futuro)
 
-  - js/ui.js – interfaccia utente, pannelli, tooltip (futuro)
+  - \- js/ui.js – interfaccia utente, pannelli, tooltip (futuro)
 
-  - js/time.js – gestione pausa/play/velocità (futuro)
+  - \- js/time.js – gestione pausa/play/velocità
+
+  - \- js/main.js – inizializzazione di Phaser e configurazione globale
+
+  - \- js/debug.js – pannello di debug e collegamento ai campi HTML
+
+## GameConfig e parametri dinamici
+
+Tutti i parametri di gioco modificabili sono centralizzati nell'oggetto
+\`GameConfig\` (in \`js/config.js\`). Questo permette di cambiarli in
+tempo reale dalla console del browser o dal pannello di debug, senza
+dover modificare il codice.
+
+### **Convenzioni**:
+
+- I valori configurabili non devono essere copiati in costanti locali
+  all'avvio. Vanno letti direttamente da \`GameConfig\` ogni volta che
+  servono.
+
+- Ogni nuovo parametro di gioco va aggiunto a \`GameConfig\`, esposto
+  nel pannello di debug e utilizzato dinamicamente nel codice.
+
+- I parametri strutturali (es. dimensione delle celle, dimensioni del
+  mondo) richiedono un riavvio della pagina per essere applicati.
+
+### Parametri base
+
+Sono i dati primari da cui si derivano tutti gli altri. L'utente li può
+modificare liberamente:
+
+- \`dayLengthSeconds\` – durata reale in secondi di un giorno di gioco.
+
+- \`foodConsumptionPerPersonPerDay\` – consumo base di cibo per persona
+  al giorno.
+
+- \`cellSize\` – dimensione in pixel di una cella.
+
+- \`cellSizeInKm\` – quanti chilometri reali rappresenta una cella
+  (default 1).
+
+- \`walkingSpeedKmh\` – velocità di spostamento a piedi espressa in
+  km/h.
+
+- \`travelConsumptionMultiplier\` – moltiplicatore del consumo durante
+  il viaggio.
+
+- \`gatheringConsumptionMultiplier\` – moltiplicatore del consumo
+  durante la raccolta.
+
+- \`safetyMultiplier\` – margine di sicurezza per il calcolo delle
+  provviste.
+
+- \`restMultiplier\` – percentuale di riposo rispetto alla durata della
+  spedizione precedente.
+
+### Parametri derivati
+
+I seguenti valori non devono mai essere memorizzati come costanti, ma
+calcolati ogni volta che servono a partire dai parametri base:
+
+- \`secondsPerGameHour = dayLengthSeconds / 24\`
+
+- \`baseConsumptionPerSec = foodConsumptionPerPersonPerDay /
+  dayLengthSeconds\`
+
+- \`pixelsPerKm = cellSize / cellSizeInKm\`
+
+- \`expeditionSpeed = (walkingSpeedKmh \* pixelsPerKm) /
+  (secondsPerGameHour \* 3600)\`
+
+- Consumo durante il viaggio = \`baseConsumptionPerSec \*
+  travelConsumptionMultiplier\`
+
+- Consumo durante la raccolta = \`baseConsumptionPerSec \*
+  gatheringConsumptionMultiplier\`
+
+- Provviste necessarie = \`workerCount \* consumoViaggio \* (distanza /
+  expeditionSpeed \* 2) \* safetyMultiplier\`
+
+- Riposo = \`durataSpedizione \* restMultiplier\`
+
+### Uso
+
+- In console: \`GameConfig.nomeParametro = valore;\`
+
+- Nel pannello di debug: modificare il campo corrispondente e premere
+  Invio o cliccare fuori; il gioco si aggiorna automaticamente.
 
 # Griglia spaziale e risorse diffuse
 
@@ -1214,9 +1455,10 @@ Proprietà:
 
 ### Comportamento automatico
 
-1.  **Partenza:** la spedizione riceve una quantità di provviste dalle
-    scorte del campo, proporzionale al numero di lavoratori e alla
-    distanza.
+1.  **Partenza:** la spedizione riceve provviste dalle scorte del campo.
+    La quantità è calcolata dinamicamente in base alla distanza, alla
+    velocità, al numero di lavoratori e a un margine di sicurezza, nel
+    rispetto della capacità di carico.
 
 2.  **Viaggio di andata:** si muove verso \`areaCenter\`.
 
@@ -1240,12 +1482,18 @@ Proprietà:
 5.  **\*\*Scarico e riposo:\*\*** arrivata al campo, deposita il cibo
     raccolto in \`foodStock\`, i lavoratori rientrano
     nell'\`availableWorkers\` del Pop, e la spedizione entra in stato
-    \`resting\` per un tempo configurabile (\`cooldown\`).
+    \`resting\`. La durata del riposo è proporzionale alla durata della
+    spedizione appena conclusa.
 
 6.  **\*\*Ripartenza:\*\*** terminato il riposo, se ci sono ancora
     lavoratori disponibili nel Pop e l'area non è stata disattivata dal
     giocatore, la spedizione riparte automaticamente con nuove provviste
-    verso la stessa area.
+    calcolate come alla partenza iniziale.
+
+\*\***Nota sul consumo**:\*\* durante il viaggio e la raccolta, il
+consumo di provviste è calcolato per secondo reale. Il valore usato è
+derivato dal consumo giornaliero e dai moltiplicatori di
+viaggio/raccolta. Non ci sono costanti fisse.
 
 ### Interazione del giocatore (per ora)
 
@@ -1326,8 +1574,11 @@ essere disaccoppiata dal rendering per garantire coerenza temporale.
     secondi nella realtà).
 
 4.  **Consumo risorse:** a intervalli regolari di tempo di gioco (es.
-    ogni dayLength secondi) tutti i pop consumano cibo dalle scorte
-    dell'accampamento.
+    ogni \`dayLength\` secondi) tutti i pop consumano cibo dalle scorte
+    dell'accampamento. Le spedizioni attive consumano provviste in modo
+    continuo durante l'aggiornamento, usando i valori derivati da
+    \`GameConfig\`. Il consumo della popolazione al campo rimane invece
+    applicato a fine giornata.
 
 5.  **Rigenerazione risorse:** a intervalli regolari, le celle della
     griglia rigenerano una frazione di densità per ogni layer (es. +0.01
@@ -1553,6 +1804,10 @@ spiegazione che copra:
   intendere "codice identico a prima", perché l'utente potrebbe copiare
   l'intero blocco e perdere funzionalità.
 
+- **Gestione configurazione:** ogni nuovo parametro di gioco deve essere
+  aggiunto a \`GameConfig\`, esposto nel pannello di debug e usato
+  dinamicamente nel codice, evitando costanti locali derivate.
+
 Questo approccio garantisce che ogni decisione implementativa sia
 consapevole e allineata ai pilastri del design, e che il prototipo
 evolva in modo coerente.
@@ -1604,6 +1859,24 @@ Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
 - Fare commit e push di tutti i file modificati (codice e
   documentazione) con un messaggio chiaro.
 
+# Pannello di debug UI
+
+È disponibile un pannello HTML sovrapposto al canvas (pulsante
+\*\*Debug\*\* in alto a destra). Mostra input per tutti i parametri di
+\`GameConfig\` e li aggiorna in tempo reale tramite \`js/debug.js\`.
+
+\- Il pannello è nascosto di default e si apre con il pulsante.
+
+\- Il pulsante \*\*Reset to Defaults\*\* ripristina i valori originali
+di \`GameConfig\`.
+
+\- Il pulsante \*\*Apply & Reload\*\* ricarica la pagina per applicare
+modifiche che richiedono il riavvio (es. dimensioni cella/mondo).
+
+\- La funzione \`isInputFocused()\` in \`main.js\` evita che i comandi
+da tastiera del gioco vengano attivati mentre si scrive negli input del
+pannello.
+
 # Riferimenti incrociati
 
 - I documenti di design completi (Concept Semplificato, Concept
@@ -1613,8 +1886,6 @@ Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
 - Questo documento descrive l'implementazione tecnica e deve essere
   aggiornato ogni volta che viene presa una decisione architetturale
   rilevante.
-
-SYNC: 112
 
 ```
 
@@ -1695,90 +1966,100 @@ canvas {
 
 ## FILE: js\config.js
 ```
-// config.js - Centralized game parameters for balancing and debugging
-//
-// HOW TO USE THIS FILE:
-// - Change any value while the game is running via the browser console:
-//   GameConfig.dayLengthSeconds = 3;
-// - Or use the Debug Panel (button in top-right corner).
-// - Some parameters (cellSize, worldWidth, worldHeight) require a page reload to take effect.
-//
-// RELATIONSHIPS BETWEEN VARIABLES:
-//
-// 1. DAY CYCLE
-//    - Every dayLengthSeconds real seconds, one game day passes.
-//    - On each new day, total population * foodConsumptionPerPersonPerDay is subtracted from camp food.
-//
-// 2. EXPEDITION PROVISIONS & MOVEMENT
-//    - When an expedition departs, it receives provisions from the camp.
-//    - Provisions consumed while moving = workerCount * provisionConsumptionTravelling per second.
-//    - Provisions consumed while gathering = workerCount * provisionConsumptionGathering per second.
-//    - If provisions reach 0 and the expedition is not FORCED, it returns to camp immediately.
-//    - Expedition speed (expeditionSpeed) is in pixels per second.
-//    - After returning, the expedition rests for cooldownSeconds before restarting.
-//
-// 3. GATHERING & DENSITY
-//    - Gathering rate per second = baseGatherRate * cellDensity * workerCount.
-//      Example: density=1.0, 5 workers, baseGatherRate=0.5 → 2.5 food/second.
-//    - Density reduction per food gathered = densityReductionPerFood.
-//      Example: gathering 2.5 food → density reduces by 2.5 * 0.005 = 0.0125.
-//    - Impact radius for density reduction = gatherImpactRadius * cellSize.
-//
-// 4. INVENTORY & CAPACITY
-//    - Each worker can carry maxCapacityPerWorker units total (food + provisions).
-//      Example: 5 workers * 2 = 10 capacity.
-//    - If food + provisions >= maxCapacity, the expedition returns to camp.
-//
-// 5. CELL SWITCHING
-//    - Every cellEvaluationInterval seconds, the expedition evaluates whether to move.
-//    - A cell's score = density * cellScoreDensityWeight - distance * cellScoreDistanceWeight.
-//    - If the best cell's score > current cell score * cellSwitchScoreThreshold, and
-//      the best cell's density >= cellAbandonThreshold, the expedition moves there.
-//
-// 6. AREA & RADIUS
-//    - areaRadius (pixels) defines the gathering/search radius around the area center.
-//    - In auto mode, the expedition searches around its current position using this radius.
-//
+// config.js - Centralized game parameters and derived helpers
 
 const GameConfig = {
     // --- Day cycle ---
-    dayLengthSeconds: 5,                    // real seconds per game day
-    foodConsumptionPerPersonPerDay: 0.01,   // food consumed per person each day
+    dayLengthSeconds: 10,                    // real seconds per game day
+    foodConsumptionPerPersonPerDay: 0.01,   // base food per person per day
 
     // --- Gathering ---
     baseGatherRate: 0.2,                    // food per second per worker at density 1.0
-    densityReductionPerFood: 0.001,         // how much density is removed per food gathered
-    gatherImpactRadius: 0.6,                // multiplier for CELL_SIZE (0.6 * 64 = ~38px)
+    densityReductionPerFood: 0.001,         // density removed per food gathered
+    gatherImpactRadius: 0.6,                // multiplier for CELL_SIZE
 
-    // --- Expedition movement ---
-    expeditionSpeed: 60,                    // pixels per second
-    maxCapacityPerWorker: 2,                // inventory slots per worker (food + provisions)
-    provisionConsumptionTravelling: 0.02,   // provisions per worker per second while moving
-    provisionConsumptionGathering: 0.04,    // provisions per worker per second while gathering
-    cooldownSeconds: 3,                     // rest time after returning to camp
-    provisionsBaseMultiplier: 0.5,          // multiplier for distance-based provision calculation
-    provisionsAutoBase: 2,                  // base provisions per worker for auto expeditions
+    // --- Movement (base parameters) ---
+    cellSize: 50,                           // pixels per cell
+    cellSizeInKm: 4,                        // real kilometers represented by one cell
+    walkingSpeedKmh: 4,                     // walking speed in km/h
+
+    // --- Expedition consumption multipliers ---
+    travelConsumptionMultiplier: 2.0,       // vs base daily rate while moving
+    gatheringConsumptionMultiplier: 2.5,    // vs base daily rate while gathering
+
+    // --- Provisions & rest ---
+    safetyMultiplier: 1.25,                  // safety margin for provisions
+    restMultiplier: 0.5,                    // rest time as proportion of trip duration
+
+    // --- Capacity ---
+    maxCapacityPerWorker: 1,                // inventory slots per worker (food + provisions)
 
     // --- Area & cell switching ---
     areaRadius: 150,                        // default gathering area radius in pixels
-    cellAbandonThreshold: 0.2,              // density below which we look for a better cell
-    cellSwitchScoreThreshold: 1.1,          // minimum score ratio to switch (e.g., 1.1 = 10% better)
-    cellScoreDensityWeight: 100,            // weight of density in cell score
-    cellScoreDistanceWeight: 0.2,           // weight of distance in cell score
-    cellEvaluationInterval: 1.0,            // seconds between cell switch evaluations
-
-    // --- World ---
-    cellSize: 50,                           // pixels per cell
-    worldWidth: 1280,                       // game world width in pixels
-    worldHeight: 720,                       // game world height in pixels
+    cellAbandonThreshold: 0.2,
+    cellSwitchScoreThreshold: 1.1,
+    cellScoreDensityWeight: 100,
+    cellScoreDistanceWeight: 0.2,
+    cellEvaluationInterval: 1.0,
 
     // --- Starting values ---
     startingFoodStock: 10,
     startingUnassignedPopulation: 10,
-    startingExpeditionWorkers: 5,           // default workers for a new expedition
+    startingExpeditionWorkers: 5,
     campX: 100,
-    campY: 100
+    campY: 100,
+
+    // --- World ---
+    worldWidth: 1280,          // game world width in pixels
+    worldHeight: 720,          // game world height in pixels
 };
+
+// ---- Derived parameter helpers ----
+
+// Game seconds per game hour
+function getSecondsPerGameHour() {
+    return GameConfig.dayLengthSeconds / 24;
+}
+
+// Base food consumption per person per real second
+function getBaseConsumptionPerSec() {
+    return GameConfig.foodConsumptionPerPersonPerDay / GameConfig.dayLengthSeconds;
+}
+
+// Pixels per real kilometer
+function getPixelsPerKm() {
+    return GameConfig.cellSize / GameConfig.cellSizeInKm;
+}
+
+// Current expedition speed in pixels per real second
+function getExpeditionSpeed() {
+    const secondsPerGameHour = getSecondsPerGameHour(); // real seconds per game hour
+    const speedPxPerHour = GameConfig.walkingSpeedKmh * getPixelsPerKm(); // pixels per game hour
+    return speedPxPerHour / secondsPerGameHour; // pixels per real second
+}
+
+// Provision consumption per worker per real second while traveling
+function getTravelConsumptionPerSec() {
+    return getBaseConsumptionPerSec() * GameConfig.travelConsumptionMultiplier;
+}
+
+// Provision consumption per worker per real second while gathering
+function getGatheringConsumptionPerSec() {
+    return getBaseConsumptionPerSec() * GameConfig.gatheringConsumptionMultiplier;
+}
+
+// Needed provisions for a given worker count and one-way distance (pixels)
+function getProvisionsNeeded(workerCount, distance) {
+    const travelTime = (distance / getExpeditionSpeed()) * 2; // round trip
+    return workerCount * getTravelConsumptionPerSec() * travelTime * GameConfig.safetyMultiplier;
+}
+
+// Rest duration after a trip of given duration in real seconds
+function getRestDuration(tripDurationSec) {
+    return tripDurationSec * GameConfig.restMultiplier;
+}
+
+let gameTimeSec = 0;          // cumulative simulated time in seconds
 ```
 
 ## FILE: js\debug.js
@@ -1990,16 +2271,12 @@ function enableDebugClick(scene) {
             // Create auto expedition starting from camp, target area = current camp position
             const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, camp.x, camp.y, areaRadius, camp);
             exp.useAssignedArea = false; // auto mode
-
-            // Give provisions
-            const needed = taken * GameConfig.provisionsAutoBase; // base provisions
-            const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
-            exp.inventory.provisions = given;
-            camp.foodStock -= given;
+            exp.state = 'resting';
+            exp.cooldownRemaining = 0;   // will calculate provisions on first departure
 
             expeditions.push(exp);
             updateInfoText();
-            console.log(`Auto expedition ${id} started with ${taken} workers.`);
+            console.log(`Auto expedition ${id} created with ${taken} workers (will depart after provisioning).`);
             return;
         }
 
@@ -2053,7 +2330,7 @@ function enableDebugClick(scene) {
 
         // Give provisions from camp stock, respecting inventory capacity
         const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
-        const needed = taken * (dist / 100) * GameConfig.provisionsBaseMultiplier;
+        const needed = getProvisionsNeeded(taken, dist);
         // Cannot exceed camp food, nor the expedition's max capacity
         const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
         exp.inventory.provisions = given;
@@ -2465,6 +2742,8 @@ function updateInfoText() {
 function update(time, delta) {
     const realDeltaSec = delta / 1000;
     const deltaSec = TimeManager.getGameDelta(realDeltaSec);
+    gameTimeSec += deltaSec;
+
     for (const exp of expeditions) exp.update(deltaSec);
 
     // Day cycle (uses GameConfig.dayLengthSeconds dynamically)
@@ -2613,7 +2892,7 @@ class Expedition {
         this.y = startY;
         this.targetX = areaX;
         this.targetY = areaY;
-        this.speed = GameConfig.expeditionSpeed;
+        this.speed = getExpeditionSpeed();
         this.state = 'travellingToArea';
         this.maxCapacity = workerCount * GameConfig.maxCapacityPerWorker;
         this.inventory = { provisions: 0, food: 0 };
@@ -2622,12 +2901,12 @@ class Expedition {
         this.campRef = campRef;
         this.cooldownRemaining = 0;
         this.lastCellEvaluation = 0;
-        this.isForced = false; // if true, expedition ignores provision limits
-        this.useAssignedArea = true; // if true, gathering is restricted to the area around areaCenter
-        this.toBeDisbanded = false; // if true, expedition will disband on arrival at camp
+        this.isForced = false;
+        this.useAssignedArea = true;
+        this.toBeDisbanded = false;
+        this.tripStartGameTime = null;
     }
 
-    // Calculate score for a cell from the expedition's current position
     cellScore(cx, cy) {
         const cell = getCell(cx, cy);
         if (!cell) return -Infinity;
@@ -2639,7 +2918,6 @@ class Expedition {
         return density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
     }
 
-    // Find the best cell around the expedition's current position (auto mode)
     findBetterCell() {
         const centerCell = worldToCell(this.x, this.y);
         const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
@@ -2651,6 +2929,11 @@ class Expedition {
                 const cx = centerCell.cx + dx;
                 const cy = centerCell.cy + dy;
                 if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                    // Skip camp cell (prevent gathering at camp)
+                    const campCell = worldToCell(this.campRef.x, this.campRef.y);
+                    if (cx === campCell.cx && cy === campCell.cy) {
+                        continue;
+                    }
                     const score = this.cellScore(cx, cy);
                     if (score > bestScore) {
                         bestScore = score;
@@ -2663,8 +2946,6 @@ class Expedition {
         return { cx: bestCx, cy: bestCy, score: bestScore };
     }
 
-    // Find the best cell within the assigned area (centered on areaCenter),
-    // calculating distances from the given origin point.
     findBestCellInArea(fromX, fromY) {
         const centerCell = worldToCell(this.areaCenter.x, this.areaCenter.y);
         const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
@@ -2676,6 +2957,11 @@ class Expedition {
                 const cx = centerCell.cx + dx;
                 const cy = centerCell.cy + dy;
                 if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
+                    // Skip camp cell
+                    const campCell = worldToCell(this.campRef.x, this.campRef.y);
+                    if (cx === campCell.cx && cy === campCell.cy) {
+                        continue;
+                    }
                     const cell = getCell(cx, cy);
                     const density = cell.forageDensity;
                     if (density <= 0) continue;
@@ -2695,55 +2981,51 @@ class Expedition {
     }
 
     update(delta) {
-        // Dynamically update capacity and speed from GameConfig
+        // dynamic capacity and speed
         this.maxCapacity = this.workerCount * GameConfig.maxCapacityPerWorker;
+        this.speed = getExpeditionSpeed();
 
         // --- RESTING ---
         if (this.state === 'resting') {
             this.cooldownRemaining -= delta;
             if (this.cooldownRemaining <= 0) {
                 this.cooldownRemaining = 0;
-                // Determine target and distance to calculate provisions
                 let targetDist = 0;
                 let targetFound = false;
 
                 if (this.useAssignedArea) {
-                    // Assigned area: target is areaCenter
-                    targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, this.areaCenter.x, this.areaCenter.y);
-                    targetFound = true;
+                    const best = this.findBestCellInArea(this.campRef.x, this.campRef.y);
+                    if (best.cx >= 0) {
+                        const targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
+                        const targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                        targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
+                        targetFound = true;
+                        this.targetX = targetX;
+                        this.targetY = targetY;
+                    } else {
+                        targetFound = false;
+                    }
                 } else {
-                    // Auto mode: find the best cell around camp
                     const best = this.findBetterCell();
                     if (best.cx >= 0) {
                         const targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
                         const targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
                         targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
                         targetFound = true;
-                        // Save target for later use (avoid recomputing)
                         this.targetX = targetX;
                         this.targetY = targetY;
                     }
                 }
 
                 if (targetFound) {
-                    // Calculate provisions based on target distance
-                    const needed = this.workerCount * (targetDist / 100) * GameConfig.provisionsBaseMultiplier;
+                    const needed = getProvisionsNeeded(this.workerCount, targetDist);
                     const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
                     this.inventory.provisions = taken;
                     this.campRef.foodStock -= taken;
-                } else {
-                    // No target found: don't take provisions, stay resting
-                    this.cooldownRemaining = GameConfig.cooldownSeconds;
-                    return;
-                }
-
-                if (targetFound) {
+                    this.tripStartGameTime = gameTimeSec;
                     this.state = 'travellingToArea';
                 } else {
-                    // No cells available: return provisions and stay resting
-                    this.campRef.foodStock += this.inventory.provisions;
-                    this.inventory.provisions = 0;
-                    this.cooldownRemaining = GameConfig.cooldownSeconds; // check again in 5 seconds
+                    this.cooldownRemaining = GameConfig.dayLengthSeconds * GameConfig.restMultiplier;
                 }
             }
             return;
@@ -2751,19 +3033,16 @@ class Expedition {
 
         // --- TRAVELLING / MOVING / RETURNING ---
         if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToCamp') {
-            // Consume provisions while moving
-            const consumed = this.workerCount * GameConfig.provisionConsumptionTravelling * delta;
+            const consumed = this.workerCount * getTravelConsumptionPerSec() * delta;
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
-            // If returning and already at camp, go directly to resting or disband
             if (this.state === 'returningToCamp') {
                 const distToCamp = Phaser.Math.Distance.Between(this.x, this.y, this.campRef.x, this.campRef.y);
                 if (distToCamp < 5) {
                     this.x = this.campRef.x;
                     this.y = this.campRef.y;
                     if (this.toBeDisbanded) {
-                        // Disband: deposit food, return workers, and remove
                         this.campRef.foodStock += this.inventory.food;
                         this.inventory.food = 0;
                         this.inventory.provisions = 0;
@@ -2773,18 +3052,17 @@ class Expedition {
                         if (index > -1) this.campRef.expeditions.splice(index, 1);
                         return;
                     }
-                    // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = GameConfig.cooldownSeconds;
+                    const tripDuration = gameTimeSec - this.tripStartGameTime;
+                    this.cooldownRemaining = getRestDuration(tripDuration);
                     this.state = 'resting';
                     return;
                 }
             }
-
-            // Return early if provisions exhausted and not forced (but don't override resting)
-            if (!this.isForced && this.inventory.provisions <= 0) {
+            // Return early if provisions exhausted and not forced (but only if not already returning)
+            if (this.state !== 'returningToCamp' && !this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
                 this.targetX = this.campRef.x;
                 this.targetY = this.campRef.y;
@@ -2803,7 +3081,6 @@ class Expedition {
                     this.state = 'gathering';
                 } else if (this.state === 'returningToCamp') {
                     if (this.toBeDisbanded) {
-                        // Disband on arrival
                         this.campRef.foodStock += this.inventory.food;
                         this.inventory.food = 0;
                         this.inventory.provisions = 0;
@@ -2813,16 +3090,16 @@ class Expedition {
                         if (index > -1) this.campRef.expeditions.splice(index, 1);
                         return;
                     }
-                    // Normal rest
                     this.campRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
-                    this.cooldownRemaining = GameConfig.cooldownSeconds;
+                    const tripDuration = gameTimeSec - this.tripStartGameTime;
+                    this.cooldownRemaining = getRestDuration(tripDuration);
                     this.state = 'resting';
                 }
                 return;
             }
-            const step = GameConfig.expeditionSpeed * delta;
+            const step = this.speed * delta;
             const ratio = Math.min(step / dist, 1);
             this.x += dx * ratio;
             this.y += dy * ratio;
@@ -2831,7 +3108,7 @@ class Expedition {
 
         // --- GATHERING ---
         if (this.state === 'gathering') {
-            const consumed = this.workerCount * GameConfig.provisionConsumptionGathering * delta;
+            const consumed = this.workerCount * getGatheringConsumptionPerSec() * delta;
             this.inventory.provisions -= consumed;
             if (!this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
@@ -2848,7 +3125,6 @@ class Expedition {
                 return;
             }
 
-            // Evaluate cell switching periodically
             this.lastCellEvaluation += delta;
             if (this.lastCellEvaluation >= GameConfig.cellEvaluationInterval) {
                 this.lastCellEvaluation = 0;
@@ -2871,7 +3147,6 @@ class Expedition {
                 }
             }
 
-            // Gather from current cell
             const cell = worldToCell(this.x, this.y);
             const cellData = getCell(cell.cx, cell.cy);
             const density = cellData ? cellData.forageDensity : 0;
@@ -2881,7 +3156,6 @@ class Expedition {
                 const densityReduction = gatherRate * GameConfig.densityReductionPerFood;
                 modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * GameConfig.gatherImpactRadius);
             } else {
-                // Cell exhausted, find another or return
                 let best;
                 if (this.useAssignedArea) {
                     best = this.findBestCellInArea(this.x, this.y);

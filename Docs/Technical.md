@@ -9,22 +9,109 @@
 
 - **Struttura file:**
 
-  - index.html – punto di ingresso, carica Phaser e gli script
+  - \- index.html – punto di ingresso, carica Phaser e gli script
 
-  - css/style.css – stili per UI HTML sovrapposta
+  - \- css/style.css – stili per UI HTML sovrapposta
 
-  - js/main.js – inizializzazione di Phaser e configurazione globale
+  - \- js/config.js – parametri di gioco centralizzati nell'oggetto
+    GameConfig
 
-  - js/world.js – griglia spaziale, layer di densità, query spaziali
+  - \- js/world.js – griglia spaziale, layer di densità, query spaziali
 
-  - js/units.js – classi per pop, unità, branchi
+  - \- js/units.js – classi per pop, unità, branchi
 
-  - js/resources.js – logica di raccolta, consumo, deterioramento
+  - \- js/resources.js – logica di raccolta, consumo, deterioramento
     (futuro)
 
-  - js/ui.js – interfaccia utente, pannelli, tooltip (futuro)
+  - \- js/ui.js – interfaccia utente, pannelli, tooltip (futuro)
 
-  - js/time.js – gestione pausa/play/velocità (futuro)
+  - \- js/time.js – gestione pausa/play/velocità
+
+  - \- js/main.js – inizializzazione di Phaser e configurazione globale
+
+  - \- js/debug.js – pannello di debug e collegamento ai campi HTML
+
+## GameConfig e parametri dinamici
+
+Tutti i parametri di gioco modificabili sono centralizzati nell'oggetto
+\`GameConfig\` (in \`js/config.js\`). Questo permette di cambiarli in
+tempo reale dalla console del browser o dal pannello di debug, senza
+dover modificare il codice.
+
+### **Convenzioni**:
+
+- I valori configurabili non devono essere copiati in costanti locali
+  all'avvio. Vanno letti direttamente da \`GameConfig\` ogni volta che
+  servono.
+
+- Ogni nuovo parametro di gioco va aggiunto a \`GameConfig\`, esposto
+  nel pannello di debug e utilizzato dinamicamente nel codice.
+
+- I parametri strutturali (es. dimensione delle celle, dimensioni del
+  mondo) richiedono un riavvio della pagina per essere applicati.
+
+### Parametri base
+
+Sono i dati primari da cui si derivano tutti gli altri. L'utente li può
+modificare liberamente:
+
+- \`dayLengthSeconds\` – durata reale in secondi di un giorno di gioco.
+
+- \`foodConsumptionPerPersonPerDay\` – consumo base di cibo per persona
+  al giorno.
+
+- \`cellSize\` – dimensione in pixel di una cella.
+
+- \`cellSizeInKm\` – quanti chilometri reali rappresenta una cella
+  (default 1).
+
+- \`walkingSpeedKmh\` – velocità di spostamento a piedi espressa in
+  km/h.
+
+- \`travelConsumptionMultiplier\` – moltiplicatore del consumo durante
+  il viaggio.
+
+- \`gatheringConsumptionMultiplier\` – moltiplicatore del consumo
+  durante la raccolta.
+
+- \`safetyMultiplier\` – margine di sicurezza per il calcolo delle
+  provviste.
+
+- \`restMultiplier\` – percentuale di riposo rispetto alla durata della
+  spedizione precedente.
+
+### Parametri derivati
+
+I seguenti valori non devono mai essere memorizzati come costanti, ma
+calcolati ogni volta che servono a partire dai parametri base:
+
+- \`secondsPerGameHour = dayLengthSeconds / 24\`
+
+- \`baseConsumptionPerSec = foodConsumptionPerPersonPerDay /
+  dayLengthSeconds\`
+
+- \`pixelsPerKm = cellSize / cellSizeInKm\`
+
+- \`expeditionSpeed = (walkingSpeedKmh \* pixelsPerKm) /
+  (secondsPerGameHour \* 3600)\`
+
+- Consumo durante il viaggio = \`baseConsumptionPerSec \*
+  travelConsumptionMultiplier\`
+
+- Consumo durante la raccolta = \`baseConsumptionPerSec \*
+  gatheringConsumptionMultiplier\`
+
+- Provviste necessarie = \`workerCount \* consumoViaggio \* (distanza /
+  expeditionSpeed \* 2) \* safetyMultiplier\`
+
+- Riposo = \`durataSpedizione \* restMultiplier\`
+
+### Uso
+
+- In console: \`GameConfig.nomeParametro = valore;\`
+
+- Nel pannello di debug: modificare il campo corrispondente e premere
+  Invio o cliccare fuori; il gioco si aggiorna automaticamente.
 
 # Griglia spaziale e risorse diffuse
 
@@ -166,9 +253,10 @@ Proprietà:
 
 ### Comportamento automatico
 
-1.  **Partenza:** la spedizione riceve una quantità di provviste dalle
-    scorte del campo, proporzionale al numero di lavoratori e alla
-    distanza.
+1.  **Partenza:** la spedizione riceve provviste dalle scorte del campo.
+    La quantità è calcolata dinamicamente in base alla distanza, alla
+    velocità, al numero di lavoratori e a un margine di sicurezza, nel
+    rispetto della capacità di carico.
 
 2.  **Viaggio di andata:** si muove verso \`areaCenter\`.
 
@@ -192,12 +280,18 @@ Proprietà:
 5.  **\*\*Scarico e riposo:\*\*** arrivata al campo, deposita il cibo
     raccolto in \`foodStock\`, i lavoratori rientrano
     nell'\`availableWorkers\` del Pop, e la spedizione entra in stato
-    \`resting\` per un tempo configurabile (\`cooldown\`).
+    \`resting\`. La durata del riposo è proporzionale alla durata della
+    spedizione appena conclusa.
 
 6.  **\*\*Ripartenza:\*\*** terminato il riposo, se ci sono ancora
     lavoratori disponibili nel Pop e l'area non è stata disattivata dal
     giocatore, la spedizione riparte automaticamente con nuove provviste
-    verso la stessa area.
+    calcolate come alla partenza iniziale.
+
+\*\***Nota sul consumo**:\*\* durante il viaggio e la raccolta, il
+consumo di provviste è calcolato per secondo reale. Il valore usato è
+derivato dal consumo giornaliero e dai moltiplicatori di
+viaggio/raccolta. Non ci sono costanti fisse.
 
 ### Interazione del giocatore (per ora)
 
@@ -278,8 +372,11 @@ essere disaccoppiata dal rendering per garantire coerenza temporale.
     secondi nella realtà).
 
 4.  **Consumo risorse:** a intervalli regolari di tempo di gioco (es.
-    ogni dayLength secondi) tutti i pop consumano cibo dalle scorte
-    dell'accampamento.
+    ogni \`dayLength\` secondi) tutti i pop consumano cibo dalle scorte
+    dell'accampamento. Le spedizioni attive consumano provviste in modo
+    continuo durante l'aggiornamento, usando i valori derivati da
+    \`GameConfig\`. Il consumo della popolazione al campo rimane invece
+    applicato a fine giornata.
 
 5.  **Rigenerazione risorse:** a intervalli regolari, le celle della
     griglia rigenerano una frazione di densità per ogni layer (es. +0.01
@@ -505,6 +602,10 @@ spiegazione che copra:
   intendere "codice identico a prima", perché l'utente potrebbe copiare
   l'intero blocco e perdere funzionalità.
 
+- **Gestione configurazione:** ogni nuovo parametro di gioco deve essere
+  aggiunto a \`GameConfig\`, esposto nel pannello di debug e usato
+  dinamicamente nel codice, evitando costanti locali derivate.
+
 Questo approccio garantisce che ogni decisione implementativa sia
 consapevole e allineata ai pilastri del design, e che il prototipo
 evolva in modo coerente.
@@ -556,6 +657,24 @@ Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
 - Fare commit e push di tutti i file modificati (codice e
   documentazione) con un messaggio chiaro.
 
+# Pannello di debug UI
+
+È disponibile un pannello HTML sovrapposto al canvas (pulsante
+\*\*Debug\*\* in alto a destra). Mostra input per tutti i parametri di
+\`GameConfig\` e li aggiorna in tempo reale tramite \`js/debug.js\`.
+
+\- Il pannello è nascosto di default e si apre con il pulsante.
+
+\- Il pulsante \*\*Reset to Defaults\*\* ripristina i valori originali
+di \`GameConfig\`.
+
+\- Il pulsante \*\*Apply & Reload\*\* ricarica la pagina per applicare
+modifiche che richiedono il riavvio (es. dimensioni cella/mondo).
+
+\- La funzione \`isInputFocused()\` in \`main.js\` evita che i comandi
+da tastiera del gioco vengano attivati mentre si scrive negli input del
+pannello.
+
 # Riferimenti incrociati
 
 - I documenti di design completi (Concept Semplificato, Concept
@@ -565,5 +684,3 @@ Alla fine di ogni sessione, l'assistente ricorderà all'utente di:
 - Questo documento descrive l'implementazione tecnica e deve essere
   aggiornato ogni volta che viene presa una decisione architetturale
   rilevante.
-
-SYNC: 112

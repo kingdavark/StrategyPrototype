@@ -273,6 +273,105 @@ loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
 
 - Testare diverse combinazioni per trovare un bilanciamento iniziale
 
+**6.7 – Revisione sistema raccolta risorse**
+
+**1. Fix bug spedizioni**
+
+- **Bug 1 – Blocco in **returningToCamp**:** escludere il controllo
+  delle provviste quando lo stato è già returningToCamp. La spedizione
+  deve andare dritta al campo.
+
+- **Bug 2 – Spedizione torna nell'area invece del campo:** la ripartenza
+  delle spedizioni con area assegnata deve usare findBestCellInArea,
+  non areaCenter. Inoltre, le funzioni di ricerca celle devono escludere
+  sempre la cella del campo.
+
+- **Bug 3 – Ritorno prima di riempire l'inventario:** per le spedizioni
+  di gathering, semplificare il consumo. Niente provviste separate per
+  ora: la spedizione parte, raccoglie, torna quando piena o quando il
+  giocatore ordina il rientro.
+
+**ULTIMO BUG DA FIXARE:** spedizione non va in una cella all’interno
+dell’area assegnata, ma nella migliore in generale. Attenzione perché in
+futuro tutte le celle avranno un certo livello di fertilità, e se le
+spedizioni vanno semplicemente nella migliore non all’interno della zona
+assegnata, bé questo è un problema perché consumano magari fertilità
+dove il giocatore voleva farla riprendere
+
+**2. Raccolta locale e gestione cittadini**
+
+- Aggiungere localGatherers al campo (popolazione non assegnata usata
+  per raccolta locale).
+
+- Assegnazione **manuale per cella** entro il raggio locale: ogni cella
+  ha assignedWorkers.
+
+- Il giocatore clicca su una cella nel raggio e assegna/rimuove
+  lavoratori con tasti o pannello.
+
+- I lavoratori locali non sono entità mobili: producono cibo
+  direttamente al campo.
+
+**3. Raggio locale**
+
+- Il raggio locale è definito come **una giornata di viaggio** dai
+  confini del campo.
+
+- Formula: localGatherRadiusKm = walkingSpeedKmh \* 24.
+
+- Convertire in pixel con pixelsPerKm.
+
+- Visualizzare il raggio quando il campo è selezionato.
+
+**4. Previsioni e avvisi**
+
+- **Soglia unica di avviso:** cellWarningThreshold = 0.25.
+
+- Quando una cella con lavoratori scende sotto la soglia, mostrare un
+  avviso unico.
+
+- Nella schermata città, riepilogo giornaliero:
+
+  - Cibo raccolto oggi.
+
+  - Cibo consumato oggi.
+
+  - Cibo rimanente sfruttabile nell'area locale (fino a soglia 0.25) e
+    teorico (fino a 0).
+
+- Queste informazioni saranno offuscate in futuro.
+
+**5. Campo proporzionale a popolazione e scala**
+
+- La dimensione del campo (raggio visivo) dipende da popolazione totale
+  e da cellSizeInKm.
+
+- Formula da definire, ma basata su radice quadrata della popolazione.
+
+**6. Rimozione spedizioni automatiche**
+
+- Il tasto destro sul campo non crea più spedizioni automatiche.
+
+- Restano solo spedizioni manuali verso aree fuori dal raggio locale.
+
+**7. Rivedere le formule di scelta celle per distanze in km**
+
+- Le logiche di scelta cella (per spedizioni e per futuri comportamenti)
+  devono usare km reali, non pixel.
+
+- Introdurre getDistanceKm(pixelDist) basata su pixelsPerKm.
+
+- Il punteggio cella deve considerare densità, distanza in km e costo
+  del viaggio.
+
+**DA CONTROLLARE**:
+
+- c’è logica di cambio casella in config?
+
+- Da cambiare chat: segnalami quando senti che la tua memoria si sta
+  riempiendo, creiamo un recap e portiamo tutto in una nuova chat. Da
+  aggiungere a documentazione tecnica
+
 FIX:
 
 - Se io rimando una spedizione e ho gatherers disponibili, non prende
@@ -317,14 +416,27 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
 
 **NOTE FINE MVP1**
 
+**DA RIORGANIZZARE E RIPRIOTIZZARE IN BASE A QUELLO CHE HA SENSO E NON
+E’ troppo complicato**
+
 1.  Tool per disegnare la mappa (apporre foreste, pesci, gathering food
     ecc. con dei pennelli) \[è forse troppo presto\]
 
-2.  Creazione di algoritmo per creazione foreste e cibo in base a
+2.  Moltiplicatore provisions (dare + o – provisions alle spedizioni)
+
+3.  Consumo di cibo, provisions, velocità ed efficacia spedizione in
+    base a chi la compone (uomini, donne ecc.)
+
+4.  Calcolo stanchezza e felicità per spedizioni (che non si annulli
+    quando sono eliminate)
+
+5.  Alternanza notte giorno (le spedizioni si fermano di notte)?
+
+6.  Creazione di algoritmo per creazione foreste e cibo in base a
     tipologia terreno delle celle \[anche questo forse da vedere più
     avanti\]
 
-3.  Non abbiamo minimamente lavorato sulla tipologia del terreno
+7.  Non abbiamo minimamente lavorato sulla tipologia del terreno
     (montagna, acqua, acqua profonda, collina, pianura) e le
     caratteristiche di esso (foresta, erba ecc.). Questo perché sulla
     base del tipo di terreno poi dipende il cibo (la pesca è solo nelle
@@ -332,40 +444,40 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
     ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi
     layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
 
-4.  Spedizioni multi-pop con dinamiche di coesione interna (es.
+8.  Spedizioni multi-pop con dinamiche di coesione interna (es.
     conflitti o collaborazioni tra individui di etnie/religioni diverse
     nello stesso gruppo).
 
-5.  Campo base che si sposta fisicamente sulla mappa durante le
+9.  Campo base che si sposta fisicamente sulla mappa durante le
     migrazioni o il nomadismo, e conseguente aggiornamento del punto di
     ritorno per le spedizioni attive.
 
-6.  Rotazione automatica delle aree di raccolta da parte delle
+10. Rotazione automatica delle aree di raccolta da parte delle
     spedizioni, per evitare l'impoverimento permanente di una singola
     zona (comportamento di raccolta più conservativo e sostenibile).
 
-7.  Algoritmo di raccolta con priorità alle celle a media densità (es.
+11. Algoritmo di raccolta con priorità alle celle a media densità (es.
     0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
 
-8.  Rigenerazione e “fertilità” celle sulla base anche del terreno
+12. Rigenerazione e “fertilità” celle sulla base anche del terreno
 
-9.  Meccaniche di frizione/resistenza al cambio di pop della popolazione
+13. Meccaniche di frizione/resistenza al cambio di pop della popolazione
     (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso,
     tipo uomini giovani infelice se assegnati a gathering perché
     disonorevole). Da capire come fare distinzione popolazione per sesso
     ma soprattutto per età senza dover monitorare ogni singolo abitante
 
-10. Icone diverse per tipologia di pop con di fianco barre informative
+14. Icone diverse per tipologia di pop con di fianco barre informative
     (tipo provviste o che)
 
-11. Giocatore seleziona manualmente il numero di pop da mandare in
+15. Giocatore seleziona manualmente il numero di pop da mandare in
     spedizione (con anche tasti rapidi di scelta)
 
-12. Aggiungere crescita demografica: più cibo c’è, più la popolazione
+16. Aggiungere crescita demografica: più cibo c’è, più la popolazione
     cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione
     finisce scorte, iniziano a morire o a consumare cibo raccolto
 
-13. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno
+17. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno
     di partenza e con che tecnologie? In quanti anni arrivare a creare
     una città, in modo che il gioco non risulti troppo lento e noioso
     all’inizio (ma senza nemmeno fare come civilization che dura questa
@@ -378,16 +490,16 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:**
     della tribù (e praticamente fare solo un gioco su questo, magari
     come primo titolo di una serie)
 
-14. Ragionare sull’acqua
+18. Ragionare sull’acqua
 
-15. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
+19. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e
     unità e meccaniche intorno e link di timeline del progresso (wiki e
     altri link se funzionano)
 
-16. Aggiungere caricamento JSON da Excel per impostare i valori in
+20. Aggiungere caricamento JSON da Excel per impostare i valori in
     config
 
-17. Creare script per simulazioni montecarlo. Da simulare in montecarlo
+21. Creare script per simulazioni montecarlo. Da simulare in montecarlo
     il cambio cella e la quantità di provviste da prendere, ma magari
     non deve sempre essere perfetto ma dipendere dall’esperienza (dei
     singoli, della civiltà/città/comunità, del livello tecnologico?)

@@ -150,16 +150,12 @@ function enableDebugClick(scene) {
             // Create auto expedition starting from camp, target area = current camp position
             const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, camp.x, camp.y, areaRadius, camp);
             exp.useAssignedArea = false; // auto mode
-
-            // Give provisions
-            const needed = taken * GameConfig.provisionsAutoBase; // base provisions
-            const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
-            exp.inventory.provisions = given;
-            camp.foodStock -= given;
+            exp.state = 'resting';
+            exp.cooldownRemaining = 0;   // will calculate provisions on first departure
 
             expeditions.push(exp);
             updateInfoText();
-            console.log(`Auto expedition ${id} started with ${taken} workers.`);
+            console.log(`Auto expedition ${id} created with ${taken} workers (will depart after provisioning).`);
             return;
         }
 
@@ -213,7 +209,7 @@ function enableDebugClick(scene) {
 
         // Give provisions from camp stock, respecting inventory capacity
         const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
-        const needed = taken * (dist / 100) * GameConfig.provisionsBaseMultiplier;
+        const needed = getProvisionsNeeded(taken, dist);
         // Cannot exceed camp food, nor the expedition's max capacity
         const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
         exp.inventory.provisions = given;
@@ -625,6 +621,8 @@ function updateInfoText() {
 function update(time, delta) {
     const realDeltaSec = delta / 1000;
     const deltaSec = TimeManager.getGameDelta(realDeltaSec);
+    gameTimeSec += deltaSec;
+
     for (const exp of expeditions) exp.update(deltaSec);
 
     // Day cycle (uses GameConfig.dayLengthSeconds dynamically)

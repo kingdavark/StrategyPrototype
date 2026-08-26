@@ -1,84 +1,94 @@
-// config.js - Centralized game parameters for balancing and debugging
-//
-// HOW TO USE THIS FILE:
-// - Change any value while the game is running via the browser console:
-//   GameConfig.dayLengthSeconds = 3;
-// - Or use the Debug Panel (button in top-right corner).
-// - Some parameters (cellSize, worldWidth, worldHeight) require a page reload to take effect.
-//
-// RELATIONSHIPS BETWEEN VARIABLES:
-//
-// 1. DAY CYCLE
-//    - Every dayLengthSeconds real seconds, one game day passes.
-//    - On each new day, total population * foodConsumptionPerPersonPerDay is subtracted from camp food.
-//
-// 2. EXPEDITION PROVISIONS & MOVEMENT
-//    - When an expedition departs, it receives provisions from the camp.
-//    - Provisions consumed while moving = workerCount * provisionConsumptionTravelling per second.
-//    - Provisions consumed while gathering = workerCount * provisionConsumptionGathering per second.
-//    - If provisions reach 0 and the expedition is not FORCED, it returns to camp immediately.
-//    - Expedition speed (expeditionSpeed) is in pixels per second.
-//    - After returning, the expedition rests for cooldownSeconds before restarting.
-//
-// 3. GATHERING & DENSITY
-//    - Gathering rate per second = baseGatherRate * cellDensity * workerCount.
-//      Example: density=1.0, 5 workers, baseGatherRate=0.5 → 2.5 food/second.
-//    - Density reduction per food gathered = densityReductionPerFood.
-//      Example: gathering 2.5 food → density reduces by 2.5 * 0.005 = 0.0125.
-//    - Impact radius for density reduction = gatherImpactRadius * cellSize.
-//
-// 4. INVENTORY & CAPACITY
-//    - Each worker can carry maxCapacityPerWorker units total (food + provisions).
-//      Example: 5 workers * 2 = 10 capacity.
-//    - If food + provisions >= maxCapacity, the expedition returns to camp.
-//
-// 5. CELL SWITCHING
-//    - Every cellEvaluationInterval seconds, the expedition evaluates whether to move.
-//    - A cell's score = density * cellScoreDensityWeight - distance * cellScoreDistanceWeight.
-//    - If the best cell's score > current cell score * cellSwitchScoreThreshold, and
-//      the best cell's density >= cellAbandonThreshold, the expedition moves there.
-//
-// 6. AREA & RADIUS
-//    - areaRadius (pixels) defines the gathering/search radius around the area center.
-//    - In auto mode, the expedition searches around its current position using this radius.
-//
+// config.js - Centralized game parameters and derived helpers
 
 const GameConfig = {
     // --- Day cycle ---
-    dayLengthSeconds: 5,                    // real seconds per game day
-    foodConsumptionPerPersonPerDay: 0.01,   // food consumed per person each day
+    dayLengthSeconds: 10,                    // real seconds per game day
+    foodConsumptionPerPersonPerDay: 0.01,   // base food per person per day
 
     // --- Gathering ---
     baseGatherRate: 0.2,                    // food per second per worker at density 1.0
-    densityReductionPerFood: 0.001,         // how much density is removed per food gathered
-    gatherImpactRadius: 0.6,                // multiplier for CELL_SIZE (0.6 * 64 = ~38px)
+    densityReductionPerFood: 0.001,         // density removed per food gathered
+    gatherImpactRadius: 0.6,                // multiplier for CELL_SIZE
 
-    // --- Expedition movement ---
-    expeditionSpeed: 60,                    // pixels per second
-    maxCapacityPerWorker: 2,                // inventory slots per worker (food + provisions)
-    provisionConsumptionTravelling: 0.02,   // provisions per worker per second while moving
-    provisionConsumptionGathering: 0.04,    // provisions per worker per second while gathering
-    cooldownSeconds: 3,                     // rest time after returning to camp
-    provisionsBaseMultiplier: 0.5,          // multiplier for distance-based provision calculation
-    provisionsAutoBase: 2,                  // base provisions per worker for auto expeditions
+    // --- Movement (base parameters) ---
+    cellSize: 50,                           // pixels per cell
+    cellSizeInKm: 4,                        // real kilometers represented by one cell
+    walkingSpeedKmh: 4,                     // walking speed in km/h
+
+    // --- Expedition consumption multipliers ---
+    travelConsumptionMultiplier: 2.0,       // vs base daily rate while moving
+    gatheringConsumptionMultiplier: 2.5,    // vs base daily rate while gathering
+
+    // --- Provisions & rest ---
+    safetyMultiplier: 1.25,                  // safety margin for provisions
+    restMultiplier: 0.5,                    // rest time as proportion of trip duration
+
+    // --- Capacity ---
+    maxCapacityPerWorker: 1,                // inventory slots per worker (food + provisions)
 
     // --- Area & cell switching ---
     areaRadius: 150,                        // default gathering area radius in pixels
-    cellAbandonThreshold: 0.2,              // density below which we look for a better cell
-    cellSwitchScoreThreshold: 1.1,          // minimum score ratio to switch (e.g., 1.1 = 10% better)
-    cellScoreDensityWeight: 100,            // weight of density in cell score
-    cellScoreDistanceWeight: 0.2,           // weight of distance in cell score
-    cellEvaluationInterval: 1.0,            // seconds between cell switch evaluations
-
-    // --- World ---
-    cellSize: 50,                           // pixels per cell
-    worldWidth: 1280,                       // game world width in pixels
-    worldHeight: 720,                       // game world height in pixels
+    cellAbandonThreshold: 0.2,
+    cellSwitchScoreThreshold: 1.1,
+    cellScoreDensityWeight: 100,
+    cellScoreDistanceWeight: 0.2,
+    cellEvaluationInterval: 1.0,
 
     // --- Starting values ---
     startingFoodStock: 10,
     startingUnassignedPopulation: 10,
-    startingExpeditionWorkers: 5,           // default workers for a new expedition
+    startingExpeditionWorkers: 5,
     campX: 100,
-    campY: 100
+    campY: 100,
+
+    // --- World ---
+    worldWidth: 1280,          // game world width in pixels
+    worldHeight: 720,          // game world height in pixels
 };
+
+// ---- Derived parameter helpers ----
+
+// Game seconds per game hour
+function getSecondsPerGameHour() {
+    return GameConfig.dayLengthSeconds / 24;
+}
+
+// Base food consumption per person per real second
+function getBaseConsumptionPerSec() {
+    return GameConfig.foodConsumptionPerPersonPerDay / GameConfig.dayLengthSeconds;
+}
+
+// Pixels per real kilometer
+function getPixelsPerKm() {
+    return GameConfig.cellSize / GameConfig.cellSizeInKm;
+}
+
+// Current expedition speed in pixels per real second
+function getExpeditionSpeed() {
+    const secondsPerGameHour = getSecondsPerGameHour(); // real seconds per game hour
+    const speedPxPerHour = GameConfig.walkingSpeedKmh * getPixelsPerKm(); // pixels per game hour
+    return speedPxPerHour / secondsPerGameHour; // pixels per real second
+}
+
+// Provision consumption per worker per real second while traveling
+function getTravelConsumptionPerSec() {
+    return getBaseConsumptionPerSec() * GameConfig.travelConsumptionMultiplier;
+}
+
+// Provision consumption per worker per real second while gathering
+function getGatheringConsumptionPerSec() {
+    return getBaseConsumptionPerSec() * GameConfig.gatheringConsumptionMultiplier;
+}
+
+// Needed provisions for a given worker count and one-way distance (pixels)
+function getProvisionsNeeded(workerCount, distance) {
+    const travelTime = (distance / getExpeditionSpeed()) * 2; // round trip
+    return workerCount * getTravelConsumptionPerSec() * travelTime * GameConfig.safetyMultiplier;
+}
+
+// Rest duration after a trip of given duration in real seconds
+function getRestDuration(tripDurationSec) {
+    return tripDurationSec * GameConfig.restMultiplier;
+}
+
+let gameTimeSec = 0;          // cumulative simulated time in seconds

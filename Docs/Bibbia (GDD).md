@@ -390,6 +390,43 @@ spaziali e per memorizzare i dati di densità delle risorse diffuse.
 - I magazzini aumentano la capacità di stoccaggio e riducono il
   deterioramento.
 
+## Consumo e provviste
+
+Il cibo è l'unica risorsa vitale nel prototipo. Il consumo della
+popolazione si divide in base al contesto:
+
+- Popolazione al campo: consuma una razione giornaliera fissa, calcolata
+  per l'intera tribù a fine giornata.
+
+- Spedizioni in viaggio: consumano provviste in modo continuo,
+  proporzionalmente al tempo trascorso e con un moltiplicatore maggiore
+  rispetto al riposo (perché camminare stanca di più).
+
+- Spedizioni durante la raccolta: consumano ancora di più, perché lo
+  sforzo fisico è superiore.
+
+Le provviste assegnate a una spedizione non sono un numero fisso, ma
+vengono calcolate alla partenza e a ogni ripartenza. Il calcolo
+considera:
+
+- La distanza da percorrere (andata e ritorno).
+
+- La velocità di spostamento della spedizione.
+
+- Il numero di lavoratori.
+
+- Un margine di sicurezza che include il tempo di raccolta e gli
+  imprevisti.
+
+Il limite principale è la capacità di carico: se le provviste calcolate
+superano la capacità massima, la spedizione parte con meno provviste e
+tornerà prima.
+
+Dopo una spedizione, i lavoratori devono riposare. Il tempo di riposo è
+proporzionale alla durata della spedizione appena conclusa (una
+percentuale configurabile). Questa regola collega lo sforzo al recupero:
+spedizioni lunghe richiedono riposi più lunghi.
+
 # Popolazione e demografia
 
 - Sistema a pop (gruppi di individui con attributi condivisi)
@@ -492,3 +529,8 @@ spaziali e per memorizzare i dati di densità delle risorse diffuse.
 
 - **Scalabilità:** la struttura a layer di densità e lo spatial hashing
   sono pensati per supportare mappe molto ampie e simulazioni complesse.
+
+- **Configurazione e debug**: i parametri di gioco sono centralizzati in
+  GameConfig (js/config.js) e modificabili a runtime tramite pannello di
+  debug o console. Questo permette di bilanciare il prototipo senza
+  toccare il codice.
