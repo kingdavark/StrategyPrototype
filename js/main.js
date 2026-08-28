@@ -32,6 +32,8 @@ let campSelected = false;      // whether camp is currently selected
 let selectedExpedition = null; // currently selected expedition
 let infoText;                  // UI text for selected expedition info
 let speedText; // UI text for current simulation speed
+let selectedLocalCell = null;   // grid cell selected for local worker assignment
+let gameState = 'map';        // 'map' or 'camp'
 
 // Helper: check if an HTML input is focused (to avoid game hotkeys while typing)
 function isInputFocused() {
@@ -48,7 +50,7 @@ function enableDebugClick(scene) {
     scene.input.on('pointerdown', function (pointer) {
         if (pointer.rightButtonDown()) return;
 
-                // Shift+click: inspect cell (debug)
+        // Shift+click: inspect cell (debug)
         if (pointer.event.shiftKey) {
             const cell = worldToCell(pointer.x, pointer.y);
             const cx = cell.cx;
@@ -85,26 +87,60 @@ function enableDebugClick(scene) {
         }
 
         if (clickedExp) {
-            // Select expedition, deselect camp
+            gameState = 'map';
             selectedExpedition = clickedExp;
             campSelected = false;
+            selectedLocalCell = null;
             updateInfoText();
             console.log(`Selected expedition ${clickedExp.id}`);
             return;
         }
 
-        // Check if clicked on camp
+        // Check if clicked on camp: toggle between map and camp state
         if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) {
-            campSelected = true;
-            selectedExpedition = null;
+            if (gameState === 'camp') {
+                gameState = 'map';
+                campSelected = false;
+                selectedLocalCell = null;
+            } else {
+                gameState = 'camp';
+                campSelected = true;
+                selectedExpedition = null;
+                selectedLocalCell = null;
+            }
             updateInfoText();
-            console.log('Camp selected');
             return;
         }
 
-        // Clicked on empty ground: deselect everything
+        // If in camp state, handle cell selection within local radius
+        if (gameState === 'camp') {
+            const localRadius = getLocalGatherRadiusPx();
+            const clickedCell = worldToCell(pointer.x, pointer.y);
+            if (clickedCell.cx >= 0 && clickedCell.cx < GRID_COLS && clickedCell.cy >= 0 && clickedCell.cy < GRID_ROWS) {
+                const cellWorldX = clickedCell.cx * CELL_SIZE + CELL_SIZE / 2;
+                const cellWorldY = clickedCell.cy * CELL_SIZE + CELL_SIZE / 2;
+                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, cellWorldX, cellWorldY);
+                if (dist <= localRadius) {
+                    selectedLocalCell = clickedCell;
+                    updateInfoText();
+                    console.log(`Selected local cell (${clickedCell.cx}, ${clickedCell.cy}) - Assigned: ${getCell(clickedCell.cx, clickedCell.cy).assignedWorkers}`);
+                    return;
+                }
+            }
+            // Clicked outside radius: exit camp state, deselect everything
+            gameState = 'map';
+            campSelected = false;
+            selectedExpedition = null;
+            selectedLocalCell = null;
+            updateInfoText();
+            return;
+        }
+
+        // In map state, empty ground click deselects everything
+        gameState = 'map';
         campSelected = false;
         selectedExpedition = null;
+        selectedLocalCell = null;
         updateInfoText();
     });
 
@@ -519,7 +555,7 @@ function drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength) {
     }
 }
 
-// Draw the camp as a visual placeholder
+// Draw the camp as a visual placeholder and (if selected) its local gathering radius
 function drawCamp() {
     if (!campGraphics) return;
     campGraphics.clear();
@@ -533,6 +569,11 @@ function drawCamp() {
     if (campSelected) {
         campGraphics.lineStyle(2, 0xffff00, 1);
         campGraphics.strokeRect(CAMP_X - 17, CAMP_Y - 17, 34, 34);
+
+        // Local gathering radius (one day of travel)
+        const localRadius = getLocalGatherRadiusPx();
+        campGraphics.lineStyle(1, 0xffff00, 0.3);
+        campGraphics.strokeCircle(CAMP_X, CAMP_Y, localRadius);
     }
     // Label
     gameScene.add.text(CAMP_X, CAMP_Y - 25, 'CAMP', {
@@ -541,6 +582,12 @@ function drawCamp() {
         backgroundColor: '#00000088',
         padding: { x: 3, y: 1 }
     }).setOrigin(0.5, 0.5);
+}
+
+function drawLocalRadius() {
+    if (!popGraphics || gameState !== 'camp') return;
+    popGraphics.lineStyle(1, 0xffff00, 0.4);
+    popGraphics.strokeCircle(camp.x, camp.y, getLocalGatherRadiusPx());
 }
 
 // Redraw the grid colors based on current densities
@@ -578,6 +625,42 @@ function drawGrid() {
     }
 }
 
+// Draw a highlight border around the currently selected local cell
+function drawSelectedCell() {
+    if (!gridGraphics || !selectedLocalCell) return;
+    const cx = selectedLocalCell.cx;
+    const cy = selectedLocalCell.cy;
+    const x = cx * CELL_SIZE;
+    const y = cy * CELL_SIZE;
+    gridGraphics.lineStyle(2, 0xffff00, 0.8);
+    gridGraphics.strokeRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+}
+
+function updateLocalGathering(deltaSec) {
+    // Gather food from cells within local radius that have assigned workers
+    const localRadius = getLocalGatherRadiusPx();
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            const cell = getCell(cx, cy);
+            if (cell.assignedWorkers > 0) {
+                // Only consider cells within local radius from camp
+                const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
+                const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
+                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, cellWorldX, cellWorldY);
+                if (dist <= localRadius) {
+                    const density = cell.forageDensity;
+                    if (density > 0) {
+                        const gathered = cell.assignedWorkers * GameConfig.baseGatherRate * density * deltaSec;
+                        camp.foodStock += gathered;
+                        const reduction = gathered * GameConfig.densityReductionPerFood;
+                        modifyDensity(cellWorldX, cellWorldY, 'forageDensity', -reduction, CELL_SIZE * GameConfig.gatherImpactRadius);
+                    }
+                }
+            }
+        }
+    }
+}
+
 function updateCampText() {
     let totalPop = camp.unassignedPopulation;
     for (const pop of camp.pops) totalPop += pop.totalWorkers;
@@ -609,10 +692,17 @@ function updateInfoText() {
         for (const pop of camp.pops) {
             str += `\n${pop.type}: ${pop.availableWorkers}/${pop.totalWorkers} avail, ${pop.assignedWorkers} out`;
         }
+    } else if (selectedLocalCell) {
+        const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
+        str = `Cell (${selectedLocalCell.cx}, ${selectedLocalCell.cy})\n` +
+              `Density: ${(cell.forageDensity * 100).toFixed(1)}%\n` +
+              `Assigned: ${cell.assignedWorkers}\n` +
+              `Gather rate: ${(cell.assignedWorkers * GameConfig.baseGatherRate * cell.forageDensity).toFixed(2)} food/s`;
     } else {
         str = '';
     }
     infoText.setText(str);
+    updateLocalWorkerPanel();
 }
 
 // update: called every frame (about 60 times per second).
@@ -624,6 +714,7 @@ function update(time, delta) {
     gameTimeSec += deltaSec;
 
     for (const exp of expeditions) exp.update(deltaSec);
+    updateLocalGathering(deltaSec);    
 
     // Day cycle (uses GameConfig.dayLengthSeconds dynamically)
     dayAccumulator += deltaSec;
@@ -641,7 +732,9 @@ function update(time, delta) {
     updateInfoText(); // refresh selected info
     updateSpeedText();
     updateCampText(); // refresh camp counter every frame
+    updateLocalWorkerPanel(); // refresh local worker panel visibility and numbers
     drawGrid();
+    drawSelectedCell(); // highlight selected local cell
     drawPops();
     drawCamp();
 }

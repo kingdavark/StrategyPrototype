@@ -32,7 +32,8 @@ function getCell(cx, cy) {
             cx: cx,
             cy: cy,
             entities: [],
-            forageDensity: 0.0
+            forageDensity: 0.0,
+            assignedWorkers: 0
         };
     }
     return grid[cy][cx];

@@ -85,6 +85,8 @@ gestione scene).
 
 ## Roadmap
 
+**IMPLEMENTATO**
+
 **Logica di sviluppo del prototipo**\
 Il prototipo parte implementando le fondamenta trasversali del gioco
 (mappa continua, pop system, informazione imperfetta, tempo reale) e
@@ -323,6 +325,8 @@ dove il giocatore voleva farla riprendere
 
 - Visualizzare il raggio quando il campo è selezionato.
 
+**DA IMPLEMENTARE**
+
 **4. Previsioni e avvisi**
 
 - **Soglia unica di avviso:** cellWarningThreshold = 0.25.
@@ -339,7 +343,32 @@ dove il giocatore voleva farla riprendere
   - Cibo rimanente sfruttabile nell'area locale (fino a soglia 0.25) e
     teorico (fino a 0).
 
+  - Lavoratori per pop (al momento avremo solo gatherers), poi suddivisi
+    in gatherers locali e gatherers in spedizioni
+
 - Queste informazioni saranno offuscate in futuro.
+
+- Per ogni cella mostrare sopra il numero di cittadini che la stanno
+  lavorando (anche in gamestate)
+
+- Per ogni cella, quando selezionata mostrare:
+
+  - Cibo raccolto ad oggi
+
+  - Cibo rimanente sfruttabile
+
+  - Giorni al raggiungimento soglia 0.25 con attuale ritmo
+
+  - Giorni al raggiungimento soglia 0 con attuale ritmo
+
+  - Aumento di cibo raccolto al giorno se aggiungo qualcuno a lavorarci
+
+  - Giorni in meno che ci vorranno per raggiungere la soglia 0.25 e 0 se
+    aggiungo un lavoratore
+
+- Quando un lavoratore viene assegnato a lavorare come gatherer una
+  cella, esso diventa membro del pop dei gatherers anche se non fa parte
+  di una spedizione gatherers
 
 **5. Campo proporzionale a popolazione e scala**
 
@@ -366,8 +395,6 @@ dove il giocatore voleva farla riprendere
 
 **DA CONTROLLARE**:
 
-- c’è logica di cambio casella in config?
-
 - Da cambiare chat: segnalami quando senti che la tua memoria si sta
   riempiendo, creiamo un recap e portiamo tutto in una nuova chat. Da
   aggiungere a documentazione tecnica
@@ -379,9 +406,6 @@ FIX:
   prima quelli, questa stessa logica sarà applicata su tutti i tipi di
   spedizioni ma, in futuro, potremmo volere che il giocatore scelga da
   quale pool pescare i gahterers
-
-- Spedizione va fuori dall’area (perché va su una casella sul bordo e da
-  lì, nel suo raggio, vede un’altra casella migliore?)
 
 **Batch 7 – Rigenerazione base del cibo**
 

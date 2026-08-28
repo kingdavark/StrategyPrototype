@@ -11,8 +11,8 @@ const GameConfig = {
     gatherImpactRadius: 0.6,                // multiplier for CELL_SIZE
 
     // --- Movement (base parameters) ---
-    cellSize: 50,                           // pixels per cell
-    cellSizeInKm: 4,                        // real kilometers represented by one cell
+    cellSize: 10,                           // pixels per cell
+    cellSizeInKm: 10,                        // real kilometers represented by one cell
     walkingSpeedKmh: 4,                     // walking speed in km/h
 
     // --- Expedition consumption multipliers ---
@@ -44,6 +44,9 @@ const GameConfig = {
     // --- World ---
     worldWidth: 1280,          // game world width in pixels
     worldHeight: 720,          // game world height in pixels
+
+    //Info management
+    cellWarningThreshold: 0.25,              // threshold for warning when cell is getting depleted
 };
 
 // ---- Derived parameter helpers ----
@@ -89,6 +92,11 @@ function getProvisionsNeeded(workerCount, distance) {
 // Rest duration after a trip of given duration in real seconds
 function getRestDuration(tripDurationSec) {
     return tripDurationSec * GameConfig.restMultiplier;
+}
+
+// Local gathering radius in pixels (one day of travel)
+function getLocalGatherRadiusPx() {
+    return getExpeditionSpeed() * GameConfig.dayLengthSeconds;
 }
 
 let gameTimeSec = 0;          // cumulative simulated time in seconds

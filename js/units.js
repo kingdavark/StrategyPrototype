@@ -6,7 +6,8 @@ const camp = {
     foodStock: GameConfig.startingFoodStock,
     unassignedPopulation: GameConfig.startingUnassignedPopulation,
     pops: [],
-    expeditions: []
+    expeditions: [],
+    localGatherers: 0,   // total workers assigned to local gathering (sum of cell.assignedWorkers)
 };
 
 class Pop {
@@ -109,16 +110,14 @@ class Expedition {
                 const cx = centerCell.cx + dx;
                 const cy = centerCell.cy + dy;
                 if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
-                    // Skip camp cell
-                    const campCell = worldToCell(this.campRef.x, this.campRef.y);
-                    if (cx === campCell.cx && cy === campCell.cy) {
-                        continue;
-                    }
                     const cell = getCell(cx, cy);
                     const density = cell.forageDensity;
                     if (density <= 0) continue;
                     const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
                     const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
+                    // Ensure the cell is within the circular area radius
+                    const distFromAreaCenter = Phaser.Math.Distance.Between(this.areaCenter.x, this.areaCenter.y, cellWorldX, cellWorldY);
+                    if (distFromAreaCenter > this.areaRadius) continue;
                     const dist = Phaser.Math.Distance.Between(fromX, fromY, cellWorldX, cellWorldY);
                     const score = density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
                     if (score > bestScore) {

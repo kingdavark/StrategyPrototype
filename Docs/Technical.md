@@ -450,9 +450,16 @@ l'assistente deve:
   proporre, spiegando le modifiche in linguaggio semplice e chiedendo
   conferma esplicita all'utente. Solo dopo la conferma, mostrerà il
   codice. Questo evita di dover cancellare o riscrivere codice non
-  desiderato e mantiene il flusso di lavoro ordinato.
+  desiderato e mantiene il flusso di lavoro ordinato. Nessun blocco di
+  codice verrà fornito se prima non è stato approvato il relativo brief.
 
-- 
+- \- \*\*Brief prima del codice\*\*: l'assistente fornirà sempre un
+  breve riepilogo delle modifiche proposte e attenderà l'approvazione
+  esplicita dell'utente prima di mostrare il codice.
+
+- \*\***Input condivisi**:\*\* ogni scorciatoia o interazione va
+  discussa prima dell'implementazione, specificando scopo e possibili
+  conflitti.
 
 Durante la sessione:
 
@@ -520,16 +527,6 @@ seguirà questa procedura:
 5\. **Eseguire commit e push** con il messaggio fornito dall'assistente,
 che includerà tutte le modifiche (codice e documenti).
 
-## Verifica dell’accesso al repository
-
-Per garantire che l'assistente stia leggendo il contenuto reale del
-repository e non basandosi solo sulla cronologia della chat, in fondo al
-file TECHNICAL.md è presente un numero progressivo (es. \`SYNC: 1\`).
-Dopo ogni push, l'utente cambierà questo numero. All'inizio di ogni
-risposta che richiede accesso al repository, l'assistente dovrà
-riportare il numero SYNC che ha letto, confermando così di aver
-effettivamente consultato i file su GitHub.
-
 ## Commenti e auto-documentazione
 
 Il codice è scritto con nomi di variabili e funzioni chiari ed
@@ -559,6 +556,18 @@ funzioni complesse hanno commenti in stile JSDoc.
   nel tempo devono utilizzare il delta time (differenza temporale dal
   frame precedente) per garantire la frame-rate independence. Non si
   devono usare valori fissi per frame.
+
+- **Ricerca spaziale e raggi:** quando si definisce un raggio
+  (es. areaRadius, localGatherRadius), la selezione delle celle deve
+  essere sempre limitata da una distanza circolare dal centro, non da
+  una griglia quadrata. Il loop può iterare su un rettangolo di celle,
+  ma ogni cella deve essere testata
+  con Phaser.Math.Distance.Between(...) \<= raggio.
+
+- \*\***Game state**:\*\* le modalità di gioco devono essere separate.
+  Esempio: la selezione del campo attiva lo stato "gestione campo", in
+  cui i click sulla mappa hanno significato diverso. Non si devono
+  mischiare input di stati diversi.
 
 ## Spiegazione delle meccaniche durante l’implementazione
 
@@ -624,6 +633,24 @@ include:
 
 In questo modo ogni modifica è comprensibile anche a un non tecnico e
 immediatamente testabile.
+
+### Spiegazione del codice nelle istruzioni passo passo
+
+Quando vengono fornite istruzioni operative (step-by-step) che includono
+blocchi di codice da incollare, **ogni blocco di codice deve essere
+accompagnato da una spiegazione immediatamente precedente o
+successiva**, scritta in linguaggio semplice. La spiegazione deve
+chiarire:
+
+- cosa fa quel codice,
+
+- perché è necessario in quel punto,
+
+- come si collega alle funzioni o variabili già esistenti.
+
+Le istruzioni non devono limitarsi a dire “incolla questo”, ma devono
+permettere all’utente di comprendere l’effetto della modifica anche
+senza rileggere l’intera conversazione.
 
 ## Checklist di test al termine di ogni batch
 
