@@ -33,7 +33,9 @@ function getCell(cx, cy) {
             cy: cy,
             entities: [],
             forageDensity: 0.0,
-            assignedWorkers: 0
+            assignedWorkers: 0,
+            foodGatheredToday: 0,   // food gathered by local workers today
+            warningShown: false     // whether depletion warning was shown
         };
     }
     return grid[cy][cx];
@@ -81,11 +83,8 @@ function getEntitiesInRadius(worldX, worldY, radius) {
     return [];
 }
 
-// Modify density of a specific layer around a world position.
-// layer: string name of the density property (e.g., 'forageDensity').
-// amount: negative to reduce, positive to add.
-// impactRadius: world pixels radius of the modification area.
-function modifyDensity(worldX, worldY, layer, amount, impactRadius) {
+// TO USE FOR AREA EFFECTS
+/*function modifyDensity(worldX, worldY, layer, amount, impactRadius) {
     const center = worldToCell(worldX, worldY);
     const cellRadius = Math.ceil(impactRadius / CELL_SIZE);
 
@@ -104,4 +103,12 @@ function modifyDensity(worldX, worldY, layer, amount, impactRadius) {
             }
         }
     }
+}*/
+
+// Reduce density of a single cell (no radial falloff). Used for resource gathering.
+// cell: cell object from getCell()
+// amount: positive value to subtract from cell's forageDensity
+function reduceCellDensity(cell, amount) {
+    if (!cell) return;
+    cell.forageDensity = Math.max(0, Math.min(1, cell.forageDensity - amount));
 }

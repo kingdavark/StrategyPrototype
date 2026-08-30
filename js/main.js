@@ -34,6 +34,9 @@ let infoText;                  // UI text for selected expedition info
 let speedText; // UI text for current simulation speed
 let selectedLocalCell = null;   // grid cell selected for local worker assignment
 let gameState = 'map';        // 'map' or 'camp'
+let cellWorkerTexts = {};       // map "cx,cy" -> Phaser.Text for worker count overlay
+let warningCells = [];
+let warningGraphics;
 
 // Helper: check if an HTML input is focused (to avoid game hotkeys while typing)
 function isInputFocused() {
@@ -446,12 +449,13 @@ function create() {
     gameScene = this;
 
     // Create info text (upper right)
-    infoText = this.add.text(1280 - 200, 10, '', {
+    infoText = this.add.text(1280 - 260, 10, '', {
         fontSize: '12px',
         fill: '#ffffff',
         backgroundColor: '#00000088',
         padding: { x: 4, y: 2 },
-        align: 'left'
+        align: 'left',
+        wordWrap: { width: 250 }
     }).setDepth(200);
 
     // Camp info text (bottom left) – we can reuse campText from before, define it
@@ -468,6 +472,7 @@ function create() {
 
     // Graphics object for drawing pops (circles)
     popGraphics = this.add.graphics();
+    warningGraphics = this.add.graphics().setDepth(300);
 
     // Draw the initial pop position and camp
     drawPops();
@@ -529,6 +534,8 @@ function drawPops() {
             popGraphics.strokePath();
         }
     }
+
+    updateWarningIndicators();
 }
 
 // Utility to draw a dashed line (simple implementation)
@@ -636,14 +643,49 @@ function drawSelectedCell() {
     gridGraphics.strokeRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
 }
 
+// Create/update/destroy text labels showing assigned workers on cells.
+// Called only when a worker assignment changes, not every frame.
+function updateCellWorkerLabels() {
+    if (!gameScene) return;
+
+    // Iterate over all cells with assignedWorkers > 0
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            const cell = getCell(cx, cy);
+            const key = `${cx},${cy}`;
+            if (cell.assignedWorkers > 0) {
+                const x = cx * CELL_SIZE + CELL_SIZE / 2;
+                const y = cy * CELL_SIZE + CELL_SIZE / 2;
+                if (cellWorkerTexts[key]) {
+                    // Update existing text
+                    cellWorkerTexts[key].setText(cell.assignedWorkers.toString());
+                } else {
+                    // Create new text
+                    const txt = gameScene.add.text(x, y - 5, cell.assignedWorkers.toString(), {
+                        fontSize: '12px',
+                        fill: '#ffffff',
+                        backgroundColor: '#00000088',
+                        padding: { x: 2, y: 1 }
+                    }).setOrigin(0.5, 0.5).setDepth(150);
+                    cellWorkerTexts[key] = txt;
+                }
+            } else {
+                // If no workers, destroy text if exists
+                if (cellWorkerTexts[key]) {
+                    cellWorkerTexts[key].destroy();
+                    delete cellWorkerTexts[key];
+                }
+            }
+        }
+    }
+}
+
 function updateLocalGathering(deltaSec) {
-    // Gather food from cells within local radius that have assigned workers
     const localRadius = getLocalGatherRadiusPx();
     for (let cy = 0; cy < GRID_ROWS; cy++) {
         for (let cx = 0; cx < GRID_COLS; cx++) {
             const cell = getCell(cx, cy);
             if (cell.assignedWorkers > 0) {
-                // Only consider cells within local radius from camp
                 const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
                 const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
                 const dist = Phaser.Math.Distance.Between(camp.x, camp.y, cellWorldX, cellWorldY);
@@ -652,11 +694,48 @@ function updateLocalGathering(deltaSec) {
                     if (density > 0) {
                         const gathered = cell.assignedWorkers * GameConfig.baseGatherRate * density * deltaSec;
                         camp.foodStock += gathered;
+                        camp.foodGatheredToday += gathered;
+                        cell.foodGatheredToday += gathered;
                         const reduction = gathered * GameConfig.densityReductionPerFood;
-                        modifyDensity(cellWorldX, cellWorldY, 'forageDensity', -reduction, CELL_SIZE * GameConfig.gatherImpactRadius);
+                        reduceCellDensity(cell, reduction);
+                    }
+                    // Check warning threshold
+                    if (cell.forageDensity < GameConfig.cellWarningThreshold) {
+                        if (!cell.warningShown) {
+                            cell.warningShown = true;
+                            console.warn(`Cell (${cx},${cy}) below warning threshold`);
+                        }
+                        if (!warningCells.includes(`${cx},${cy}`)) {
+                            warningCells.push(`${cx},${cy}`);
+                        }
+                    } else {
+                        if (cell.warningShown) {
+                            cell.warningShown = false;
+                        }
+                        const index = warningCells.indexOf(`${cx},${cy}`);
+                        if (index > -1) warningCells.splice(index, 1);
                     }
                 }
             }
+        }
+    }
+}
+
+function updateWarningIndicators() {
+    if (!warningGraphics) return;
+    warningGraphics.clear();
+    if (gameState === 'camp') {
+        for (const key of warningCells) {
+            const [cx, cy] = key.split(',').map(Number);
+            const x = cx * CELL_SIZE + CELL_SIZE / 2;
+            const y = cy * CELL_SIZE + CELL_SIZE / 2 - 10;
+            warningGraphics.fillStyle(0xff0000, 1);
+            warningGraphics.fillTriangle(x, y, x - 5, y - 10, x + 5, y - 10);
+        }
+    } else {
+        if (warningCells.length > 0) {
+            warningGraphics.fillStyle(0xff0000, 1);
+            warningGraphics.fillTriangle(CAMP_X, CAMP_Y - 20, CAMP_X - 5, CAMP_Y - 30, CAMP_X + 5, CAMP_Y - 30);
         }
     }
 }
@@ -681,23 +760,100 @@ function updateSpeedText() {
 function updateInfoText() {
     if (!infoText) return;
     let str = '';
+
     if (selectedExpedition) {
         const exp = selectedExpedition;
         const used = exp.inventory.food + exp.inventory.provisions;
         str = `Expedition ${exp.id}\nWorkers: ${exp.workerCount}\nState: ${exp.state}\nProvisions: ${exp.inventory.provisions.toFixed(1)}\nFood: ${exp.inventory.food.toFixed(1)}\nCapacity: ${used.toFixed(1)}/${exp.maxCapacity}`;
         if (exp.isForced) str += `\n[FORCED]`;
         if (!exp.useAssignedArea) str += '\n[AUTO]';
-    } else if (campSelected) {
-        str = `Camp\nFood: ${camp.foodStock.toFixed(0)}\nUnassigned: ${camp.unassignedPopulation}`;
-        for (const pop of camp.pops) {
-            str += `\n${pop.type}: ${pop.availableWorkers}/${pop.totalWorkers} avail, ${pop.assignedWorkers} out`;
-        }
-    } else if (selectedLocalCell) {
+    } else if (selectedLocalCell && gameState === 'camp') {
         const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
+        const density = cell.forageDensity;
+        const workers = cell.assignedWorkers;
+        const baseRate = GameConfig.baseGatherRate;
+        const reductionPerFood = GameConfig.densityReductionPerFood;
+
+        // Food remaining until thresholds
+        const foodTo25 = Math.max(0, (density - GameConfig.cellWarningThreshold) / reductionPerFood);
+        const foodTo0 = density / reductionPerFood;
+
+        // Rate of density reduction per second with current workers
+        const k = workers * baseRate * reductionPerFood;
+        // Days to threshold 0.25 and 0 (using exponential decay approximation)
+        let daysTo25 = 0;
+        let daysTo0 = 0;
+        if (workers > 0 && density > 0) {
+            if (density > GameConfig.cellWarningThreshold) {
+                daysTo25 = (-Math.log(GameConfig.cellWarningThreshold / density) / k) / GameConfig.dayLengthSeconds;
+            }
+            daysTo0 = (-Math.log(0.001 / density) / k) / GameConfig.dayLengthSeconds;
+        }
+
+        // With one extra worker
+        const k2 = (workers + 1) * baseRate * reductionPerFood;
+        let daysTo25_extra = 0;
+        let daysTo0_extra = 0;
+        if (workers + 1 > 0 && density > 0) {
+            if (density > GameConfig.cellWarningThreshold) {
+                daysTo25_extra = (-Math.log(GameConfig.cellWarningThreshold / density) / k2) / GameConfig.dayLengthSeconds;
+            }
+            daysTo0_extra = (-Math.log(0.001 / density) / k2) / GameConfig.dayLengthSeconds;
+        }
+        const reducedDays25 = Math.max(0, daysTo25 - daysTo25_extra);
+        const reducedDays0 = Math.max(0, daysTo0 - daysTo0_extra);
+
+        // Daily increase if adding one worker
+        const increasePerDay = baseRate * density * GameConfig.dayLengthSeconds;
+
         str = `Cell (${selectedLocalCell.cx}, ${selectedLocalCell.cy})\n` +
-              `Density: ${(cell.forageDensity * 100).toFixed(1)}%\n` +
-              `Assigned: ${cell.assignedWorkers}\n` +
-              `Gather rate: ${(cell.assignedWorkers * GameConfig.baseGatherRate * cell.forageDensity).toFixed(2)} food/s`;
+              `Density: ${(density * 100).toFixed(1)}%\n` +
+              `Workers: ${workers}\n` +
+              `Food gathered daily: ${cell.gatheredDaily.toFixed(1)}\n` +  // uso daily
+              `Food remaining to 25%: ${foodTo25.toFixed(1)}\n` +
+              `Food remaining to 0%: ${foodTo0.toFixed(1)}\n` +
+              `Days to 25%: ${workers > 0 ? daysTo25.toFixed(1) : '∞'}\n` +
+              `Days to 0%: ${workers > 0 ? daysTo0.toFixed(1) : '∞'}\n` +
+              `+1 worker food/day: ${increasePerDay.toFixed(1)}\n` +
+              `Days reduced to 25% if +1 worker: ${workers > 0 ? reducedDays25.toFixed(1) : '--'}\n` +
+              `Days reduced to 0% if +1 worker: ${workers > 0 ? reducedDays0.toFixed(1) : '--'}`;
+    } else if (campSelected && gameState === 'camp') {
+        // Camp summary
+        // Camp summary
+        const localRadius = getLocalGatherRadiusPx();
+        let foodTo25Total = 0;
+        let foodTo0Total = 0;
+        for (let cy = 0; cy < GRID_ROWS; cy++) {
+            for (let cx = 0; cx < GRID_COLS; cx++) {
+                const cell = getCell(cx, cy);
+                const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
+                const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
+                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, cellWorldX, cellWorldY);
+                if (dist <= localRadius) {
+                    const d = cell.forageDensity;
+                    foodTo25Total += Math.max(0, (d - GameConfig.cellWarningThreshold) / GameConfig.densityReductionPerFood);
+                    foodTo0Total += d / GameConfig.densityReductionPerFood;
+                }
+            }
+        }
+
+        // Gatherer pop stats
+        let gathererPop = camp.pops.find(p => p.type === 'gatherer');
+        let localGatherers = gathererPop ? gathererPop.localWorkers : 0;
+        let expeditionGatherers = gathererPop ? gathererPop.assignedWorkers : 0;
+        let availableGatherers = gathererPop ? gathererPop.availableWorkers : 0;
+
+        str = `Camp\n` +
+              `Food: ${camp.foodStock.toFixed(0)}\n` +
+              `Unassigned: ${camp.unassignedPopulation}\n` +
+              `Gathered daily: ${camp.gatheredDaily.toFixed(1)}\n` +
+              `Consumed daily: ${camp.consumedDaily.toFixed(1)}\n` +
+              `Food remaining (to 25%): ${foodTo25Total.toFixed(1)}\n` +
+              `Food remaining (to 0%): ${foodTo0Total.toFixed(1)}\n` +
+              `Gatherers:\n` +
+              `  Local: ${localGatherers}\n` +
+              `  Expeditions: ${expeditionGatherers}\n` +
+              `  Available: ${availableGatherers}`;
     } else {
         str = '';
     }
@@ -720,13 +876,26 @@ function update(time, delta) {
     dayAccumulator += deltaSec;
     if (dayAccumulator >= GameConfig.dayLengthSeconds) {
         // Advance day counter
-        gameDay++;
+                gameDay++;
         dayAccumulator -= GameConfig.dayLengthSeconds;
         let totalPop = camp.unassignedPopulation;
         for (const pop of camp.pops) totalPop += pop.totalWorkers;
         const consumed = totalPop * GameConfig.foodConsumptionPerPersonPerDay;
         camp.foodStock -= consumed;
         if (camp.foodStock < 0) camp.foodStock = 0;
+
+        // Save daily totals and reset current day counters
+        camp.gatheredDaily = camp.foodGatheredToday;
+        camp.consumedDaily = consumed;
+        camp.foodGatheredToday = 0;
+
+        for (let cy = 0; cy < GRID_ROWS; cy++) {
+            for (let cx = 0; cx < GRID_COLS; cx++) {
+                const cell = getCell(cx, cy);
+                cell.gatheredDaily = cell.foodGatheredToday;
+                cell.foodGatheredToday = 0;
+            }
+        }
     }
 
     updateInfoText(); // refresh selected info
@@ -737,4 +906,5 @@ function update(time, delta) {
     drawSelectedCell(); // highlight selected local cell
     drawPops();
     drawCamp();
+    updateWarningIndicators();
 }

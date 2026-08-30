@@ -70,12 +70,21 @@ document.getElementById('local-worker-add').addEventListener('click', function (
     if (selectedLocalCell && gameState === 'camp') {
         const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
         if (camp.unassignedPopulation > 0) {
+            // Ensure gatherer pop exists
+            let pop = camp.pops.find(p => p.type === 'gatherer');
+            if (!pop) {
+                pop = new Pop('gatherer');
+                camp.pops.push(pop);
+            }
             cell.assignedWorkers++;
             camp.unassignedPopulation--;
             camp.localGatherers++;
+            pop.totalWorkers++;
+            pop.localWorkers++;
             updateInfoText();
             updateCampText();
             updateLocalWorkerPanel();
+            updateCellWorkerLabels();
         }
     }
 });
@@ -84,12 +93,18 @@ document.getElementById('local-worker-remove').addEventListener('click', functio
     if (selectedLocalCell && gameState === 'camp') {
         const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
         if (cell.assignedWorkers > 0) {
-            cell.assignedWorkers--;
-            camp.unassignedPopulation++;
-            camp.localGatherers--;
-            updateInfoText();
-            updateCampText();
-            updateLocalWorkerPanel();
+            const pop = camp.pops.find(p => p.type === 'gatherer');
+            if (pop && pop.localWorkers > 0) {
+                cell.assignedWorkers--;
+                camp.unassignedPopulation++;
+                camp.localGatherers--;
+                pop.totalWorkers--;
+                pop.localWorkers--;
+                updateInfoText();
+                updateCampText();
+                updateLocalWorkerPanel();
+                updateCellWorkerLabels();
+            }
         }
     }
 });

@@ -8,6 +8,10 @@ const camp = {
     pops: [],
     expeditions: [],
     localGatherers: 0,   // total workers assigned to local gathering (sum of cell.assignedWorkers)
+    foodGatheredToday: 0,      // food collected locally today
+    foodConsumedToday: 0,       // food consumed by population last day
+    gatheredDaily: 0,     // aggiunto
+    consumedDaily: 0      // aggiunto
 };
 
 class Pop {
@@ -16,6 +20,7 @@ class Pop {
         this.totalWorkers = 0;
         this.availableWorkers = 0;
         this.assignedWorkers = 0;
+        this.localWorkers = 0;      // workers assigned to local cells
     }
 
     addWorkers(count) {
@@ -305,7 +310,7 @@ class Expedition {
                 const gatherRate = GameConfig.baseGatherRate * density * delta * this.workerCount;
                 this.inventory.food += gatherRate;
                 const densityReduction = gatherRate * GameConfig.densityReductionPerFood;
-                modifyDensity(this.x, this.y, 'forageDensity', -densityReduction, CELL_SIZE * GameConfig.gatherImpactRadius);
+                reduceCellDensity(cellData, densityReduction);
             } else {
                 let best;
                 if (this.useAssignedArea) {
