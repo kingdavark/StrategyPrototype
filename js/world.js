@@ -35,6 +35,7 @@ function getCell(cx, cy) {
             forageDensity: 0.0,
             assignedWorkers: 0,
             foodGatheredToday: 0,   // food gathered by local workers today
+            gatheredDaily: 0, 
             warningShown: false     // whether depletion warning was shown
         };
     }

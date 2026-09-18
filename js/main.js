@@ -157,44 +157,11 @@ function enableDebugClick(scene) {
             return;
         }
 
-        // If we clicked on the camp, create an automatic expedition (free roaming)
-        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) {
-            // Only work if camp is selected
-            if (!campSelected) return;
-
-            let pop = camp.pops.find(p => p.type === 'gatherer');
-            if (!pop) {
-                pop = new Pop('gatherer');
-                camp.pops.push(pop);
-            }
-
-            let workersToTake = 0;
-            if (camp.unassignedPopulation > 0) {
-                const moveCount = Math.min(GameConfig.startingExpeditionWorkers, camp.unassignedPopulation);
-                camp.unassignedPopulation -= moveCount;
-                pop.addWorkers(moveCount);
-                workersToTake = moveCount;
-            } else if (pop.availableWorkers > 0) {
-                workersToTake = Math.min(GameConfig.startingExpeditionWorkers, pop.availableWorkers);
-            } else {
-                console.log('No available workers.');
-                return;
-            }
-
-            const taken = pop.takeWorkers(workersToTake);
-            if (taken === 0) return;
-
-            const id = 'exp_' + Date.now();
-            const areaRadius = GameConfig.areaRadius;
-            // Create auto expedition starting from camp, target area = current camp position
-            const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, camp.x, camp.y, areaRadius, camp);
-            exp.useAssignedArea = false; // auto mode
-            exp.state = 'resting';
-            exp.cooldownRemaining = 0;   // will calculate provisions on first departure
-
-            expeditions.push(exp);
-            updateInfoText();
-            console.log(`Auto expedition ${id} created with ${taken} workers (will depart after provisioning).`);
+        // Ignore right-clicks inside the camp's local gathering radius:
+        // that area is reserved for local gathering, not expeditions
+        const localRadius = getLocalGatherRadiusPx();
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) <= localRadius) {
+            console.log('Right-click inside local gathering area ignored.');
             return;
         }
 

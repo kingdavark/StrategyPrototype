@@ -46,12 +46,17 @@ Una spedizione è un'entità mobile sulla mappa, creata prelevando un certo nume
 ### Partenza
 
 - La spedizione riceve provviste dalle scorte del campo.
+
 - La quantità di provviste è calcolata dinamicamente in base a distanza, velocità, numero di lavoratori e margine di sicurezza.
+
 - Se le provviste calcolate superano la capacità massima, la spedizione parte con meno provviste e tornerà prima.
+
 - Il campo scala le proprie scorte di cibo della quantità data.
   
   ### Viaggio di andata
+
 - La spedizione si muove verso il centro dell'area assegnata o verso la cella migliore trovata.
+
 - Durante il viaggio consuma provviste in modo continuo:
 
 consumoViaggio = workers * travelConsumptionPerSec * deltaSec
@@ -69,25 +74,32 @@ text
 
 consumoRaccolta = workers * gatheringConsumptionPerSec * deltaSec
 
-text
-
 ### Ritorno
 
 La spedizione torna al campo quando:
 
 - L'inventario è pieno (`food + provisions >= maxCapacity`).
+
 - Le provviste scendono sotto la soglia minima per il viaggio di ritorno (a meno che non sia forzata).
+
 - Il giocatore ordina il ritorno manualmente (tasto R).
+
 - Viene ordinata la cancellazione (tasto C).
   
   ### Scarico e riposo
+
 - Al ritorno al campo, la spedizione deposita il cibo raccolto in `camp.foodStock`.
+
 - I lavoratori rientrano nel Pop di origine (`availableWorkers`).
+
 - La spedizione entra in stato `resting` con durata proporzionale alla durata del viaggio appena concluso.
+
 - Se la spedizione era marcata per lo scioglimento (`toBeDisbanded`), viene rimossa.
   
   ### Ripartenza
+
 - Terminato il riposo, se ci sono ancora lavoratori disponibili nel Pop e l'area non è stata disattivata, la spedizione riparte automaticamente.
+
 - Le provviste vengono ricalcolate come alla partenza iniziale.
 
 ---
@@ -112,23 +124,29 @@ text
 ### Area assegnata (`useAssignedArea = true`)
 
 - La spedizione raccoglie solo all'interno del cerchio definito da `areaCenter` e `areaRadius`.
+
 - La scelta iniziale e i cambi cella avvengono tramite `findBestCellInArea`.
   
   ### Modalità automatica (`useAssignedArea = false`)
+
 - La spedizione vaga liberamente e sceglie la cella migliore attorno alla propria posizione corrente (`findBetterCell`).
+
 - Non è limitata a un'area prestabilita.
   
   ### Modalità forzata (`isForced = true`)
+
 - La spedizione non torna al campo per esaurimento provviste.
+
 - Continua a raccogliere finché l'inventario non è pieno o il giocatore ordina il ritorno.
 
 ---
 
 ## Interazione del giocatore
 
-- **Click destro su mappa** (con campo selezionato o spedizione selezionata): crea una nuova spedizione di raccolta o aggiorna l'area di una esistente.
-- **Shift + click destro**: crea una spedizione forzata.
-- **Click destro sul campo**: crea una spedizione automatica (free roaming). Nota: questa funzione sarà rimossa in futuro.
+- **Click destro su mappa** (con campo selezionato o spedizione selezionata), **fuori dal raggio di raccolta locale**: crea una nuova spedizione di raccolta o aggiorna l'area di una esistente.
+- **Click destro dentro il raggio di raccolta locale** (il cerchio attorno al campo): non crea spedizioni né aggiorna aree; quell'area è riservata alla raccolta locale.
+- **Shift + click destro** (fuori dal raggio locale): crea una spedizione forzata.
+
 - **Tasto R**: richiama la spedizione selezionata al campo.
 - **Tasto F**: attiva/disattiva la modalità forzata.
 - **Tasto A**: attiva/disattiva la modalità automatica (area assegnata vs libera).
