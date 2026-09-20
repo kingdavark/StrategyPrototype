@@ -1,6 +1,6 @@
 ================================================================================
 PROJECT CONTEXT BUNDLE
-Generated: 2026-09-20 11:44:53
+Generated: 2026-09-20 15:05:19
 Project root: C:\Users\david\OneDrive\Desktop\Omnia\Game Development\StrategyPrototype
 ================================================================================
 
@@ -203,8 +203,9 @@ Questo documento raccoglie i concetti condivisi tra tutti i sistemi di gioco. Se
 ### Settlement (Insediamento)
 
 - È il punto di riferimento della tribù. Nel prototipo attuale si chiama "campo" o "accampamento"; diventerà una città con il progresso del gioco. Nella documentazione usiamo il termine "settlement" per coerenza a lungo termine.
+- **Occupazione spaziale**: il settlement occupa una cella specifica della mappa (la "cella del settlement"). La sua posizione coincide con il centro di quella cella. La cella del settlement è visivamente evidenziata con un bordo marrone, per distinguerla dalle celle naturali.
 - Contiene le scorte di cibo e la popolazione non assegnata.
-- Ha un'area occupata (per ora circolare, in futuro plasmata dal terreno) che cresce con la popolazione.
+- Ha un'area occupata (per ora circolare, in futuro plasmata dal terreno) che cresce con la popolazione. Il cerchio è centrato sul centro della cella del settlement. Se l'area cresce oltre la cella, il cerchio si estende sulle celle adiacenti e la loro `urbanizedFraction` aumenta di conseguenza.
 - Ha un raggio locale entro il quale i lavoratori possono essere assegnati direttamente alle celle esagonali per la raccolta.
 - Può essere selezionato per gestire la raccolta locale e vedere il riepilogo giornaliero.
 
@@ -2470,9 +2471,6 @@ Ogni parametro è modificabile a runtime tramite la console o il pannello di deb
 - **`densityReductionPerFood`** (default `0.001`)  
   Quantità di densità rimossa per ogni unità di cibo raccolta. Determina quanto velocemente le celle si esauriscono quando vengono lavorate.
 
-- **`gatherImpactRadius`** (default `0.6`)  
-  Parametro legacy, attualmente **non usato**: la raccolta riduce solo la cella esatta. Era previsto per futuri effetti ad area (incendi, disboscamento diffuso).
-
 ### Geometria griglia (esagonale)
 
 - **`hexCenterDistanceKm`** (default `1`)  
@@ -2771,6 +2769,7 @@ Proprietà:
 - `foodConsumedToday` – cibo consumato dalla popolazione nell'ultimo giorno completato (valore in tempo reale, ma mostrato solo a fine giornata).
 - `gatheredDaily` – cibo raccolto localmente nel giorno precedente (aggiornato a fine giornata).
 - `consumedDaily` – cibo consumato dalla popolazione nel giorno precedente (aggiornato a fine giornata).
+- `cell` – cella della griglia occupata dal settlement (`{ cx, cy }`). Inizialmente `null`, valorizzata in `create()` (in `main.js`). È solo informativa: il calcolo di `urbanizedFraction` usa `settlement.x`/`settlement.y` come centro, non `settlement.cell`.
 
 ### Pop
 
@@ -2954,7 +2953,7 @@ Carica il plugin rexBoard (griglia esagonale) via `this.load.scenePlugin(...)` d
 
 Inizializza la scena:
 
-1. Chiama `createGrid(this)` (che inizializza la board esagonale rexBoard) e `initializeForageDensity()` (da `world.js`). Inizializza `lastSettlementPopulation` e calcola una prima volta `updateUrbanizedFractions(population)`.
+1. Chiama `createGrid(this)` (che inizializza la board esagonale rexBoard). Ancora il settlement alla cella che lo contiene: calcola la cella con `worldToCell(settlement.x, settlement.y)`, ne ricava il centro con `cellToWorld`, assegna `settlement.x/y` al centro e imposta `settlement.cell = { cx, cy }`. Poi chiama `initializeForageDensity()`, inizializza `lastSettlementPopulation` e calcola una prima volta `updateUrbanizedFractions(population)`.
 2. Crea i graphics objects: `gridGraphics`, `settlementGraphics`, `popGraphics`, `warningGraphics`.
 3. Disegna la griglia esagonale iniziale chiamando `drawGrid()`.
 4. Aggiunge il testo di debug in alto a sinistra.
@@ -3049,7 +3048,7 @@ Utility per disegnare una linea tratteggiata. Usata per il percorso delle spediz
 
 ### drawSettlement()
 
-Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(population), settlementMinVisualRadiusPx)`) con bordo e, se `settlementSelected`, un anello di selezione giallo e il raggio locale effettivo (cerchio giallo semitrasparente di raggio `getEffectiveLocalGatherRadiusPx()`). Viene chiamata ogni frame.
+Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(population), settlementMinVisualRadiusPx)`) con bordo e, se `settlementSelected`, un anello di selezione giallo e il raggio locale effettivo (cerchio giallo semitrasparente di raggio `getEffectiveLocalGatherRadiusPx()`). Il cerchio, la label, l'anello di selezione e il raggio sono centrati su `settlement.x`/`settlement.y`. Viene chiamata ogni frame.
 
 **Nota**: l'etichetta testuale "SETTLEMENT" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
 
@@ -3058,7 +3057,7 @@ Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(p
 Disegna i triangoli rossi persistenti per le celle sotto soglia. Viene chiamata ogni frame dopo `drawPops()` e `drawSettlement()`.
 
 - In `gameState === 'settlement'`: triangolo sopra ogni cella in `warningCells`.
-- In `gameState === 'map'`: triangolo sopra il campo se `warningCells.length > 0`.
+- In `gameState === 'map'`: triangolo sopra il campo (posizionato su `settlement.x`/`settlement.y`) se `warningCells.length > 0`.
 
 ### updateCellWorkerLabels()
 
@@ -3094,7 +3093,7 @@ Aggiorna il testo in alto a sinistra con la velocità corrente, letta da `TimeMa
 Aggiorna il pannello info in alto a destra. Contenuto in base alla selezione:
 
 - **Spedizione selezionata** – id, workerCount, stato, provviste, cibo, capacità, flag `[FORCED]` e `[AUTO]`.
-- **Cella locale selezionata (in modalità settlement)** – coordinate, densità, lavoratori, cibo raccolto daily, cibo rimanente alle soglie, giorni alle soglie, incremento con un lavoratore in più, giorni ridotti con un lavoratore in più.
+- **Cella locale selezionata (in modalità settlement)** – coordinate, densità, lavoratori, frazione urbanizzata (`Urbanized: XX.X%`), cibo raccolto daily, cibo rimanente alle soglie, giorni alle soglie, incremento con un lavoratore in più, giorni ridotti con un lavoratore in più.
 - **Campo selezionato (in modalità settlement)** – cibo, non assegnati, `gatheredDaily`, `consumedDaily`, cibo rimanente nell'area locale (to 25% e to 0%), statistiche dei gatherer (locali, spedizioni, disponibili).
 - **Altrimenti** – stringa vuota.
 
@@ -3135,7 +3134,7 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 
 - `gameState`, `settlementSelected`, `selectedExpedition`, `selectedLocalCell`, `dayAccumulator`, `gameDay`.
 - `warningCells`, `cellWorkerTexts`.
-- `settlement` (tramite `updateLocalGathering` e `update`).
+- `settlement` (tramite `create`, `updateLocalGathering` e `update`).
 - `expeditions` (creazione e rimozione).
 - Le celle della griglia (tramite `reduceCellDensity`).
 

@@ -8,7 +8,6 @@ const GameConfig = {
     // --- Gathering ---
     baseGatherRate: 0.2,                    // food per second per worker at density 1.0
     densityReductionPerFood: 0.001,         // density removed per food gathered
-    gatherImpactRadius: 0.6,                // legacy: unused (reserved for future area effects)
 
     // --- Grid geometry (hexagon) ---
     hexCenterDistanceKm: 1,                 // km between centers of adjacent hexagons (world cell size)

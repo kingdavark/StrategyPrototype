@@ -17,10 +17,6 @@ const config = {
 // Create the Phaser game instance
 const game = new Phaser.Game(config);
 
-// Settlement position (visual placeholder, functionality comes later)
-const SETTLEMENT_X = GameConfig.settlementX;
-const SETTLEMENT_Y = GameConfig.settlementY;
-
 // Global references for the game scene (set in create)
 let gameScene;
 let popGraphics;
@@ -101,7 +97,11 @@ function enableDebugClick(scene) {
         }
 
         // Check if clicked on settlement: toggle between map and settlement state
-        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, settlement.x, settlement.y) < 20) {
+        const settlementRadiusPxVisual = Math.max(
+            getSettlementRadiusPx(getSettlementPopulation()),
+            GameConfig.settlementMinVisualRadiusPx
+        );
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, settlement.x, settlement.y) <= settlementRadiusPxVisual) {
             if (gameState === 'settlement') {
                 gameState = 'map';
                 settlementSelected = false;
@@ -372,6 +372,12 @@ function preload() {
 function create() {
     // Initialize the hex grid and forage density
     createGrid(this);
+    // Anchor the settlement to the center of the grid cell that contains it
+    const settlementCell = worldToCell(settlement.x, settlement.y);
+    const settlementCenter = cellToWorld(settlementCell.cx, settlementCell.cy);
+    settlement.x = settlementCenter.x;
+    settlement.y = settlementCenter.y;
+    settlement.cell = { cx: settlementCell.cx, cy: settlementCell.cy };
     initializeForageDensity();
     lastSettlementPopulation = getSettlementPopulation();
     updateUrbanizedFractions(lastSettlementPopulation);
@@ -521,22 +527,22 @@ function drawSettlement() {
 
     // Brown filled circle
     settlementGraphics.fillStyle(0x8b5e3c, 1);
-    settlementGraphics.fillCircle(SETTLEMENT_X, SETTLEMENT_Y, settlementRadiusPx);
+    settlementGraphics.fillCircle(settlement.x, settlement.y, settlementRadiusPx);
     // Border
     settlementGraphics.lineStyle(2, 0xc4a46c, 1);
-    settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, settlementRadiusPx);
+    settlementGraphics.strokeCircle(settlement.x, settlement.y, settlementRadiusPx);
     // Selection highlight
     if (settlementSelected) {
         settlementGraphics.lineStyle(2, 0xffff00, 1);
-        settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, settlementRadiusPx);
+        settlementGraphics.strokeCircle(settlement.x, settlement.y, settlementRadiusPx);
 
         // Local gathering radius (1.5h walk from the settlement border)
         const effectiveRadius = getEffectiveLocalGatherRadiusPx();
         settlementGraphics.lineStyle(1, 0xffff00, 0.3);
-        settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, effectiveRadius);
+        settlementGraphics.strokeCircle(settlement.x, settlement.y, effectiveRadius);
     }
     // Label
-    gameScene.add.text(SETTLEMENT_X, SETTLEMENT_Y - 25, 'SETTLEMENT', {
+    gameScene.add.text(settlement.x, settlement.y - 25, 'SETTLEMENT', {
         fontSize: '12px',
         fill: '#ffffff',
         backgroundColor: '#00000088',
@@ -705,7 +711,7 @@ function updateWarningIndicators() {
     } else {
         if (warningCells.length > 0) {
             warningGraphics.fillStyle(0xff0000, 1);
-            warningGraphics.fillTriangle(SETTLEMENT_X, SETTLEMENT_Y - 20, SETTLEMENT_X - 5, SETTLEMENT_Y - 30, SETTLEMENT_X + 5, SETTLEMENT_Y - 30);
+            warningGraphics.fillTriangle(settlement.x, settlement.y - 20, settlement.x - 5, settlement.y - 30, settlement.x + 5, settlement.y - 30);
         }
     }
 }
@@ -746,32 +752,28 @@ function updateInfoText() {
 
         // Food remaining until thresholds
         const foodTo25 = Math.max(0, (density - GameConfig.cellWarningThreshold) / reductionPerFood);
-        const foodTo0 = density / reductionPerFood;
+        // Total food remaining, scaled by the free (non-urbanized) area
+        const ciboTotale = density / reductionPerFood * (1 - cell.urbanizedFraction);
 
         // Rate of density reduction per second with current workers
         const k = workers * baseRate * reductionPerFood;
-        // Days to threshold 0.25 and 0 (using exponential decay approximation)
+        // Days to threshold 0.25 (using exponential decay approximation)
         let daysTo25 = 0;
-        let daysTo0 = 0;
         if (workers > 0 && density > 0) {
             if (density > GameConfig.cellWarningThreshold) {
                 daysTo25 = (-Math.log(GameConfig.cellWarningThreshold / density) / k) / GameConfig.dayLengthSeconds;
             }
-            daysTo0 = (-Math.log(0.001 / density) / k) / GameConfig.dayLengthSeconds;
         }
 
         // With one extra worker
         const k2 = (workers + 1) * baseRate * reductionPerFood;
         let daysTo25_extra = 0;
-        let daysTo0_extra = 0;
         if (workers + 1 > 0 && density > 0) {
             if (density > GameConfig.cellWarningThreshold) {
                 daysTo25_extra = (-Math.log(GameConfig.cellWarningThreshold / density) / k2) / GameConfig.dayLengthSeconds;
             }
-            daysTo0_extra = (-Math.log(0.001 / density) / k2) / GameConfig.dayLengthSeconds;
         }
         const reducedDays25 = Math.max(0, daysTo25 - daysTo25_extra);
-        const reducedDays0 = Math.max(0, daysTo0 - daysTo0_extra);
 
         // Daily increase if adding one worker
         const increasePerDay = baseRate * density * GameConfig.dayLengthSeconds;
@@ -779,14 +781,13 @@ function updateInfoText() {
         str = `Cell (${selectedLocalCell.cx}, ${selectedLocalCell.cy})\n` +
               `Density: ${(density * 100).toFixed(1)}%\n` +
               `Workers: ${workers}\n` +
+              `Urbanized: ${(cell.urbanizedFraction * 100).toFixed(1)}%\n` +
               `Food gathered daily: ${cell.gatheredDaily.toFixed(1)}\n` +  // uso daily
+              `Total food remaining: ${ciboTotale.toFixed(1)}\n` +
               `Food remaining to 25%: ${foodTo25.toFixed(1)}\n` +
-              `Food remaining to 0%: ${foodTo0.toFixed(1)}\n` +
               `Days to 25%: ${workers > 0 ? daysTo25.toFixed(1) : '∞'}\n` +
-              `Days to 0%: ${workers > 0 ? daysTo0.toFixed(1) : '∞'}\n` +
               `+1 worker food/day: ${increasePerDay.toFixed(1)}\n` +
-              `Days reduced to 25% if +1 worker: ${workers > 0 ? reducedDays25.toFixed(1) : '--'}\n` +
-              `Days reduced to 0% if +1 worker: ${workers > 0 ? reducedDays0.toFixed(1) : '--'}`;
+              `Days reduced to 25% if +1 worker: ${workers > 0 ? reducedDays25.toFixed(1) : '--'}`;
     } else if (settlementSelected && gameState === 'settlement') {
         // Settlement summary
         // Settlement summary

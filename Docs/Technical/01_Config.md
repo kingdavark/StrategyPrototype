@@ -80,9 +80,6 @@ Ogni parametro è modificabile a runtime tramite la console o il pannello di deb
 - **`densityReductionPerFood`** (default `0.001`)  
   Quantità di densità rimossa per ogni unità di cibo raccolta. Determina quanto velocemente le celle si esauriscono quando vengono lavorate.
 
-- **`gatherImpactRadius`** (default `0.6`)  
-  Parametro legacy, attualmente **non usato**: la raccolta riduce solo la cella esatta. Era previsto per futuri effetti ad area (incendi, disboscamento diffuso).
-
 ### Geometria griglia (esagonale)
 
 - **`hexCenterDistanceKm`** (default `1`)  

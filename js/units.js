@@ -11,7 +11,8 @@ const settlement = {
     foodGatheredToday: 0,      // food collected locally today
     foodConsumedToday: 0,       // food consumed by population last day
     gatheredDaily: 0,     // aggiunto
-    consumedDaily: 0      // aggiunto
+    consumedDaily: 0,     // aggiunto
+    cell: null            // grid cell occupied by the settlement ({ cx, cy }), set in main.js create(); informational only
 };
 
 // Total settlement population: unassigned individuals + all pop workers (local and expeditions).

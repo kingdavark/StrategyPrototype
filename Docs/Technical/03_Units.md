@@ -22,6 +22,7 @@ Proprietà:
 - `foodConsumedToday` – cibo consumato dalla popolazione nell'ultimo giorno completato (valore in tempo reale, ma mostrato solo a fine giornata).
 - `gatheredDaily` – cibo raccolto localmente nel giorno precedente (aggiornato a fine giornata).
 - `consumedDaily` – cibo consumato dalla popolazione nel giorno precedente (aggiornato a fine giornata).
+- `cell` – cella della griglia occupata dal settlement (`{ cx, cy }`). Inizialmente `null`, valorizzata in `create()` (in `main.js`). È solo informativa: il calcolo di `urbanizedFraction` usa `settlement.x`/`settlement.y` come centro, non `settlement.cell`.
 
 ### Pop
 

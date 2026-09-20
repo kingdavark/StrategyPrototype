@@ -21,8 +21,9 @@ Questo documento raccoglie i concetti condivisi tra tutti i sistemi di gioco. Se
 ### Settlement (Insediamento)
 
 - È il punto di riferimento della tribù. Nel prototipo attuale si chiama "campo" o "accampamento"; diventerà una città con il progresso del gioco. Nella documentazione usiamo il termine "settlement" per coerenza a lungo termine.
+- **Occupazione spaziale**: il settlement occupa una cella specifica della mappa (la "cella del settlement"). La sua posizione coincide con il centro di quella cella. La cella del settlement è visivamente evidenziata con un bordo marrone, per distinguerla dalle celle naturali.
 - Contiene le scorte di cibo e la popolazione non assegnata.
-- Ha un'area occupata (per ora circolare, in futuro plasmata dal terreno) che cresce con la popolazione.
+- Ha un'area occupata (per ora circolare, in futuro plasmata dal terreno) che cresce con la popolazione. Il cerchio è centrato sul centro della cella del settlement. Se l'area cresce oltre la cella, il cerchio si estende sulle celle adiacenti e la loro `urbanizedFraction` aumenta di conseguenza.
 - Ha un raggio locale entro il quale i lavoratori possono essere assegnati direttamente alle celle esagonali per la raccolta.
 - Può essere selezionato per gestire la raccolta locale e vedere il riepilogo giornaliero.
 
