@@ -46,7 +46,19 @@ Restituisce `tripDurationSec * restMultiplier`, cioè il tempo di riposo dopo un
 
 ### getLocalGatherRadiusPx()
 
-Restituisce il raggio locale in pixel, calcolato come `getExpeditionSpeed() * dayLengthSeconds`. Rappresenta una giornata di viaggio dal campo. Usato per limitare la raccolta locale e per disegnare il cerchio quando il campo è selezionato.
+Restituisce il raggio di cammino locale in pixel, calcolato come `walkingSpeedKmh * hoursWalkingRadius * pixelsPerKm`. Rappresenta 1.5 ore di cammino dal bordo del settlement. Il raggio effettivo parte dal bordo del settlement: `getSettlementRadiusPx(population) + getLocalGatherRadiusPx()`.
+
+### getSettlementAreaKm2(population)
+
+Restituisce l'area del settlement in km² per una data popolazione: `max(settlementMinAreaKm2, population * settlementGrowthPerPerson)`.
+
+### getSettlementRadiusKm(population)
+
+Restituisce il raggio del settlement in km: `sqrt(getSettlementAreaKm2(population) / π)`.
+
+### getSettlementRadiusPx(population)
+
+Restituisce il raggio del settlement in pixel: `getSettlementRadiusKm(population) * pixelsPerKm`.
 
 ## Parametri base in GameConfig
 
@@ -138,6 +150,20 @@ Ogni parametro è modificabile a runtime tramite la console o il pannello di deb
 
 - **`settlementX`**, **`settlementY`** (default `100`, `100`)  
   Posizione iniziale del campo sulla mappa, in pixel.
+
+### Crescita settlement
+
+- **`settlementGrowthPerPerson`** (default `0.001`)  
+  Area del settlement in km² per ogni persona. Con 30 persone il settlement è ~0.03 km², con 1000 ~1 km², con 4000 ~4 km².
+
+- **`settlementMinAreaKm2`** (default `0.01`)  
+  Area minima del settlement in km², usata con popolazioni molto piccole.
+
+- **`settlementMinVisualRadiusPx`** (default `8`)  
+  Raggio visivo minimo in pixel del cerchio del settlement, usato **solo** nel rendering (`drawSettlement` in `main.js`). La logica resta basata sul raggio reale.
+
+- **`hoursWalkingRadius`** (default `1.5`)  
+  Ore di cammino che definiscono il raggio locale di raccolta. Il raggio locale è `walkingSpeedKmh * hoursWalkingRadius` km.
 
 ### Mondo
 

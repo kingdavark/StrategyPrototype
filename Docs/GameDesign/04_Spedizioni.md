@@ -36,7 +36,7 @@ Una spedizione è un'entità mobile sulla mappa, creata prelevando un certo nume
 - `travellingToArea`: in viaggio verso l'area di raccolta
 - `movingToCell`: in movimento verso un esagono specifico migliore all'interno dell'area
 - `gathering`: sta raccogliendo dall'esagono corrente
-- `returningToCamp`: sta tornando al settlement
+- `returningToSettlement`: sta tornando al settlement
 - `resting`: a riposo al settlement prima di ripartire
 
 ---

@@ -37,6 +37,7 @@ let gameState = 'map';        // 'map' or 'settlement'
 let cellWorkerTexts = {};       // map "cx,cy" -> Phaser.Text for worker count overlay
 let warningCells = [];
 let warningGraphics;
+let lastSettlementPopulation = -1;   // cached population, to recompute urbanized fractions only on change
 
 // Helper: check if an HTML input is focused (to avoid game hotkeys while typing)
 function isInputFocused() {
@@ -117,7 +118,7 @@ function enableDebugClick(scene) {
 
         // If in settlement state, handle cell selection within local radius
         if (gameState === 'settlement') {
-            const localRadius = getLocalGatherRadiusPx();
+            const localRadius = getEffectiveLocalGatherRadiusPx();
             const clickedCell = worldToCell(pointer.x, pointer.y);
             if (clickedCell.cx >= 0 && clickedCell.cx < GRID_COLS && clickedCell.cy >= 0 && clickedCell.cy < GRID_ROWS) {
                 const center = cellToWorld(clickedCell.cx, clickedCell.cy);
@@ -164,7 +165,7 @@ function enableDebugClick(scene) {
 
         // Ignore right-clicks inside the settlement's local gathering radius:
         // that area is reserved for local gathering, not expeditions
-        const localRadius = getLocalGatherRadiusPx();
+        const localRadius = getEffectiveLocalGatherRadiusPx();
         if (Phaser.Math.Distance.Between(pointer.x, pointer.y, settlement.x, settlement.y) <= localRadius) {
             console.log('Right-click inside local gathering area ignored.');
             return;
@@ -372,6 +373,8 @@ function create() {
     // Initialize the hex grid and forage density
     createGrid(this);
     initializeForageDensity();
+    lastSettlementPopulation = getSettlementPopulation();
+    updateUrbanizedFractions(lastSettlementPopulation);
 
     // Graphics object for the grid
     const graphics = this.add.graphics();
@@ -509,21 +512,28 @@ function drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength) {
 function drawSettlement() {
     if (!settlementGraphics) return;
     settlementGraphics.clear();
-    // Brown square
+
+    // Settlement radius: real radius for logic, with a minimum for visibility
+    const settlementRadiusPx = Math.max(
+        getSettlementRadiusPx(getSettlementPopulation()),
+        GameConfig.settlementMinVisualRadiusPx
+    );
+
+    // Brown filled circle
     settlementGraphics.fillStyle(0x8b5e3c, 1);
-    settlementGraphics.fillRect(SETTLEMENT_X - 15, SETTLEMENT_Y - 15, 30, 30);
+    settlementGraphics.fillCircle(SETTLEMENT_X, SETTLEMENT_Y, settlementRadiusPx);
     // Border
     settlementGraphics.lineStyle(2, 0xc4a46c, 1);
-    settlementGraphics.strokeRect(SETTLEMENT_X - 15, SETTLEMENT_Y - 15, 30, 30);
+    settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, settlementRadiusPx);
     // Selection highlight
     if (settlementSelected) {
         settlementGraphics.lineStyle(2, 0xffff00, 1);
-        settlementGraphics.strokeRect(SETTLEMENT_X - 17, SETTLEMENT_Y - 17, 34, 34);
+        settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, settlementRadiusPx);
 
-        // Local gathering radius (one day of travel)
-        const localRadius = getLocalGatherRadiusPx();
+        // Local gathering radius (1.5h walk from the settlement border)
+        const effectiveRadius = getEffectiveLocalGatherRadiusPx();
         settlementGraphics.lineStyle(1, 0xffff00, 0.3);
-        settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, localRadius);
+        settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, effectiveRadius);
     }
     // Label
     gameScene.add.text(SETTLEMENT_X, SETTLEMENT_Y - 25, 'SETTLEMENT', {
@@ -537,7 +547,7 @@ function drawSettlement() {
 function drawLocalRadius() {
     if (!popGraphics || gameState !== 'settlement') return;
     popGraphics.lineStyle(1, 0xffff00, 0.4);
-    popGraphics.strokeCircle(settlement.x, settlement.y, getLocalGatherRadiusPx());
+    popGraphics.strokeCircle(settlement.x, settlement.y, getEffectiveLocalGatherRadiusPx());
 }
 
 // Redraw the grid colors based on current densities
@@ -630,7 +640,7 @@ function updateCellWorkerLabels() {
 }
 
 function updateLocalGathering(deltaSec) {
-    const localRadius = getLocalGatherRadiusPx();
+    const localRadius = getEffectiveLocalGatherRadiusPx();
     for (let cy = 0; cy < GRID_ROWS; cy++) {
         for (let cx = 0; cx < GRID_COLS; cx++) {
             const cell = getCell(cx, cy);
@@ -638,13 +648,24 @@ function updateLocalGathering(deltaSec) {
                 const center = cellToWorld(cx, cy);
                 const dist = Phaser.Math.Distance.Between(settlement.x, settlement.y, center.x, center.y);
                 if (dist <= localRadius) {
+                    const urbanized = cell.urbanizedFraction || 0;
+                    // Fully urbanized cell: no gathering. Worker freeing (full logic) comes later; log for now.
+                    if (urbanized >= 1) {
+                        if (!cell.urbanizationWarningShown) {
+                            cell.urbanizationWarningShown = true;
+                            console.warn(`Cell (${cx},${cy}) fully urbanized; local workers would be freed.`);
+                        }
+                        continue;
+                    }
+                    if (cell.urbanizationWarningShown) cell.urbanizationWarningShown = false;
+
                     const density = cell.forageDensity;
                     if (density > 0) {
                         const gathered = cell.assignedWorkers * GameConfig.baseGatherRate * density * deltaSec;
                         settlement.foodStock += gathered;
                         settlement.foodGatheredToday += gathered;
                         cell.foodGatheredToday += gathered;
-                        const reduction = gathered * GameConfig.densityReductionPerFood;
+                        const reduction = gathered * GameConfig.densityReductionPerFood / (1 - urbanized);
                         reduceCellDensity(cell, reduction);
                     }
                     // Check warning threshold
@@ -769,7 +790,7 @@ function updateInfoText() {
     } else if (settlementSelected && gameState === 'settlement') {
         // Settlement summary
         // Settlement summary
-        const localRadius = getLocalGatherRadiusPx();
+        const localRadius = getEffectiveLocalGatherRadiusPx();
         let foodTo25Total = 0;
         let foodTo0Total = 0;
         for (let cy = 0; cy < GRID_ROWS; cy++) {
@@ -816,6 +837,13 @@ function update(time, delta) {
     const realDeltaSec = delta / 1000;
     const deltaSec = TimeManager.getGameDelta(realDeltaSec);
     gameTimeSec += deltaSec;
+
+    // Recompute urbanized fractions only when the settlement population changes
+    const population = getSettlementPopulation();
+    if (population !== lastSettlementPopulation) {
+        lastSettlementPopulation = population;
+        updateUrbanizedFractions(population);
+    }
 
     for (const exp of expeditions) exp.update(deltaSec);
     updateLocalGathering(deltaSec);    

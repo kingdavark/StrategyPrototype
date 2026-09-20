@@ -8,13 +8,11 @@ Questo documento descrive come funziona la raccolta di cibo vegetale, sia tramit
 
 ### Raccolta locale
 
-- I lavoratori vengono assegnati manualmente a esagoni specifici entro il raggio locale del settlement.
-- I lavoratori locali non sono entità mobili: producono cibo direttamente al settlement.
-- Ogni esagono ha un numero di lavoratori assegnati (`assignedWorkers`).
-- Il raggio locale è definito come il percorso che un pendolare può fare in mezza giornata di lavoro (1.5 ore di andata, 3 ore andata e ritorno):
+- Il raggio locale è definito come il percorso che un pendolare può fare in mezza giornata di lavoro:
   - `localGatherRadiusKm = walkingSpeedKmh * hoursWalkingRadius`
-  - Convertito in pixel con `pixelsPerKm`.
-- Il raggio parte dal bordo dell'area occupata dal settlement, non dal centro.
+  - `hoursWalkingRadius` = 1.5 ore (parametro configurabile)
+  - Convertito in pixel con `pixelsPerKm`
+- Il raggio parte dal bordo dell'area occupata dal settlement, non dal centro: un esagono è valido se la distanza tra il suo centro e il centro del settlement è `<= settlementRadiusPx + localGatherRadiusPx`
 
 ### Spedizioni di raccolta
 

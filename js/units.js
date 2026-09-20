@@ -14,6 +14,18 @@ const settlement = {
     consumedDaily: 0      // aggiunto
 };
 
+// Total settlement population: unassigned individuals + all pop workers (local and expeditions).
+function getSettlementPopulation() {
+    let total = settlement.unassignedPopulation;
+    for (const pop of settlement.pops) total += pop.totalWorkers;
+    return total;
+}
+
+// Effective local gathering radius in pixels: 1.5h walk starting from the settlement border.
+function getEffectiveLocalGatherRadiusPx() {
+    return getSettlementRadiusPx(getSettlementPopulation()) + getLocalGatherRadiusPx();
+}
+
 class Pop {
     constructor(type) {
         this.type = type;
@@ -68,6 +80,7 @@ class Expedition {
     cellScore(cx, cy) {
         const cell = getCell(cx, cy);
         if (!cell) return -Infinity;
+        if (cell.urbanizedFraction >= 1) return -Infinity;
         const density = cell.forageDensity;
         if (density <= 0) return -Infinity;
         const center = cellToWorld(cx, cy);
@@ -117,6 +130,7 @@ class Expedition {
                     const cell = getCell(cx, cy);
                     const density = cell.forageDensity;
                     if (density <= 0) continue;
+                    if (cell.urbanizedFraction >= 1) continue;
                     const center = cellToWorld(cx, cy);
                     // Ensure the cell is within the circular area radius
                     const distFromAreaCenter = Phaser.Math.Distance.Between(this.areaCenter.x, this.areaCenter.y, center.x, center.y);
@@ -307,10 +321,11 @@ class Expedition {
             const cell = worldToCell(this.x, this.y);
             const cellData = getCell(cell.cx, cell.cy);
             const density = cellData ? cellData.forageDensity : 0;
-            if (density > 0) {
+            const urbanized = cellData ? (cellData.urbanizedFraction || 0) : 0;
+            if (density > 0 && urbanized < 1) {
                 const gatherRate = GameConfig.baseGatherRate * density * delta * this.workerCount;
                 this.inventory.food += gatherRate;
-                const densityReduction = gatherRate * GameConfig.densityReductionPerFood;
+                const densityReduction = gatherRate * GameConfig.densityReductionPerFood / (1 - urbanized);
                 reduceCellDensity(cellData, densityReduction);
             } else {
                 let best;

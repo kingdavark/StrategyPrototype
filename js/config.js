@@ -43,6 +43,12 @@ const GameConfig = {
     settlementX: 100,
     settlementY: 100,
 
+    // --- Settlement growth ---
+    settlementGrowthPerPerson: 0.001,   // km² of settlement area per person
+    settlementMinAreaKm2: 0.01,         // minimum settlement area in km²
+    settlementMinVisualRadiusPx: 8,     // minimum visual radius in pixels (rendering only)
+    hoursWalkingRadius: 1.5,            // hours of walking for the local gathering radius
+
     // --- World ---
     worldWidth: 1280,          // game world width in pixels
     worldHeight: 720,          // game world height in pixels
@@ -124,9 +130,24 @@ function getRestDuration(tripDurationSec) {
     return tripDurationSec * GameConfig.restMultiplier;
 }
 
-// Local gathering radius in pixels (one day of travel)
+// Local gathering radius in pixels (1.5 hours of walking from the settlement border)
 function getLocalGatherRadiusPx() {
-    return getExpeditionSpeed() * GameConfig.dayLengthSeconds;
+    return GameConfig.walkingSpeedKmh * GameConfig.hoursWalkingRadius * getPixelsPerKm();
+}
+
+// Settlement area in km² for a given population
+function getSettlementAreaKm2(population) {
+    return Math.max(GameConfig.settlementMinAreaKm2, population * GameConfig.settlementGrowthPerPerson);
+}
+
+// Settlement radius in km for a given population
+function getSettlementRadiusKm(population) {
+    return Math.sqrt(getSettlementAreaKm2(population) / Math.PI);
+}
+
+// Settlement radius in pixels for a given population
+function getSettlementRadiusPx(population) {
+    return getSettlementRadiusKm(population) * getPixelsPerKm();
 }
 
 let gameTimeSec = 0;          // cumulative simulated time in seconds

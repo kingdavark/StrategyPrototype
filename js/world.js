@@ -66,7 +66,9 @@ function getCell(cx, cy) {
             assignedWorkers: 0,
             foodGatheredToday: 0,   // food gathered by local workers today
             gatheredDaily: 0, 
-            warningShown: false     // whether depletion warning was shown
+            warningShown: false,    // whether depletion warning was shown
+            urbanizedFraction: 0,   // fraction of the cell covered by a settlement (0..1)
+            urbanizationWarningShown: false // whether fully-urbanized warning was logged
         };
     }
     return grid[cy][cx];
@@ -146,4 +148,45 @@ function getEntitiesInRadius(worldX, worldY, radius) {
 function reduceCellDensity(cell, amount) {
     if (!cell) return;
     cell.forageDensity = Math.max(0, Math.min(1, cell.forageDensity - amount));
+}
+
+// Area of overlap between two circles with radii r1, r2 and center distance d.
+function circleCircleOverlapArea(r1, r2, d) {
+    if (d >= r1 + r2) return 0;
+    if (d <= Math.abs(r1 - r2)) return Math.PI * Math.min(r1, r2) * Math.min(r1, r2);
+    const r1sq = r1 * r1;
+    const r2sq = r2 * r2;
+    const arg1 = (d * d + r1sq - r2sq) / (2 * d * r1);
+    const arg2 = (d * d + r2sq - r1sq) / (2 * d * r2);
+    const term1 = r1sq * Math.acos(Math.max(-1, Math.min(1, arg1)));
+    const term2 = r2sq * Math.acos(Math.max(-1, Math.min(1, arg2)));
+    const term3 = 0.5 * Math.sqrt(Math.max(0, (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2)));
+    return term1 + term2 - term3;
+}
+
+// Fraction of a hexagon (treated as an equivalent circle of radius rHex) covered by the settlement circle (radius rSettlement).
+function circleIntersectionFraction(rSettlement, rHex, d) {
+    if (d + rHex <= rSettlement) return 1;                    // hex fully inside settlement
+    if (d >= rSettlement + rHex) return 0;                    // no overlap
+    if (rSettlement + d <= rHex) {                            // settlement fully inside hex
+        return (rSettlement * rSettlement) / (rHex * rHex);   // area_settlement / area_hex
+    }
+    const hexArea = Math.PI * rHex * rHex;
+    return Math.min(1, circleCircleOverlapArea(rSettlement, rHex, d) / hexArea);
+}
+
+// Recompute the urbanized fraction for every grid cell based on the settlement circle.
+// population: current total settlement population (used to derive the settlement radius).
+function updateUrbanizedFractions(population) {
+    const settlementRadiusKm = getSettlementRadiusKm(population);
+    const hexEqRadiusKm = (HEX_RADIUS_PX / GameConfig.pixelsPerKm) * 1.05;
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            const cell = getCell(cx, cy);
+            const center = cellToWorld(cx, cy);
+            const distPx = Phaser.Math.Distance.Between(settlement.x, settlement.y, center.x, center.y);
+            const dKm = distPx / GameConfig.pixelsPerKm;
+            cell.urbanizedFraction = circleIntersectionFraction(settlementRadiusKm, hexEqRadiusKm, dKm);
+        }
+    }
 }

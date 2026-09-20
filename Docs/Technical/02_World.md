@@ -23,6 +23,8 @@ Ogni cella è un oggetto con le seguenti proprietà:
 - `foodGatheredToday` – cibo raccolto da lavoratori locali oggi (accumulato durante il giorno).
 - `gatheredDaily` – cibo raccolto da lavoratori locali nel giorno precedente.
 - `warningShown` – flag per evitare avvisi ripetuti in console.
+- `urbanizedFraction` – frazione della cella coperta da un settlement (0..1).
+- `urbanizationWarningShown` – flag per evitare avvisi ripetuti in console quando una cella totalmente urbanizzata ha lavoratori assegnati.
 
 La griglia è memorizzata in un array 2D (`grid`), indicizzato con le coordinate tile `grid[cy][cx]` (la tile `(cx, cy)` è il q/r dell'esagono). Le chiavi stringa `"cx,cy"` (equivalente `"q,r"`) restano usate da `main.js` e `debug.js` per i testi e i warning.
 
@@ -79,6 +81,18 @@ Riduce la densità di una singola cella senza decadimento radiale. Usata dalla r
 
 Questa funzione è stata scelta al posto di `modifyDensity` per la raccolta puntuale: evita di consumare risorse di celle vicine in modo non voluto. La logica di riduzione puntuale garantisce che il cibo venga prelevato solo dove viene effettivamente raccolto.
 
+### circleCircleOverlapArea(r1, r2, d)
+
+Calcola l'area di sovrapposizione tra due cerchi di raggi `r1` e `r2` con distanza tra i centri `d`, usando la formula standard di intersezione cerchio-cerchio (con clamp degli argomenti di `acos` a [-1,1]).
+
+### circleIntersectionFraction(rSettlement, rHex, d)
+
+Restituisce la frazione di un esagono (trattato come cerchio equivalente di raggio `rHex`) coperta dal cerchio del settlement (raggio `rSettlement`), con distanza tra i centri `d`. Gestisce i quattro casi: esagono completamente coperto (1), nessuna sovrapposizione (0), settlement completamente interno (`area_settlement / area_hex`), sovrapposizione parziale (`overlap / area_hex`).
+
+### updateUrbanizedFractions(population)
+
+Ricalcola `urbanizedFraction` per ogni cella della griglia in base al cerchio del settlement. Riceve la popolazione come parametro (da cui deriva il raggio del settlement con `getSettlementRadiusKm`). Tratta ogni esagono come un cerchio equivalente di raggio `R_hex_eq = HEX_RADIUS_PX / pixelsPerKm * 1.05`. Viene chiamata da `main.js` solo quando cambia la popolazione del settlement.
+
 ### modifyDensity(worldX, worldY, layer, amount, impactRadius)
 
 **Funzione attualmente commentata nel codice.** Modifica la densità del layer indicato nelle celle intorno alla posizione, con decadimento radiale lineare. È riservata a futuri effetti ad area (incendi, disboscamento diffuso, fertilizzanti). Non è usata dalla raccolta.
@@ -96,6 +110,8 @@ Questa funzione è stata scelta al posto di `modifyDensity` per la raccolta punt
 - `hexCenterDistanceKm`, `pixelsPerKm` – per calcolare le costanti geometriche dell'esagono (`HEX_RADIUS_PX`, `HEX_WIDTH_PX`, ecc.).
 - `worldWidth`, `worldHeight` – per calcolare `GRID_COLS` e `GRID_ROWS`.
 - `getHexRadiusPx()` (da `config.js`) – per `HEX_RADIUS_PX`.
+- `pixelsPerKm` – anche per calcolare `R_hex_eq` e convertire le distanze in km in `updateUrbanizedFractions`.
+- `getSettlementRadiusKm()` (da `config.js`) – per il raggio del settlement; usa indirettamente `settlementMinAreaKm2` e `settlementGrowthPerPerson`.
 
 Il resto dei parametri di raccolta (`baseGatherRate`, `densityReductionPerFood`) è usato da `main.js` e `units.js`, non da questo script.
 
@@ -114,9 +130,11 @@ Il resto dei parametri di raccolta (`baseGatherRate`, `densityReductionPerFood`)
 
 ## Dipendenze in uscita
 
-- `js/config.js` – per `getHexRadiusPx()` (usata all'avvio per `HEX_RADIUS_PX`).
+- `js/config.js` – per `getHexRadiusPx()` (usata all'avvio per `HEX_RADIUS_PX`) e `getSettlementRadiusKm()` (in `updateUrbanizedFractions`).
 - Plugin rexBoard – per la costruzione di griglia/board e le conversioni di coordinate.
 - `Math` nativo.
+
+Nota: `updateUrbanizedFractions` legge la posizione del settlement dalla globale `settlement.x`/`settlement.y` (dato definito in `units.js`), senza chiamare funzioni di `units.js` (la popolazione è passata come parametro), per evitare una dipendenza circolare.
 
 ## Note per modifiche
 

@@ -22,7 +22,7 @@ Ogni Pop ha:
 
 Oltre ai Pop specializzati, esiste un pool di popolazione non assegnata:
 
-- `camp.unassignedPopulation`
+- `settlement.unassignedPopulation`
   Questo pool rappresenta individui generici che non hanno ancora un'occupazione specifica. Possono essere convertiti in lavoratori di un Pop quando necessario (es. assegnazione a una cella locale o creazione di una spedizione).
   Quando un lavoratore viene assegnato a una cella locale, smette di far parte della popolazione non assegnata e diventa membro del Pop `gatherer`. Anche se non parte in spedizione, appartiene comunque al Pop gatherer come lavoratore locale.
 
@@ -33,7 +33,9 @@ Oltre ai Pop specializzati, esiste un pool di popolazione non assegnata:
 Il cibo è l'unica risorsa vitale nel prototipo. Il consumo si divide in base al contesto:
 
 - Popolazione al campo: consuma una razione giornaliera fissa, calcolata per l'intera tribù a fine giornata.
+
 - Spedizioni in viaggio: consumano provviste in modo continuo, proporzionalmente al tempo trascorso e con un moltiplicatore maggiore rispetto al riposo.
+
 - Spedizioni durante la raccolta: consumano ancora di più, perché lo sforzo fisico è superiore.
   Il consumo giornaliero totale della popolazione al campo è:
   

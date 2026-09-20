@@ -1,6 +1,6 @@
 ================================================================================
 PROJECT CONTEXT BUNDLE
-Generated: 2026-09-20 10:45:29
+Generated: 2026-09-20 11:44:53
 Project root: C:\Users\david\OneDrive\Desktop\Omnia\Game Development\StrategyPrototype
 ================================================================================
 
@@ -61,15 +61,16 @@ Prototipo di strategico 4X in tempo reale con Phaser 3.
 - Non mischiare input di stati diversi (map vs settlement).
 - La raccolta riduce solo la cella esatta, non le celle vicine.
 
-## Flusso di lavoro
+#### Flusso di lavoro
 
 1. Leggi il prompt del Game Designer.
 2. Leggi i documenti Technical degli script coinvolti e le loro sezioni "Dipendenze".
-3. Fai un brief generale delle modifiche e attendi OK.
-4. Applica le modifiche una per una, con approvazione per ciascuna.
-5. Dopo tutte le modifiche del batch, fornisci test tecnici.
-6. Aggiorna SOLO i documenti Technical, mai quelli di Game Design.
-7. Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git.
+3. Fornisci un debrief unico con: file da modificare, dipendenze toccate, effetti attesi, documenti Technical da aggiornare.
+4. Attendi una sola approvazione globale.
+5. Applica le modifiche al codice.
+6. Applica gli aggiornamenti alla documentazione Technical.
+7. Fornisci i test tecnici complessivi.
+8. Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git.
 
 ## Regole
 
@@ -221,7 +222,7 @@ Questo documento raccoglie i concetti condivisi tra tutti i sistemi di gioco. Se
 ### Expedition (Spedizione)
 
 - Un gruppo mobile di lavoratori prelevati da un Pop.
-- Ha uno stato (`travellingToArea`, `gathering`, `returningToCamp`, `resting`, `movingToCell`).
+- Ha uno stato (`travellingToArea`, `gathering`, `returningToSettlement`, `resting`, `movingToCell`).
 - Ha un inventario con cibo raccolto e provviste.
 - Può avere un'area di raccolta assegnata o vagare liberamente (modalità automatica).
 - Consuma provviste durante il viaggio e la raccolta.
@@ -485,13 +486,45 @@ La divisione per `(1 - urbanizedFraction)` riflette il fatto che, se un esagono 
 
 ## Urbanized fraction
 
-Ogni esagono ha un valore `urbanizedFraction` che rappresenta la frazione di area coperta da un settlement. Il calcolo avviene trattando l'esagono come un cerchio di area equivalente (raggio `R_hex_eq ≈ 1.05 * R`) e intersecandolo con il cerchio del settlement.
+Ogni esagono ha un valore `urbanizedFraction` che rappresenta la frazione di area coperta da un settlement.
 
-Risultati possibili:
+### Area del settlement
+
+Il settlement cresce in base alla popolazione totale (popolazione non assegnata + tutti i lavoratori dei Pop, inclusi quelli in spedizione):
+
+`settlementAreaKm2 = max(settlementMinAreaKm2, popolazione * settlementGrowthPerPerson)`
+
+dove:
+
+- `settlementGrowthPerPerson` = 0.001 km²/persona
+- `settlementMinAreaKm2` = 0.01 km² (garantisce una dimensione minima visibile)
+
+La forma è per ora un cerchio centrato sulla posizione del settlement:
+
+`settlementRadiusKm = sqrt(settlementAreaKm2 / π)`
+
+In futuro la forma sarà plasmata dal terreno e indirizzata dal giocatore.
+
+### Calcolo dell'urbanizedFraction
+
+Il calcolo avviene trattando l'esagono come un cerchio di area equivalente (raggio `R_hex_eq ≈ 1.05 * R`) e intersecandolo con il cerchio del settlement (raggio `settlementRadiusKm`).
+
+Per ogni esagono:
+
+- Se `d + R_hex_eq <= settlementRadiusKm`: esagono tutto dentro → `urbanizedFraction = 1`
+- Se `d >= settlementRadiusKm + R_hex_eq`: esagono tutto fuori → `urbanizedFraction = 0`
+- Se `settlementRadiusKm + d <= R_hex_eq`: settlement tutto dentro l'esagono → `urbanizedFraction = area_settlement / area_hex`
+- Altrimenti: `urbanizedFraction = overlap_area / area_hex` (formula standard di intersezione cerchio-cerchio)
+
+dove `d` è la distanza tra il centro dell'esagono e il centro del settlement.
+
+### Effetti
 
 - `urbanizedFraction = 0`: esagono completamente libero, raccolta al 100%.
 - `urbanizedFraction = 1`: esagono interamente coperto dal settlement, non raccoglibile. I lavoratori eventualmente assegnati vengono liberati con un avviso.
 - Valori intermedi: la raccolta è scalata proporzionalmente all'area libera.
+
+Il valore va ricalcolato solo quando cambia la popolazione del settlement, non ogni frame.
 
 ---
 
@@ -558,13 +591,11 @@ Questo documento descrive come funziona la raccolta di cibo vegetale, sia tramit
 
 ### Raccolta locale
 
-- I lavoratori vengono assegnati manualmente a esagoni specifici entro il raggio locale del settlement.
-- I lavoratori locali non sono entità mobili: producono cibo direttamente al settlement.
-- Ogni esagono ha un numero di lavoratori assegnati (`assignedWorkers`).
-- Il raggio locale è definito come il percorso che un pendolare può fare in mezza giornata di lavoro (1.5 ore di andata, 3 ore andata e ritorno):
+- Il raggio locale è definito come il percorso che un pendolare può fare in mezza giornata di lavoro:
   - `localGatherRadiusKm = walkingSpeedKmh * hoursWalkingRadius`
-  - Convertito in pixel con `pixelsPerKm`.
-- Il raggio parte dal bordo dell'area occupata dal settlement, non dal centro.
+  - `hoursWalkingRadius` = 1.5 ore (parametro configurabile)
+  - Convertito in pixel con `pixelsPerKm`
+- Il raggio parte dal bordo dell'area occupata dal settlement, non dal centro: un esagono è valido se la distanza tra il suo centro e il centro del settlement è `<= settlementRadiusPx + localGatherRadiusPx`
 
 ### Spedizioni di raccolta
 
@@ -770,7 +801,7 @@ Una spedizione è un'entità mobile sulla mappa, creata prelevando un certo nume
 - `travellingToArea`: in viaggio verso l'area di raccolta
 - `movingToCell`: in movimento verso un esagono specifico migliore all'interno dell'area
 - `gathering`: sta raccogliendo dall'esagono corrente
-- `returningToCamp`: sta tornando al settlement
+- `returningToSettlement`: sta tornando al settlement
 - `resting`: a riposo al settlement prima di ripartire
 
 ---
@@ -955,7 +986,7 @@ Ogni Pop ha:
 
 Oltre ai Pop specializzati, esiste un pool di popolazione non assegnata:
 
-- `camp.unassignedPopulation`
+- `settlement.unassignedPopulation`
   Questo pool rappresenta individui generici che non hanno ancora un'occupazione specifica. Possono essere convertiti in lavoratori di un Pop quando necessario (es. assegnazione a una cella locale o creazione di una spedizione).
   Quando un lavoratore viene assegnato a una cella locale, smette di far parte della popolazione non assegnata e diventa membro del Pop `gatherer`. Anche se non parte in spedizione, appartiene comunque al Pop gatherer come lavoratore locale.
 
@@ -966,7 +997,9 @@ Oltre ai Pop specializzati, esiste un pool di popolazione non assegnata:
 Il cibo è l'unica risorsa vitale nel prototipo. Il consumo si divide in base al contesto:
 
 - Popolazione al campo: consuma una razione giornaliera fissa, calcolata per l'intera tribù a fine giornata.
+
 - Spedizioni in viaggio: consumano provviste in modo continuo, proporzionalmente al tempo trascorso e con un moltiplicatore maggiore rispetto al riposo.
+
 - Spedizioni durante la raccolta: consumano ancora di più, perché lo sforzo fisico è superiore.
   Il consumo giornaliero totale della popolazione al campo è:
   
@@ -2403,7 +2436,19 @@ Restituisce `tripDurationSec * restMultiplier`, cioè il tempo di riposo dopo un
 
 ### getLocalGatherRadiusPx()
 
-Restituisce il raggio locale in pixel, calcolato come `getExpeditionSpeed() * dayLengthSeconds`. Rappresenta una giornata di viaggio dal campo. Usato per limitare la raccolta locale e per disegnare il cerchio quando il campo è selezionato.
+Restituisce il raggio di cammino locale in pixel, calcolato come `walkingSpeedKmh * hoursWalkingRadius * pixelsPerKm`. Rappresenta 1.5 ore di cammino dal bordo del settlement. Il raggio effettivo parte dal bordo del settlement: `getSettlementRadiusPx(population) + getLocalGatherRadiusPx()`.
+
+### getSettlementAreaKm2(population)
+
+Restituisce l'area del settlement in km² per una data popolazione: `max(settlementMinAreaKm2, population * settlementGrowthPerPerson)`.
+
+### getSettlementRadiusKm(population)
+
+Restituisce il raggio del settlement in km: `sqrt(getSettlementAreaKm2(population) / π)`.
+
+### getSettlementRadiusPx(population)
+
+Restituisce il raggio del settlement in pixel: `getSettlementRadiusKm(population) * pixelsPerKm`.
 
 ## Parametri base in GameConfig
 
@@ -2496,6 +2541,20 @@ Ogni parametro è modificabile a runtime tramite la console o il pannello di deb
 - **`settlementX`**, **`settlementY`** (default `100`, `100`)  
   Posizione iniziale del campo sulla mappa, in pixel.
 
+### Crescita settlement
+
+- **`settlementGrowthPerPerson`** (default `0.001`)  
+  Area del settlement in km² per ogni persona. Con 30 persone il settlement è ~0.03 km², con 1000 ~1 km², con 4000 ~4 km².
+
+- **`settlementMinAreaKm2`** (default `0.01`)  
+  Area minima del settlement in km², usata con popolazioni molto piccole.
+
+- **`settlementMinVisualRadiusPx`** (default `8`)  
+  Raggio visivo minimo in pixel del cerchio del settlement, usato **solo** nel rendering (`drawSettlement` in `main.js`). La logica resta basata sul raggio reale.
+
+- **`hoursWalkingRadius`** (default `1.5`)  
+  Ore di cammino che definiscono il raggio locale di raccolta. Il raggio locale è `walkingSpeedKmh * hoursWalkingRadius` km.
+
 ### Mondo
 
 - **`worldWidth`** (default `1280`)  
@@ -2562,6 +2621,8 @@ Ogni cella è un oggetto con le seguenti proprietà:
 - `foodGatheredToday` – cibo raccolto da lavoratori locali oggi (accumulato durante il giorno).
 - `gatheredDaily` – cibo raccolto da lavoratori locali nel giorno precedente.
 - `warningShown` – flag per evitare avvisi ripetuti in console.
+- `urbanizedFraction` – frazione della cella coperta da un settlement (0..1).
+- `urbanizationWarningShown` – flag per evitare avvisi ripetuti in console quando una cella totalmente urbanizzata ha lavoratori assegnati.
 
 La griglia è memorizzata in un array 2D (`grid`), indicizzato con le coordinate tile `grid[cy][cx]` (la tile `(cx, cy)` è il q/r dell'esagono). Le chiavi stringa `"cx,cy"` (equivalente `"q,r"`) restano usate da `main.js` e `debug.js` per i testi e i warning.
 
@@ -2618,6 +2679,18 @@ Riduce la densità di una singola cella senza decadimento radiale. Usata dalla r
 
 Questa funzione è stata scelta al posto di `modifyDensity` per la raccolta puntuale: evita di consumare risorse di celle vicine in modo non voluto. La logica di riduzione puntuale garantisce che il cibo venga prelevato solo dove viene effettivamente raccolto.
 
+### circleCircleOverlapArea(r1, r2, d)
+
+Calcola l'area di sovrapposizione tra due cerchi di raggi `r1` e `r2` con distanza tra i centri `d`, usando la formula standard di intersezione cerchio-cerchio (con clamp degli argomenti di `acos` a [-1,1]).
+
+### circleIntersectionFraction(rSettlement, rHex, d)
+
+Restituisce la frazione di un esagono (trattato come cerchio equivalente di raggio `rHex`) coperta dal cerchio del settlement (raggio `rSettlement`), con distanza tra i centri `d`. Gestisce i quattro casi: esagono completamente coperto (1), nessuna sovrapposizione (0), settlement completamente interno (`area_settlement / area_hex`), sovrapposizione parziale (`overlap / area_hex`).
+
+### updateUrbanizedFractions(population)
+
+Ricalcola `urbanizedFraction` per ogni cella della griglia in base al cerchio del settlement. Riceve la popolazione come parametro (da cui deriva il raggio del settlement con `getSettlementRadiusKm`). Tratta ogni esagono come un cerchio equivalente di raggio `R_hex_eq = HEX_RADIUS_PX / pixelsPerKm * 1.05`. Viene chiamata da `main.js` solo quando cambia la popolazione del settlement.
+
 ### modifyDensity(worldX, worldY, layer, amount, impactRadius)
 
 **Funzione attualmente commentata nel codice.** Modifica la densità del layer indicato nelle celle intorno alla posizione, con decadimento radiale lineare. È riservata a futuri effetti ad area (incendi, disboscamento diffuso, fertilizzanti). Non è usata dalla raccolta.
@@ -2635,6 +2708,8 @@ Questa funzione è stata scelta al posto di `modifyDensity` per la raccolta punt
 - `hexCenterDistanceKm`, `pixelsPerKm` – per calcolare le costanti geometriche dell'esagono (`HEX_RADIUS_PX`, `HEX_WIDTH_PX`, ecc.).
 - `worldWidth`, `worldHeight` – per calcolare `GRID_COLS` e `GRID_ROWS`.
 - `getHexRadiusPx()` (da `config.js`) – per `HEX_RADIUS_PX`.
+- `pixelsPerKm` – anche per calcolare `R_hex_eq` e convertire le distanze in km in `updateUrbanizedFractions`.
+- `getSettlementRadiusKm()` (da `config.js`) – per il raggio del settlement; usa indirettamente `settlementMinAreaKm2` e `settlementGrowthPerPerson`.
 
 Il resto dei parametri di raccolta (`baseGatherRate`, `densityReductionPerFood`) è usato da `main.js` e `units.js`, non da questo script.
 
@@ -2653,9 +2728,11 @@ Il resto dei parametri di raccolta (`baseGatherRate`, `densityReductionPerFood`)
 
 ## Dipendenze in uscita
 
-- `js/config.js` – per `getHexRadiusPx()` (usata all'avvio per `HEX_RADIUS_PX`).
+- `js/config.js` – per `getHexRadiusPx()` (usata all'avvio per `HEX_RADIUS_PX`) e `getSettlementRadiusKm()` (in `updateUrbanizedFractions`).
 - Plugin rexBoard – per la costruzione di griglia/board e le conversioni di coordinate.
 - `Math` nativo.
+
+Nota: `updateUrbanizedFractions` legge la posizione del settlement dalla globale `settlement.x`/`settlement.y` (dato definito in `units.js`), senza chiamare funzioni di `units.js` (la popolazione è passata come parametro), per evitare una dipendenza circolare.
 
 ## Note per modifiche
 
@@ -2748,6 +2825,14 @@ Stati:
 
 ## Funzioni e metodi principali
 
+### getSettlementPopulation()
+
+Restituisce la popolazione totale del settlement: `settlement.unassignedPopulation + somma(pop.totalWorkers)` per tutti i Pop. Include lavoratori locali e in spedizione.
+
+### getEffectiveLocalGatherRadiusPx()
+
+Restituisce il raggio locale effettivo in pixel: `getSettlementRadiusPx(getSettlementPopulation()) + getLocalGatherRadiusPx()`. Il raggio parte dal bordo del settlement (1.5 ore di cammino).
+
 ### Pop.addWorkers(count)
 
 Incrementa `totalWorkers` e `availableWorkers` di `count`. Usato quando si converte popolazione non assegnata in gatherer. Non restituisce nulla.
@@ -2762,7 +2847,7 @@ Sposta `count` lavoratori da `assignedWorkers` a `availableWorkers`. Usato al ri
 
 ### Expedition.cellScore(cx, cy)
 
-Calcola il punteggio di una cella in base a densità e distanza dalla posizione corrente della spedizione. Formula: `density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`. Restituisce `-Infinity` se la densità è 0. Usato da `findBetterCell` e `findBestCellInArea`.
+Calcola il punteggio di una cella in base a densità e distanza dalla posizione corrente della spedizione. Formula: `density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`. Restituisce `-Infinity` se la densità è 0 o se la cella è totalmente urbanizzata (`urbanizedFraction >= 1`). Usato da `findBetterCell` e `findBestCellInArea`.
 
 ### Expedition.findBetterCell()
 
@@ -2770,11 +2855,13 @@ Cerca la cella con il punteggio migliore attorno alla posizione corrente della s
 
 ### Expedition.findBestCellInArea(fromX, fromY)
 
-Cerca la cella con il punteggio migliore all'interno del cerchio definito da `areaCenter` e `areaRadius`. Testa la distanza dal centro dell'area con `Phaser.Math.Distance.Between`. Usata in modalità area assegnata (`useAssignedArea = true`). Restituisce `{ cx, cy, score }`.
+Cerca la cella con il punteggio migliore all'interno del cerchio definito da `areaCenter` e `areaRadius`. Testa la distanza dal centro dell'area con `Phaser.Math.Distance.Between`. Salta le celle totalmente urbanizzate (`urbanizedFraction >= 1`). Usata in modalità area assegnata (`useAssignedArea = true`). Restituisce `{ cx, cy, score }`.
 
 ### Expedition.update(delta)
 
 Gestisce il comportamento della spedizione in base allo stato corrente. Consuma provviste, si muove, raccoglie, rientra, riposa e riparte. È il cuore della logica delle spedizioni.
+
+Durante la raccolta: se la cella corrente è totalmente urbanizzata (`urbanizedFraction >= 1`) la spedizione non raccoglie e cerca un'altra cella (o rientra); altrimenti la riduzione della densità è scalata per l'area libera: `densityReduction = gatherRate * densityReductionPerFood / (1 - urbanizedFraction)`.
 
 Il comportamento dettagliato per ciascuno stato è descritto nel documento di Game Design `Docs/GameDesign/04_Spedizioni.md`.
 
@@ -2786,7 +2873,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 
 ## Dipendenze in uscita
 
-- `js/config.js` – per `GameConfig` (tutti i parametri usati dalle spedizioni), `getExpeditionSpeed()`, `getProvisionsNeeded()`, `getRestDuration()`, `getTravelConsumptionPerSec()`, `getGatheringConsumptionPerSec()`.
+- `js/config.js` – per `GameConfig` (tutti i parametri usati dalle spedizioni), `getExpeditionSpeed()`, `getProvisionsNeeded()`, `getRestDuration()`, `getTravelConsumptionPerSec()`, `getGatheringConsumptionPerSec()`, `getSettlementRadiusPx()`, `getLocalGatherRadiusPx()` (per `getEffectiveLocalGatherRadiusPx()`).
 - `js/world.js` – per `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `HEX_VERTICAL_SPACING_PX`, `GRID_COLS`, `GRID_ROWS`.
 - `Phaser.Math.Distance.Between` – per il calcolo delle distanze.
 
@@ -2803,7 +2890,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 - `cellEvaluationInterval` – intervallo di valutazione cambio cella.
 - `baseGatherRate`, `densityReductionPerFood` – per la raccolta.
 
-Indirettamente, tramite le funzioni di `config.js`: `dayLengthSeconds`, `walkingSpeedKmh`, `pixelsPerKm`, `hexCenterDistanceKm`, `travelConsumptionMultiplier`, `gatheringConsumptionMultiplier`, `safetyMultiplier`, `restMultiplier`.
+Indirettamente, tramite le funzioni di `config.js`: `dayLengthSeconds`, `walkingSpeedKmh`, `pixelsPerKm`, `hexCenterDistanceKm`, `travelConsumptionMultiplier`, `gatheringConsumptionMultiplier`, `safetyMultiplier`, `restMultiplier`, `settlementGrowthPerPerson`, `settlementMinAreaKm2`, `hoursWalkingRadius` (via `getSettlementRadiusPx` e `getLocalGatherRadiusPx`).
 
 ## Stato globale modificato
 
@@ -2855,6 +2942,7 @@ Variabili di stato globali:
 - `dayAccumulator` – accumula delta per il ciclo giorno.
 - `gameDay` – contatore dei giorni di gioco.
 - `gameTimeSec` – tempo di gioco effettivo (da `config.js`).
+- `lastSettlementPopulation` – popolazione del settlement all'ultimo ricalcolo delle frazioni urbanizzate. Usato per ricalcolare `urbanizedFraction` solo quando la popolazione cambia.
 
 ## Funzioni principali
 
@@ -2866,7 +2954,7 @@ Carica il plugin rexBoard (griglia esagonale) via `this.load.scenePlugin(...)` d
 
 Inizializza la scena:
 
-1. Chiama `createGrid(this)` (che inizializza la board esagonale rexBoard) e `initializeForageDensity()` (da `world.js`).
+1. Chiama `createGrid(this)` (che inizializza la board esagonale rexBoard) e `initializeForageDensity()` (da `world.js`). Inizializza `lastSettlementPopulation` e calcola una prima volta `updateUrbanizedFractions(population)`.
 2. Crea i graphics objects: `gridGraphics`, `settlementGraphics`, `popGraphics`, `warningGraphics`.
 3. Disegna la griglia esagonale iniziale chiamando `drawGrid()`.
 4. Aggiunge il testo di debug in alto a sinistra.
@@ -2883,11 +2971,12 @@ Chiamata ogni frame da Phaser. È il game loop.
 1. Converte `delta` in secondi reali.
 2. Chiama `TimeManager.getGameDelta(realDeltaSec)` per ottenere `deltaSec`.
 3. Accumula `gameTimeSec += deltaSec`.
-4. Aggiorna tutte le spedizioni: `for (const exp of expeditions) exp.update(deltaSec)`.
-5. Chiama `updateLocalGathering(deltaSec)`.
-6. Gestisce il ciclo giorno: quando `dayAccumulator >= dayLengthSeconds`, incrementa `gameDay`, calcola il consumo, aggiorna `gatheredDaily` e `consumedDaily`, azzera i contatori giornalieri (settlement e celle).
-7. Aggiorna i pannelli: `updateInfoText()`, `updateSpeedText()`, `updateSettlementText()`, `updateLocalWorkerPanel()`.
-8. Ridisegna: `drawGrid()`, `drawSelectedCell()`, `drawPops()`, `drawSettlement()`, `updateWarningIndicators()`.
+4. Ricalcola le frazioni urbanizzate se la popolazione è cambiata: confronta `getSettlementPopulation()` con `lastSettlementPopulation` e, se diversa, chiama `updateUrbanizedFractions(population)`.
+5. Aggiorna tutte le spedizioni: `for (const exp of expeditions) exp.update(deltaSec)`.
+6. Chiama `updateLocalGathering(deltaSec)`.
+7. Gestisce il ciclo giorno: quando `dayAccumulator >= dayLengthSeconds`, incrementa `gameDay`, calcola il consumo, aggiorna `gatheredDaily` e `consumedDaily`, azzera i contatori giornalieri (settlement e celle).
+8. Aggiorna i pannelli: `updateInfoText()`, `updateSpeedText()`, `updateSettlementText()`, `updateLocalWorkerPanel()`.
+9. Ridisegna: `drawGrid()`, `drawSelectedCell()`, `drawPops()`, `drawSettlement()`, `updateWarningIndicators()`.
 
 ### enableDebugClick(scene)
 
@@ -2960,7 +3049,7 @@ Utility per disegnare una linea tratteggiata. Usata per il percorso delle spediz
 
 ### drawSettlement()
 
-Disegna il campo (quadrato marrone con bordo) e, se `settlementSelected`, il raggio locale. Viene chiamata ogni frame.
+Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(population), settlementMinVisualRadiusPx)`) con bordo e, se `settlementSelected`, un anello di selezione giallo e il raggio locale effettivo (cerchio giallo semitrasparente di raggio `getEffectiveLocalGatherRadiusPx()`). Viene chiamata ogni frame.
 
 **Nota**: l'etichetta testuale "SETTLEMENT" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
 
@@ -2983,10 +3072,11 @@ Gestisce i testi sopra le celle con lavoratori assegnati. Viene chiamata solo qu
 
 Esegue la raccolta locale ogni frame.
 
-1. Calcola il raggio locale con `getLocalGatherRadiusPx()`.
+1. Calcola il raggio locale effettivo con `getEffectiveLocalGatherRadiusPx()` (1.5h di cammino dal bordo del settlement).
 2. Itera su tutte le celle della griglia.
-3. Per ogni cella con `assignedWorkers > 0` e distanza dal campo <= raggio:
-   - Se `density > 0`, raccoglie: `gathered = assignedWorkers * baseGatherRate * density * deltaSec`. Aggiorna `settlement.foodStock`, `settlement.foodGatheredToday`, `cell.foodGatheredToday`, chiama `reduceCellDensity`.
+3. Per ogni cella con `assignedWorkers > 0` e distanza dal campo <= raggio effettivo:
+   - Se `urbanizedFraction >= 1`: non raccoglie e logga una volta in console che i lavoratori andrebbero liberati (la logica completa di liberazione è rimandata).
+   - Se `density > 0`, raccoglie: `gathered = assignedWorkers * baseGatherRate * density * deltaSec`. Aggiorna `settlement.foodStock`, `settlement.foodGatheredToday`, `cell.foodGatheredToday`, chiama `reduceCellDensity` con `reduction = gathered * densityReductionPerFood / (1 - urbanizedFraction)`.
    - Controlla la soglia `cellWarningThreshold`: se scende sotto e `warningShown` è `false`, aggiunge la cella a `warningCells` e mostra un avviso in console. Se risale sopra, rimuove la cella da `warningCells`.
 
 La riduzione avviene **solo sulla cella esatta**, non sulle celle vicine.
@@ -3021,9 +3111,9 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 
 ## Dipendenze in uscita
 
-- `js/config.js` – per `GameConfig` (tutti i parametri usati dal rendering e dalla raccolta), `getLocalGatherRadiusPx()`, `getBaseConsumptionPerSec()` (indirettamente via `updateLocalGathering`), `getSecondsPerGameHour()` (indirettamente).
-- `js/world.js` – per `createGrid`, `initializeForageDensity`, `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `hexBoard`, `HEX_WIDTH_PX`, `HEX_HEIGHT_PX`, `GRID_COLS`, `GRID_ROWS`.
-- `js/units.js` – per `settlement`, `expeditions`, `Pop`, `Expedition`.
+- `js/config.js` – per `GameConfig` (tutti i parametri usati dal rendering e dalla raccolta), `getLocalGatherRadiusPx()`, `getSettlementRadiusPx()`, `getBaseConsumptionPerSec()` (indirettamente via `updateLocalGathering`), `getSecondsPerGameHour()` (indirettamente).
+- `js/world.js` – per `createGrid`, `initializeForageDensity`, `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `updateUrbanizedFractions`, `hexBoard`, `HEX_WIDTH_PX`, `HEX_HEIGHT_PX`, `GRID_COLS`, `GRID_ROWS`.
+- `js/units.js` – per `settlement`, `expeditions`, `Pop`, `Expedition`, `getSettlementPopulation`, `getEffectiveLocalGatherRadiusPx`.
 - `js/time.js` – per `TimeManager` (delta, velocità, pausa).
 - `js/debug.js` – per `updateLocalWorkerPanel`.
 - `Phaser.Math.Distance.Between` – per calcolo distanze.
@@ -3036,7 +3126,9 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 - `foodConsumptionPerPersonPerDay` – per il consumo.
 - `settlementX`, `settlementY` – per la posizione del campo.
 - `areaRadius` – per il raggio predefinito dell'area spedizione.
+- `settlementMinVisualRadiusPx` – per il raggio visivo minimo del cerchio del settlement.
 - `cellEvaluationInterval` – indirettamente via `units.js`.
+- Indirettamente via `getSettlementRadiusPx`/`getLocalGatherRadiusPx`: `settlementGrowthPerPerson`, `settlementMinAreaKm2`, `hoursWalkingRadius`.
 - Altri parametri indirettamente tramite funzioni di `config.js`.
 
 ## Stato globale modificato
@@ -3191,6 +3283,7 @@ Nessuno direttamente. Legge e scrive su `GameConfig` in modo generico, tramite i
   2. Aggiungere un input HTML in `debug-panel` con id `cfg-<nomeParametro>`.
   3. Il resto è automatico: `populateDebugPanel` lo troverà e lo collegherà.
 - Il pannello non gestisce valori non numerici (solo float).
+- I parametri di crescita del settlement (`settlementGrowthPerPerson`, `settlementMinAreaKm2`, `settlementMinVisualRadiusPx`, `hoursWalkingRadius`) sono già presenti nel pannello debug e vengono collegati automaticamente da `populateDebugPanel`.
 - Il pannello non ha un pulsante "Salva preset" o "Carica preset".
 - Se si modifica la logica di assegnazione lavoratori, verificare che `settlement.localGatherers`, `pop.localWorkers` e `cell.assignedWorkers` siano sempre coerenti.
 - Se si aggiunge una nuova funzione chiamata da `main.js`, dichiararla prima dei listener per evitare errori di hoisting.

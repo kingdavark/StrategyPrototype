@@ -149,13 +149,45 @@ La divisione per `(1 - urbanizedFraction)` riflette il fatto che, se un esagono 
 
 ## Urbanized fraction
 
-Ogni esagono ha un valore `urbanizedFraction` che rappresenta la frazione di area coperta da un settlement. Il calcolo avviene trattando l'esagono come un cerchio di area equivalente (raggio `R_hex_eq ≈ 1.05 * R`) e intersecandolo con il cerchio del settlement.
+Ogni esagono ha un valore `urbanizedFraction` che rappresenta la frazione di area coperta da un settlement.
 
-Risultati possibili:
+### Area del settlement
+
+Il settlement cresce in base alla popolazione totale (popolazione non assegnata + tutti i lavoratori dei Pop, inclusi quelli in spedizione):
+
+`settlementAreaKm2 = max(settlementMinAreaKm2, popolazione * settlementGrowthPerPerson)`
+
+dove:
+
+- `settlementGrowthPerPerson` = 0.001 km²/persona
+- `settlementMinAreaKm2` = 0.01 km² (garantisce una dimensione minima visibile)
+
+La forma è per ora un cerchio centrato sulla posizione del settlement:
+
+`settlementRadiusKm = sqrt(settlementAreaKm2 / π)`
+
+In futuro la forma sarà plasmata dal terreno e indirizzata dal giocatore.
+
+### Calcolo dell'urbanizedFraction
+
+Il calcolo avviene trattando l'esagono come un cerchio di area equivalente (raggio `R_hex_eq ≈ 1.05 * R`) e intersecandolo con il cerchio del settlement (raggio `settlementRadiusKm`).
+
+Per ogni esagono:
+
+- Se `d + R_hex_eq <= settlementRadiusKm`: esagono tutto dentro → `urbanizedFraction = 1`
+- Se `d >= settlementRadiusKm + R_hex_eq`: esagono tutto fuori → `urbanizedFraction = 0`
+- Se `settlementRadiusKm + d <= R_hex_eq`: settlement tutto dentro l'esagono → `urbanizedFraction = area_settlement / area_hex`
+- Altrimenti: `urbanizedFraction = overlap_area / area_hex` (formula standard di intersezione cerchio-cerchio)
+
+dove `d` è la distanza tra il centro dell'esagono e il centro del settlement.
+
+### Effetti
 
 - `urbanizedFraction = 0`: esagono completamente libero, raccolta al 100%.
 - `urbanizedFraction = 1`: esagono interamente coperto dal settlement, non raccoglibile. I lavoratori eventualmente assegnati vengono liberati con un avviso.
 - Valori intermedi: la raccolta è scalata proporzionalmente all'area libera.
+
+Il valore va ricalcolato solo quando cambia la popolazione del settlement, non ogni frame.
 
 ---
 

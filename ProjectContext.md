@@ -17,15 +17,16 @@ Prototipo di strategico 4X in tempo reale con Phaser 3.
 - Non mischiare input di stati diversi (map vs settlement).
 - La raccolta riduce solo la cella esatta, non le celle vicine.
 
-## Flusso di lavoro
+#### Flusso di lavoro
 
 1. Leggi il prompt del Game Designer.
 2. Leggi i documenti Technical degli script coinvolti e le loro sezioni "Dipendenze".
-3. Fai un brief generale delle modifiche e attendi OK.
-4. Applica le modifiche una per una, con approvazione per ciascuna.
-5. Dopo tutte le modifiche del batch, fornisci test tecnici.
-6. Aggiorna SOLO i documenti Technical, mai quelli di Game Design.
-7. Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git.
+3. Fornisci un debrief unico con: file da modificare, dipendenze toccate, effetti attesi, documenti Technical da aggiornare.
+4. Attendi una sola approvazione globale.
+5. Applica le modifiche al codice.
+6. Applica gli aggiornamenti alla documentazione Technical.
+7. Fornisci i test tecnici complessivi.
+8. Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git.
 
 ## Regole
 

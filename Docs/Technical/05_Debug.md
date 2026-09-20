@@ -126,6 +126,7 @@ Nessuno direttamente. Legge e scrive su `GameConfig` in modo generico, tramite i
   2. Aggiungere un input HTML in `debug-panel` con id `cfg-<nomeParametro>`.
   3. Il resto è automatico: `populateDebugPanel` lo troverà e lo collegherà.
 - Il pannello non gestisce valori non numerici (solo float).
+- I parametri di crescita del settlement (`settlementGrowthPerPerson`, `settlementMinAreaKm2`, `settlementMinVisualRadiusPx`, `hoursWalkingRadius`) sono già presenti nel pannello debug e vengono collegati automaticamente da `populateDebugPanel`.
 - Il pannello non ha un pulsante "Salva preset" o "Carica preset".
 - Se si modifica la logica di assegnazione lavoratori, verificare che `settlement.localGatherers`, `pop.localWorkers` e `cell.assignedWorkers` siano sempre coerenti.
 - Se si aggiunge una nuova funzione chiamata da `main.js`, dichiararla prima dei listener per evitare errori di hoisting.

@@ -76,6 +76,14 @@ Stati:
 
 ## Funzioni e metodi principali
 
+### getSettlementPopulation()
+
+Restituisce la popolazione totale del settlement: `settlement.unassignedPopulation + somma(pop.totalWorkers)` per tutti i Pop. Include lavoratori locali e in spedizione.
+
+### getEffectiveLocalGatherRadiusPx()
+
+Restituisce il raggio locale effettivo in pixel: `getSettlementRadiusPx(getSettlementPopulation()) + getLocalGatherRadiusPx()`. Il raggio parte dal bordo del settlement (1.5 ore di cammino).
+
 ### Pop.addWorkers(count)
 
 Incrementa `totalWorkers` e `availableWorkers` di `count`. Usato quando si converte popolazione non assegnata in gatherer. Non restituisce nulla.
@@ -90,7 +98,7 @@ Sposta `count` lavoratori da `assignedWorkers` a `availableWorkers`. Usato al ri
 
 ### Expedition.cellScore(cx, cy)
 
-Calcola il punteggio di una cella in base a densità e distanza dalla posizione corrente della spedizione. Formula: `density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`. Restituisce `-Infinity` se la densità è 0. Usato da `findBetterCell` e `findBestCellInArea`.
+Calcola il punteggio di una cella in base a densità e distanza dalla posizione corrente della spedizione. Formula: `density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`. Restituisce `-Infinity` se la densità è 0 o se la cella è totalmente urbanizzata (`urbanizedFraction >= 1`). Usato da `findBetterCell` e `findBestCellInArea`.
 
 ### Expedition.findBetterCell()
 
@@ -98,11 +106,13 @@ Cerca la cella con il punteggio migliore attorno alla posizione corrente della s
 
 ### Expedition.findBestCellInArea(fromX, fromY)
 
-Cerca la cella con il punteggio migliore all'interno del cerchio definito da `areaCenter` e `areaRadius`. Testa la distanza dal centro dell'area con `Phaser.Math.Distance.Between`. Usata in modalità area assegnata (`useAssignedArea = true`). Restituisce `{ cx, cy, score }`.
+Cerca la cella con il punteggio migliore all'interno del cerchio definito da `areaCenter` e `areaRadius`. Testa la distanza dal centro dell'area con `Phaser.Math.Distance.Between`. Salta le celle totalmente urbanizzate (`urbanizedFraction >= 1`). Usata in modalità area assegnata (`useAssignedArea = true`). Restituisce `{ cx, cy, score }`.
 
 ### Expedition.update(delta)
 
 Gestisce il comportamento della spedizione in base allo stato corrente. Consuma provviste, si muove, raccoglie, rientra, riposa e riparte. È il cuore della logica delle spedizioni.
+
+Durante la raccolta: se la cella corrente è totalmente urbanizzata (`urbanizedFraction >= 1`) la spedizione non raccoglie e cerca un'altra cella (o rientra); altrimenti la riduzione della densità è scalata per l'area libera: `densityReduction = gatherRate * densityReductionPerFood / (1 - urbanizedFraction)`.
 
 Il comportamento dettagliato per ciascuno stato è descritto nel documento di Game Design `Docs/GameDesign/04_Spedizioni.md`.
 
@@ -114,7 +124,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 
 ## Dipendenze in uscita
 
-- `js/config.js` – per `GameConfig` (tutti i parametri usati dalle spedizioni), `getExpeditionSpeed()`, `getProvisionsNeeded()`, `getRestDuration()`, `getTravelConsumptionPerSec()`, `getGatheringConsumptionPerSec()`.
+- `js/config.js` – per `GameConfig` (tutti i parametri usati dalle spedizioni), `getExpeditionSpeed()`, `getProvisionsNeeded()`, `getRestDuration()`, `getTravelConsumptionPerSec()`, `getGatheringConsumptionPerSec()`, `getSettlementRadiusPx()`, `getLocalGatherRadiusPx()` (per `getEffectiveLocalGatherRadiusPx()`).
 - `js/world.js` – per `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `HEX_VERTICAL_SPACING_PX`, `GRID_COLS`, `GRID_ROWS`.
 - `Phaser.Math.Distance.Between` – per il calcolo delle distanze.
 
@@ -131,7 +141,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 - `cellEvaluationInterval` – intervallo di valutazione cambio cella.
 - `baseGatherRate`, `densityReductionPerFood` – per la raccolta.
 
-Indirettamente, tramite le funzioni di `config.js`: `dayLengthSeconds`, `walkingSpeedKmh`, `pixelsPerKm`, `hexCenterDistanceKm`, `travelConsumptionMultiplier`, `gatheringConsumptionMultiplier`, `safetyMultiplier`, `restMultiplier`.
+Indirettamente, tramite le funzioni di `config.js`: `dayLengthSeconds`, `walkingSpeedKmh`, `pixelsPerKm`, `hexCenterDistanceKm`, `travelConsumptionMultiplier`, `gatheringConsumptionMultiplier`, `safetyMultiplier`, `restMultiplier`, `settlementGrowthPerPerson`, `settlementMinAreaKm2`, `hoursWalkingRadius` (via `getSettlementRadiusPx` e `getLocalGatherRadiusPx`).
 
 ## Stato globale modificato
 

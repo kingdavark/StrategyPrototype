@@ -40,7 +40,7 @@ Questo documento raccoglie i concetti condivisi tra tutti i sistemi di gioco. Se
 ### Expedition (Spedizione)
 
 - Un gruppo mobile di lavoratori prelevati da un Pop.
-- Ha uno stato (`travellingToArea`, `gathering`, `returningToCamp`, `resting`, `movingToCell`).
+- Ha uno stato (`travellingToArea`, `gathering`, `returningToSettlement`, `resting`, `movingToCell`).
 - Ha un inventario con cibo raccolto e provviste.
 - Può avere un'area di raccolta assegnata o vagare liberamente (modalità automatica).
 - Consuma provviste durante il viaggio e la raccolta.
