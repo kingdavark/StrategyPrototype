@@ -81,7 +81,7 @@ Attiva i listener di input sulla scena. Gestisce click sinistro (selezione) e cl
 **Click destro**:
 
 1. Se c'è una spedizione selezionata: aggiorna la sua area di raccolta e la fa ripartire.
-2. Altrimenti (con campo o spedizione selezionata): crea una nuova spedizione manuale verso il punto cliccato.
+2. Altrimenti (con campo o spedizione selezionata): crea una nuova spedizione manuale verso il punto cliccato. I lavoratori vengono prelevati prima dai gatherer disponibili (`pop.availableWorkers`) e, se non bastano, dalla popolazione non assegnata (convertita in gatherer).
 
 **Scorciatoie da tastiera**:
 
@@ -204,7 +204,7 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 
 ## Dipendenze in uscita
 
-- `js/config.js` – per `GameConfig` (tutti i parametri usati dal rendering e dalla raccolta), `getLocalGatherRadiusPx()`, `getSettlementRadiusPx()`, `getBaseConsumptionPerSec()` (indirettamente via `updateLocalGathering`), `getSecondsPerGameHour()` (indirettamente).
+- `js/config.js` – per `GameConfig` (tutti i parametri usati dal rendering e dalla raccolta), `getLocalGatherRadiusPx()`, `getSettlementRadiusPx()`, `getDistanceKm()`, `getProvisionsNeeded()`, `getBaseConsumptionPerSec()` (indirettamente via `updateLocalGathering`), `getSecondsPerGameHour()` (indirettamente).
 - `js/world.js` – per `createGrid`, `initializeForageDensity`, `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `updateUrbanizedFractions`, `hexBoard`, `HEX_WIDTH_PX`, `HEX_HEIGHT_PX`, `GRID_COLS`, `GRID_ROWS`.
 - `js/units.js` – per `settlement`, `expeditions`, `Pop`, `Expedition`, `getSettlementPopulation`, `getEffectiveLocalGatherRadiusPx`.
 - `js/time.js` – per `TimeManager` (delta, velocità, pausa).

@@ -3,7 +3,7 @@
 const GameConfig = {
     // --- Day cycle ---
     dayLengthSeconds: 10,                    // real seconds per game day
-    foodConsumptionPerPersonPerDay: 0.01,   // base food per person per day
+    foodConsumptionPerPersonPerDay: 1,   // base food per person per day
 
     // --- Gathering ---
     baseGatherRate: 0.2,                    // food per second per worker at density 1.0
@@ -22,7 +22,7 @@ const GameConfig = {
 
     // --- Provisions & rest ---
     safetyMultiplier: 1.25,                  // safety margin for provisions
-    restMultiplier: 0.5,                    // rest time as proportion of trip duration
+    restMultiplier: 0.15,                    // rest time as proportion of trip duration
 
     // --- Capacity ---
     maxCapacityPerWorker: 1,                // inventory slots per worker (food + provisions)
@@ -32,7 +32,7 @@ const GameConfig = {
     cellAbandonThreshold: 0.2,
     cellSwitchScoreThreshold: 1.1,
     cellScoreDensityWeight: 100,
-    cellScoreDistanceWeight: 0.2,
+    cellScoreDistanceWeight: 4,            // points per km (not per pixel)
     cellEvaluationInterval: 1.0,
 
     // --- Starting values ---
@@ -96,6 +96,11 @@ function getPixelsPerKm() {
     return GameConfig.pixelsPerKm;
 }
 
+// Convert a pixel distance to kilometers
+function getDistanceKm(pixelDist) {
+    return pixelDist / GameConfig.pixelsPerKm;
+}
+
 // Hexagon radius (vertex to center) in pixels
 function getHexRadiusPx() {
     return (GameConfig.hexCenterDistanceKm / Math.sqrt(3)) * GameConfig.pixelsPerKm;
@@ -118,9 +123,10 @@ function getGatheringConsumptionPerSec() {
     return getBaseConsumptionPerSec() * GameConfig.gatheringConsumptionMultiplier;
 }
 
-// Needed provisions for a given worker count and one-way distance (pixels)
-function getProvisionsNeeded(workerCount, distance) {
-    const travelTime = (distance / getExpeditionSpeed()) * 2; // round trip
+// Needed provisions for a given worker count and one-way distance (km)
+function getProvisionsNeeded(workerCount, distanceKm) {
+    const distancePx = distanceKm * GameConfig.pixelsPerKm;
+    const travelTime = (distancePx / getExpeditionSpeed()) * 2; // round trip
     return workerCount * getTravelConsumptionPerSec() * travelTime * GameConfig.safetyMultiplier;
 }
 

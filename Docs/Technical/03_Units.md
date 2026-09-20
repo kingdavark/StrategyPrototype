@@ -99,7 +99,7 @@ Sposta `count` lavoratori da `assignedWorkers` a `availableWorkers`. Usato al ri
 
 ### Expedition.cellScore(cx, cy)
 
-Calcola il punteggio di una cella in base a densità e distanza dalla posizione corrente della spedizione. Formula: `density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`. Restituisce `-Infinity` se la densità è 0 o se la cella è totalmente urbanizzata (`urbanizedFraction >= 1`). Usato da `findBetterCell` e `findBestCellInArea`.
+Calcola il punteggio di una cella in base a densità e distanza dalla posizione corrente della spedizione. Formula: `density * cellScoreDensityWeight - distanceKm * cellScoreDistanceWeight`, dove `distanceKm = getDistanceKm(distanza in pixel dalla posizione corrente al centro della cella)`. Restituisce `-Infinity` se la densità è 0 o se la cella è totalmente urbanizzata (`urbanizedFraction >= 1`). Usato da `findBetterCell` e `findBestCellInArea`.
 
 ### Expedition.findBetterCell()
 
@@ -113,7 +113,7 @@ Cerca la cella con il punteggio migliore all'interno del cerchio definito da `ar
 
 Gestisce il comportamento della spedizione in base allo stato corrente. Consuma provviste, si muove, raccoglie, rientra, riposa e riparte. È il cuore della logica delle spedizioni.
 
-Durante la raccolta: se la cella corrente è totalmente urbanizzata (`urbanizedFraction >= 1`) la spedizione non raccoglie e cerca un'altra cella (o rientra); altrimenti la riduzione della densità è scalata per l'area libera: `densityReduction = gatherRate * densityReductionPerFood / (1 - urbanizedFraction)`.
+Durante la raccolta il consumo usa prima le provviste e, quando queste sono esaurite, il cibo raccolto. La spedizione rientra se una di queste condizioni è vera: (a) inventario pieno (`provisions + food >= maxCapacity`); (b) riserve insufficienti per il viaggio di ritorno (`provisions + food <= sogliaRitorno`, dove `sogliaRitorno = workerCount * travelConsumptionPerSec * (distanza attuale dal settlement / getExpeditionSpeed())`, senza margine di sicurezza); (c) tasso netto non conveniente (`baseGatherRate * density <= getGatheringConsumptionPerSec()`, ricalcolato ogni tick). Se la cella corrente è totalmente urbanizzata (`urbanizedFraction >= 1`) la spedizione non raccoglie e cerca un'altra cella (o rientra); la riduzione della densità è scalata per l'area libera: `densityReduction = gatherRate * densityReductionPerFood / (1 - urbanizedFraction)`.
 
 Il comportamento dettagliato per ciascuno stato è descritto nel documento di Game Design `Docs/GameDesign/04_Spedizioni.md`.
 
@@ -125,7 +125,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 
 ## Dipendenze in uscita
 
-- `js/config.js` – per `GameConfig` (tutti i parametri usati dalle spedizioni), `getExpeditionSpeed()`, `getProvisionsNeeded()`, `getRestDuration()`, `getTravelConsumptionPerSec()`, `getGatheringConsumptionPerSec()`, `getSettlementRadiusPx()`, `getLocalGatherRadiusPx()` (per `getEffectiveLocalGatherRadiusPx()`).
+- `js/config.js` – per `GameConfig` (tutti i parametri usati dalle spedizioni), `getExpeditionSpeed()`, `getProvisionsNeeded()`, `getDistanceKm()`, `getRestDuration()`, `getTravelConsumptionPerSec()`, `getGatheringConsumptionPerSec()`, `getSettlementRadiusPx()`, `getLocalGatherRadiusPx()` (per `getEffectiveLocalGatherRadiusPx()`).
 - `js/world.js` – per `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `HEX_VERTICAL_SPACING_PX`, `GRID_COLS`, `GRID_ROWS`.
 - `Phaser.Math.Distance.Between` – per il calcolo delle distanze.
 
@@ -138,7 +138,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 - `areaRadius` – raggio predefinito dell'area di raccolta.
 - `cellAbandonThreshold` – soglia di densità per abbandonare una cella.
 - `cellSwitchScoreThreshold` – soglia di cambio cella.
-- `cellScoreDensityWeight`, `cellScoreDistanceWeight` – pesi del punteggio cella.
+- `cellScoreDensityWeight`, `cellScoreDistanceWeight` – pesi del punteggio cella (`cellScoreDistanceWeight` è in punti/km).
 - `cellEvaluationInterval` – intervallo di valutazione cambio cella.
 - `baseGatherRate`, `densityReductionPerFood` – per la raccolta.
 

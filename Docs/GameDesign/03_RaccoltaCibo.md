@@ -78,7 +78,18 @@ Formula:
 
 `provisionsNeeded = workerCount * travelConsumptionPerSec * (distance / expeditionSpeed * 2) * safetyMultiplier`
 
-Il limite principale è la capacità di carico: se le provviste calcolate superano la capacità massima, la spedizione parte con meno provviste e tornerà prima.
+Il limite principale è la capacità di carico: se le provviste calcolate superano la capacità massima, la spedizione parte con meno provviste e tornerà prima.Le provviste assegnate a una spedizione non sono un numero fisso, ma vengono calcolate alla partenza e a ogni ripartenza. Il calcolo considera:
+
+- Distanza da percorrere (andata e ritorno)
+- Velocità di spostamento della spedizione
+- Numero di lavoratori
+- Margine di sicurezza per imprevisti
+
+Formula:
+
+`provisionsNeeded = workerCount * travelConsumptionPerSec * (distance_km * 2 / expeditionSpeed) * safetyMultiplier`
+
+Nota: il `safetyMultiplier` si applica SOLO al budget iniziale di partenza, non alla soglia di ritorno. Durante la raccolta, la spedizione può consumare anche il cibo raccolto come riserva (vedi `04_Spedizioni.md`, sezione "Ritorno"). La soglia di ritorno è calcolata sul costo puro del viaggio, senza margine di sicurezza.
 
 ---
 

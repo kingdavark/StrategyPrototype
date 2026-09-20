@@ -208,7 +208,7 @@ Bug ancora aperto: spedizione non va in una cella all'interno dell'area assegnat
 
 ### DA IMPLEMENTARE
 
-- [ ] **Campo proporzionale a popolazione e scala**
+- [x] **Campo proporzionale a popolazione e scala**
 
 - La dimensione del campo (raggio visivo) dipende da popolazione totale e da cellSizeInKm.
 
@@ -260,48 +260,54 @@ Al termine di MVP1 avremo un loop di sopravvivenza funzionante:
 
 Da riorganizzare e rip rioritizzare in base a quello che ha senso e non è troppo complicato:
 
-1. Tool per disegnare la mappa (apporre foreste, pesci, gathering food ecc. con dei pennelli) [è forse troppo presto].
+Lista 1 (Secondo me prioritari prima di MVP2)
 
-2. Moltiplicatore provisions (dare + o – provisions alle spedizioni).
+1. Non abbiamo minimamente lavorato sulla tipologia del terreno (montagna, acqua, acqua profonda, collina, pianura) e le caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque, le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Implementiamo già diversi layer di visualizzazione (terreno, cibo, risorse varie ecc.)? Non esiste che ci siano celle vuote...
 
-3. Consumo di cibo, provisions, velocità ed efficacia spedizione in base a chi la compone (uomini, donne ecc.).
+2. Tool per disegnare la mappa (apporre foreste, pesci, gathering food ecc. con dei pennelli) [è forse troppo presto].
 
-4. Calcolo stanchezza e felicità per spedizioni (che non si annulli quando sono eliminate).
+3. Creazione di algoritmo per creazione foreste e cibo (fertilità) in base a tipologia terreno delle celle [anche questo forse da vedere più avanti] e di quelle confinanti (corsi d'acqua ecc.).
 
-5. Alternanza notte giorno (le spedizioni si fermano di notte)?
+4. Possibilità di zoom e di muoversi lungo la mappa
 
-6. Creazione di algoritmo per creazione foreste e cibo in base a tipologia terreno delle celle [anche questo forse da vedere più avanti].
+5. Rigenerazione e "fertilità" celle sulla base anche del terreno.
 
-7. Non abbiamo minimamente lavorato sulla tipologia del terreno (montagna, acqua, acqua profonda, collina, pianura) e le caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque, le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
+6. Countdown per tempo a riposo per le spedizioni a riposo
 
-8. Countdown per tempo a riposo per le spedizioni a riposo
+7. Riordinare variabili config in menu debug, suddividendoli per categoria e mettendoli in ordine alfabetico
 
-9. Spedizioni multi-pop con dinamiche di coesione interna (es. conflitti o collaborazioni tra individui di etnie/religioni diverse nello stesso gruppo).
+8. Giocatore seleziona manualmente il numero di pop da mandare in spedizione (con anche tasti rapidi di scelta).
 
-10. Campo base che si sposta fisicamente sulla mappa durante le migrazioni o il nomadismo, e conseguente aggiornamento del punto di ritorno per le spedizioni attive.
+9. Aggiungere crescita demografica: più cibo c'è, più la popolazione cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione finisce scorte, iniziano a morire o a consumare cibo raccolto.
 
-11. Rotazione automatica delle aree di raccolta da parte delle spedizioni, per evitare l'impoverimento permanente di una singola zona (comportamento di raccolta più conservativo e sostenibile).
+10. Poter rimuovere pops già assegnati (da gatherers in spedizione poterli o togliere dal pops gatherers spedizioni per altro o almeno per usarli a livello local)
 
-12. Algoritmo di raccolta con priorità alle celle a media densità (es. 0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
+Lista 2 (Magari da introdurre dopo MVP 4 [cioè più fonti di cibo e risorse da usare])
 
-13. Rigenerazione e "fertilità" celle sulla base anche del terreno.
+1. Moltiplicatore provisions (dare + o – provisions alle spedizioni).
 
-14. Meccaniche di frizione/resistenza al cambio di pop della popolazione (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso, tipo uomini giovani infelici se assegnati a gathering perché disonorevole). Da capire come fare distinzione popolazione per sesso ma soprattutto per età senza dover monitorare ogni singolo abitante.
+2. Consumo di cibo, provisions, velocità ed efficacia spedizione in base a chi la compone (uomini, donne ecc.).
 
-15. Icone diverse per tipologia di pop con di fianco barre informative (tipo provviste o che).
+3. Calcolo stanchezza e felicità per spedizioni (che non si annulli quando sono eliminate).
 
-16. Giocatore seleziona manualmente il numero di pop da mandare in spedizione (con anche tasti rapidi di scelta).
+4. Campo base che si sposta fisicamente sulla mappa durante le migrazioni o il nomadismo, e conseguente aggiornamento del punto di ritorno per le spedizioni attive.
 
-17. Aggiungere crescita demografica: più cibo c'è, più la popolazione cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione finisce scorte, iniziano a morire o a consumare cibo raccolto.
+5. Ragionare sull'acqua come risorsa necessarie per la sopravvivenza come il cibo
 
-18. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno di partenza e con che tecnologie? In quanti anni arrivare a creare una città, in modo che il gioco non risulti troppo lento e noioso all'inizio (ma senza nemmeno fare come civilization che dura questa età come una roba da 10 minuti). Vogliamo fare che in realtà è un gruppo di superstiti che riparte e recupera le tecnologie già apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo andare sul lungo termine come civilization 4 cavemen to cosmos e quindi comunque rendere intriganti le meccaniche di sopravvivenza della tribù (e praticamente fare solo un gioco su questo, magari come primo titolo di una serie).
+Lista 3 (A lungo termine)
 
-19. Ragionare sull'acqua.
+1. a ragionare: in che contesto siamo, quale è la narrativa? Che anno di partenza e con che tecnologie? In quanti anni arrivare a creare una città, in modo che il gioco non risulti troppo lento e noioso all'inizio (ma senza nemmeno fare come civilization che dura questa età come una roba da 10 minuti). Vogliamo fare che in realtà è un gruppo di superstiti che riparte e recupera le tecnologie già apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo andare sul lungo termine come civilization 4 cavemen to cosmos e quindi comunque rendere intriganti le meccaniche di sopravvivenza della tribù (e praticamente fare solo un gioco su questo, magari come primo titolo di una serie).
 
-20. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e unità e meccaniche intorno e link di timeline del progresso (wiki e altri link se funzionano).
+2. Alternanza notte giorno (le spedizioni si fermano di notte)?
 
-21. Aggiungere caricamento JSON da Excel per impostare i valori in config.
+3. Spedizioni multi-pop con dinamiche di coesione interna (es. conflitti o collaborazioni tra individui di etnie/religioni diverse nello stesso gruppo).
 
-22. Creare script per simulazioni montecarlo. Da simulare in montecarlo il cambio cella e la quantità di provviste da prendere, ma magari non deve sempre essere perfetto ma dipendere dall'esperienza (dei singoli, della civiltà/città/comunità, del livello tecnologico?).
+4. Meccaniche di frizione/resistenza al cambio di pop della popolazione (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso, tipo uomini giovani infelici se assegnati a gathering perché disonorevole). Da capire come fare distinzione popolazione per sesso ma soprattutto per età senza dover monitorare ogni singolo abitante.
 
-23. Tooltip su valori in debug
+5. Icone diverse per tipologia di pop con di fianco barre informative (tipo provviste o che).
+
+6. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e unità e meccaniche intorno e link di timeline del progresso (wiki e altri link se funzionano).
+
+7. Aggiungere caricamento JSON da Excel per impostare i valori in config.
+
+8. Creare script per simulazioni montecarlo. Da simulare in montecarlo il cambio cella e la quantità di provviste da prendere, ma magari non deve sempre essere perfetto ma dipendere dall'esperienza (dei singoli, della civiltà/città/comunità, del livello tecnologico?).

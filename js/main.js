@@ -192,24 +192,24 @@ function enableDebugClick(scene) {
             settlement.pops.push(pop);
         }
 
-        // Determine how many workers to take (priority: unassigned, then available gatherers)
-        let workersToTake = 0;
-        if (settlement.unassignedPopulation > 0) {
-            // Move unassigned to gatherers, then take them
-            const moveCount = Math.min(GameConfig.startingExpeditionWorkers, settlement.unassignedPopulation);
-            settlement.unassignedPopulation -= moveCount;
-            pop.addWorkers(moveCount);
-            workersToTake = moveCount;
-        } else if (pop.availableWorkers > 0) {
-            workersToTake = Math.min(GameConfig.startingExpeditionWorkers, pop.availableWorkers);
-        } else {
+        // Take workers: first from available gatherers, then from unassigned population
+        let taken = pop.takeWorkers(GameConfig.startingExpeditionWorkers);
+
+        // If available gatherers are not enough, convert unassigned population into gatherers
+        if (taken < GameConfig.startingExpeditionWorkers) {
+            const remaining = GameConfig.startingExpeditionWorkers - taken;
+            const moveCount = Math.min(remaining, settlement.unassignedPopulation);
+            if (moveCount > 0) {
+                settlement.unassignedPopulation -= moveCount;
+                pop.addWorkers(moveCount);
+                taken += pop.takeWorkers(moveCount);
+            }
+        }
+
+        if (taken === 0) {
             console.log('No available workers.');
             return;
         }
-
-        // Take the workers (will deduct from available)
-        const taken = pop.takeWorkers(workersToTake);
-        if (taken === 0) return;
 
         // Determine if forced (Shift held during right-click)
         const forced = pointer.event.shiftKey;
@@ -222,7 +222,7 @@ function enableDebugClick(scene) {
 
         // Give provisions from settlement stock, respecting inventory capacity
         const dist = Phaser.Math.Distance.Between(settlement.x, settlement.y, pointer.x, pointer.y);
-        const needed = getProvisionsNeeded(taken, dist);
+        const needed = getProvisionsNeeded(taken, getDistanceKm(dist));
         // Cannot exceed settlement food, nor the expedition's max capacity
         const given = Math.min(needed, settlement.foodStock, exp.maxCapacity);
         exp.inventory.provisions = given;

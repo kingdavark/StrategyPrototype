@@ -85,8 +85,9 @@ class Expedition {
         const density = cell.forageDensity;
         if (density <= 0) return -Infinity;
         const center = cellToWorld(cx, cy);
-        const dist = Phaser.Math.Distance.Between(this.x, this.y, center.x, center.y);
-        return density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
+        const distPx = Phaser.Math.Distance.Between(this.x, this.y, center.x, center.y);
+        const distKm = getDistanceKm(distPx);
+        return density * GameConfig.cellScoreDensityWeight - distKm * GameConfig.cellScoreDistanceWeight;
     }
 
     findBetterCell() {
@@ -137,7 +138,8 @@ class Expedition {
                     const distFromAreaCenter = Phaser.Math.Distance.Between(this.areaCenter.x, this.areaCenter.y, center.x, center.y);
                     if (distFromAreaCenter > this.areaRadius) continue;
                     const dist = Phaser.Math.Distance.Between(fromX, fromY, center.x, center.y);
-                    const score = density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
+                    const distKm = getDistanceKm(dist);
+                    const score = density * GameConfig.cellScoreDensityWeight - distKm * GameConfig.cellScoreDistanceWeight;
                     if (score > bestScore) {
                         bestScore = score;
                         bestCx = cx;
@@ -189,7 +191,7 @@ class Expedition {
                 }
 
                 if (targetFound) {
-                    const needed = getProvisionsNeeded(this.workerCount, targetDist);
+                    const needed = getProvisionsNeeded(this.workerCount, getDistanceKm(targetDist));
                     const taken = Math.min(needed, this.settlementRef.foodStock, this.maxCapacity);
                     this.inventory.provisions = taken;
                     this.settlementRef.foodStock -= taken;
@@ -279,17 +281,46 @@ class Expedition {
 
         // --- GATHERING ---
         if (this.state === 'gathering') {
+            // Gathering consumption: provisions first, then food when provisions run out
             const consumed = this.workerCount * getGatheringConsumptionPerSec() * delta;
-            this.inventory.provisions -= consumed;
-            if (!this.isForced && this.inventory.provisions <= 0) {
-                this.inventory.provisions = 0;
+            if (this.inventory.provisions > 0) {
+                this.inventory.provisions -= consumed;
+                if (this.inventory.provisions < 0) {
+                    this.inventory.food += this.inventory.provisions; // overflow into food
+                    this.inventory.provisions = 0;
+                }
+            } else {
+                this.inventory.food -= consumed;
+            }
+            if (this.inventory.food < 0) this.inventory.food = 0;
+
+            // Current cell (used for return conditions and gathering)
+            const cell = worldToCell(this.x, this.y);
+            const cellData = getCell(cell.cx, cell.cy);
+            const density = cellData ? cellData.forageDensity : 0;
+            const urbanized = cellData ? (cellData.urbanizedFraction || 0) : 0;
+
+            // Return conditions (any is sufficient)
+            // a. Inventory full
+            if (this.inventory.food + this.inventory.provisions >= this.maxCapacity) {
                 this.targetX = this.settlementRef.x;
                 this.targetY = this.settlementRef.y;
                 this.state = 'returningToSettlement';
                 return;
             }
-
-            if (this.inventory.food + this.inventory.provisions >= this.maxCapacity) {
+            // b. Insufficient reserves for the return trip (no safety margin)
+            if (!this.isForced) {
+                const distToSettlement = Phaser.Math.Distance.Between(this.x, this.y, this.settlementRef.x, this.settlementRef.y);
+                const returnThreshold = this.workerCount * getTravelConsumptionPerSec() * (distToSettlement / getExpeditionSpeed());
+                if (this.inventory.food + this.inventory.provisions <= returnThreshold) {
+                    this.targetX = this.settlementRef.x;
+                    this.targetY = this.settlementRef.y;
+                    this.state = 'returningToSettlement';
+                    return;
+                }
+            }
+            // c. Net gather rate not convenient (re-evaluated every tick because density changes)
+            if (density > 0 && GameConfig.baseGatherRate * density <= getGatheringConsumptionPerSec()) {
                 this.targetX = this.settlementRef.x;
                 this.targetY = this.settlementRef.y;
                 this.state = 'returningToSettlement';
@@ -319,10 +350,6 @@ class Expedition {
                 }
             }
 
-            const cell = worldToCell(this.x, this.y);
-            const cellData = getCell(cell.cx, cell.cy);
-            const density = cellData ? cellData.forageDensity : 0;
-            const urbanized = cellData ? (cellData.urbanizedFraction || 0) : 0;
             if (density > 0 && urbanized < 1) {
                 const gatherRate = GameConfig.baseGatherRate * density * delta * this.workerCount;
                 this.inventory.food += gatherRate;

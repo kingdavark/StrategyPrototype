@@ -20,6 +20,10 @@ Restituisce `foodConsumptionPerPersonPerDay / dayLengthSeconds`, cioè il consum
 
 Restituisce `GameConfig.pixelsPerKm`, cioè quanti pixel rappresentano un chilometro reale. Serve per convertire distanze in pixel in distanze reali (km) e viceversa.
 
+### getDistanceKm(pixelDist)
+
+Restituisce `pixelDist / pixelsPerKm`, cioè converte una distanza in pixel nella distanza equivalente in chilometri. Usata per calcolare le distanze in km (es. `cellScore`, `getProvisionsNeeded`).
+
 ### getHexRadiusPx()
 
 Restituisce `(hexCenterDistanceKm / √3) * pixelsPerKm`, cioè il raggio dell'esagono (distanza vertice-centro) in pixel. È la base geometrica usata da `world.js` per costruire la griglia esagonale.
@@ -36,9 +40,9 @@ Restituisce `getBaseConsumptionPerSec() * travelConsumptionMultiplier`, cioè il
 
 Restituisce `getBaseConsumptionPerSec() * gatheringConsumptionMultiplier`, cioè il consumo di provviste per lavoratore per secondo reale durante la raccolta. È maggiore del consumo in viaggio perché lo sforzo fisico è superiore.
 
-### getProvisionsNeeded(workerCount, distance)
+### getProvisionsNeeded(workerCount, distanceKm)
 
-Restituisce le provviste necessarie per una spedizione con `workerCount` lavoratori e una distanza `distance` (in pixel, andata). Formula: `workerCount * getTravelConsumptionPerSec() * (distance / getExpeditionSpeed() * 2) * safetyMultiplier`. Il `* 2` considera andata e ritorno. Il `safetyMultiplier` aggiunge un margine per raccolta e imprevisti.
+Restituisce le provviste necessarie per una spedizione con `workerCount` lavoratori e una distanza `distanceKm` (in km, andata). Internamente converte in pixel (`distanceKm * pixelsPerKm`) prima di calcolare il tempo. Formula: `workerCount * getTravelConsumptionPerSec() * (distanceKm * pixelsPerKm / getExpeditionSpeed() * 2) * safetyMultiplier`. Il `* 2` considera andata e ritorno. Il `safetyMultiplier` aggiunge un margine per raccolta e imprevisti.
 
 ### getRestDuration(tripDurationSec)
 
@@ -128,8 +132,8 @@ Ogni parametro è modificabile a runtime tramite la console o il pannello di deb
 - **`cellScoreDensityWeight`** (default `100`)  
   Peso della densità nel calcolo del punteggio di una cella. Un valore più alto rende la densità dominante rispetto alla distanza.
 
-- **`cellScoreDistanceWeight`** (default `0.2`)  
-  Peso della distanza nel calcolo del punteggio di una cella. Un valore più alto rende la vicinanza più importante.
+- **`cellScoreDistanceWeight`** (default `4`)  
+  Peso della distanza nel calcolo del punteggio di una cella, espresso in **punti per km** (non per pixel). Un valore più alto rende la vicinanza più importante.
 
 - **`cellEvaluationInterval`** (default `1.0`)  
   Intervallo in secondi tra le valutazioni di cambio cella durante la raccolta. Un valore più basso rende le spedizioni più reattive a cambiare cella, ma consuma più calcoli.

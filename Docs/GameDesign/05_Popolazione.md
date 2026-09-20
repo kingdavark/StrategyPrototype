@@ -55,11 +55,11 @@ Se le scorte arrivano a zero, per ora viene mostrato solo un avviso. In futuro c
 
 Quando viene creata una spedizione, i lavoratori vengono presi in questo ordine:
 
-1. Dalla popolazione non assegnata (`camp.unassignedPopulation`), che viene prima convertita nel Pop `gatherer` e poi assegnata alla spedizione.
+1. Dai lavoratori disponibili del Pop `gatherer` (`availableWorkers`).
 
-2. Dai lavoratori disponibili del Pop `gatherer` (`availableWorkers`).
+2. Dalla popolazione non assegnata (`camp.unassignedPopulation`), che viene prima convertita nel Pop `gatherer` e poi assegnata alla spedizione.
 
-Se non ci sono lavoratori disponibili, la spedizione non viene creata.
+Se non ci sono lavoratori disponibili in nessuno dei due pool, la spedizione non viene creata.
 
 ### Assegnazione locale
 

@@ -60,24 +60,50 @@ Una spedizione è un'entità mobile sulla mappa, creata prelevando un certo nume
 ### Raccolta
 
 - Arrivata all'area, la spedizione individua l'esagono con `forageDensity` più alta entro il raggio dell'area.
-- Inizia a raccogliere da quell'esagono.
-- Quando la densità dell'esagono corrente scende sotto la soglia di abbandono (`cellAbandonThreshold`), la spedizione cerca un altro esagono migliore.
-- Se trova un esagono con densità superiore alla soglia e con un punteggio migliore oltre una certa soglia di switch, si sposta.
-- Se nessun esagono supera la soglia, continua su quello corrente fino a esaurimento o fino a quando le provviste lo permettono.
-- Durante la raccolta consuma provviste:
 
-`consumoRaccolta = workers * gatheringConsumptionPerSec * deltaSec`
+- Inizia a raccogliere da quell'esagono.
+
+- Quando la densità dell'esagono corrente scende sotto la soglia di abbandono (`cellAbandonThreshold`), la spedizione cerca un altro esagono migliore.
+
+- Se trova un esagono con densità superiore alla soglia e con un punteggio migliore oltre una certa soglia di switch, si sposta.
+
+- Se nessun esagono supera la soglia, continua su quello corrente fino a esaurimento o fino a quando le provviste lo permettono.
+
+- Durante la raccolta consuma riserve. La priorità di consumo è:
+  
+  1. Prima le provviste (`provisions`).
+  2. Quando le provviste sono esaurite, il cibo raccolto (`food`).
+     Il consumo totale per tick è:
+  
+  `consumoRaccolta = workers * gatheringConsumptionPerSec * deltaSec`
+  
+  Il cibo raccolto è quindi utilizzabile come riserva durante la spedizione: la spedizione può sostenersi sul posto anche dopo aver esaurito le provviste iniziali.
 
 - Se l'esagono ha `urbanizedFraction = 1`, la spedizione non può raccogliere lì e cerca un altro esagono.
 
-### Ritorno
+###### Ritorno
 
-La spedizione torna al settlement quando:
+La spedizione torna al settlement quando UNA di queste condizioni è vera:
 
-- L'inventario è pieno (`food + provisions >= maxCapacity`).
-- Le provviste scendono sotto la soglia minima per il viaggio di ritorno (a meno che non sia forzata).
-- Il giocatore ordina il ritorno manualmente (tasto R).
-- Viene ordinata la cancellazione (tasto C).
+1. **Inventario pieno**: `inventory.provisions + inventory.food >= maxCapacity`.
+
+2. **Riserve insufficienti per tornare**: `inventory.provisions + inventory.food <= sogliaRitorno`, dove `sogliaRitorno` è il costo puro del viaggio di ritorno dalla posizione ATTUALE della spedizione al settlement:
+   
+   `sogliaRitorno = workers * travelConsumptionPerSec * (distanzaAttualeAlSettlement / expeditionSpeed)`
+   
+   Nessun `safetyMultiplier` in questa soglia: il costo di tornare è noto e deterministico.
+
+3. **Tasso netto di raccolta non conveniente**: `baseGatherRate * density <= gatheringConsumptionPerSec`. La spedizione consuma più di quanto raccoglie, quindi non ha senso restare. Nota: `workers` si semplifica, la condizione dipende solo dalla densità e dai parametri di consumo.
+
+4. **Richiamo manuale** (tasto R).
+
+5. **Cancellazione** (tasto C).
+
+Il budget iniziale di provviste (`getProvisionsNeeded`) resta calcolato come in `03_RaccoltaCibo.md`, con `safetyMultiplier`: il margine di sicurezza serve al momento della partenza per coprire imprevisti, non sulla soglia di ritorno.
+
+### Scarico e riposo
+
+(invariata, la lascio come è)
 
 ### Scarico e riposo
 
@@ -98,10 +124,16 @@ La spedizione torna al settlement quando:
 - Periodicamente (ogni `cellEvaluationInterval`), la spedizione valuta se spostarsi su un esagono migliore.
 - Il punteggio di un esagono è dato da:
 
-`score = density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`
+`score = density * cellScoreDensityWeight - distance_km * cellScoreDistanceWeight`
+
+-     `distance_km` è la distanza tra la posizione attuale della spedizione e il centro dell'esagono, espressa in chilometri reali
+  
+  - Il peso `cellScoreDistanceWeight` è calibrato in punti per km (default 4), non in punti per pixel: il comportamento della spedizione resta invariato al variare di `pixelsPerKm`.
 
 - Si passa a un nuovo esagono se il punteggio è maggiore del punteggio corrente moltiplicato per `cellSwitchScoreThreshold`.
+
 - Il nuovo esagono deve avere densità >= `cellAbandonThreshold`.
+
 - Le funzioni di ricerca esagoni escludono sempre l'esagono del settlement.
 
 ### Geometria dell'area di raccolta
@@ -153,17 +185,12 @@ L'area di raccolta è definita da un centro (`areaCenter`) e un raggio (`areaRad
 
 Quando viene creata una spedizione, i lavoratori vengono presi in questo ordine:
 
-1. Dalla popolazione non assegnata (`settlement.unassignedPopulation`) → vengono spostati nel Pop gatherer e poi prelevati.
-2. Dai lavoratori disponibili del Pop gatherer (`availableWorkers`).
+1. Dai lavoratori disponibili del Pop gatherer (`availableWorkers`).
+2. Dalla popolazione non assegnata (`settlement.unassignedPopulation`) → vengono spostati nel Pop gatherer e poi prelevati.
 
-Se non ci sono lavoratori disponibili, la spedizione non viene creata.
+Se non ci sono lavoratori disponibili in nessuno dei due pool, la spedizione non viene creata.
 
----
-
-## Bug noti e comportamenti da correggere
-
-- Se rimando una spedizione e ho gatherers disponibili, non prende quelli, ma ne crea di nuovi. La logica corretta è: se vi sono gatherers disponibili, prendere prima quelli. In futuro il giocatore potrà scegliere da quale pool pescare.
-- A volte la spedizione va fuori dall'area assegnata, perché valuta esagoni sul bordo e da lì vede esagoni migliori nel raggio. Deve rimanere sempre all'interno dell'area quando `useAssignedArea` è true.
+In futuro il giocatore potrà scegliere da quale pool pescare; fino ad allora l'ordine sopra è il default.
 
 ---
 
