@@ -145,7 +145,7 @@ L'area di raccolta è definita da un centro (`areaCenter`) e un raggio (`areaRad
 
 - **Tasto C**: cancella la spedizione selezionata. Se è al settlement, viene sciolta immediatamente; altrimenti torna al settlement e poi viene rimossa.
 
-- **Click su una spedizione**: la seleziona e mostra le informazioni.
+- **Click su una spedizione**: la seleziona e mostra le informazioni. Quando una spedizione è selezionata, la sua area di raccolta è visualizzata con lo stesso criterio del raggio locale del settlement: **bordo esterno esagonale** delle celle incluse (quelle il cui centro cade entro `areaRadius`), formando un unico contorno. Nessun lato interno tra due celle incluse viene disegnato.
 
 ---
 

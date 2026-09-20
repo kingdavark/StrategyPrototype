@@ -16,6 +16,7 @@ Variabili di scena (create in `create()`):
 - `infoText` – pannello info in alto a destra (`Phaser.Text`).
 - `settlementText` – riepilogo campo in basso a sinistra.
 - `speedText` – indicatore di velocità in alto a sinistra.
+- `settlementLabel` – etichetta testuale "SETTLEMENT", creata una sola volta (evita accumulo di oggetti ogni frame).
 
 Variabili di stato globali:
 
@@ -127,17 +128,23 @@ Disegna tutte le spedizioni come cerchi colorati in base allo stato:
 - `resting` – grigio (`0x888888`)
 - altri – bianco (`0xffffff`)
 
-Se `isForced`, disegna un bordo rosso. Se `!useAssignedArea`, un bordo blu semitrasparente. Se selezionata, un bordo giallo e il percorso tratteggiato (dal campo al target). Viene chiamata ogni frame.
+Se `isForced`, disegna un bordo rosso. Se `!useAssignedArea`, un bordo blu semitrasparente. Se selezionata, un bordo giallo e il percorso tratteggiato (dal campo al target). Per la spedizione selezionata, l'area di raccolta è mostrata come **bordo esterno esagonale** delle celle incluse (via `computeHexAreaBorder`): attorno alla posizione corrente in auto mode, attorno ad `areaCenter` in manual mode. Viene chiamata ogni frame.
 
 ### drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength)
 
 Utility per disegnare una linea tratteggiata. Usata per il percorso delle spedizioni selezionate.
 
+### edgeKey(a, b)
+
+Restituisce una chiave canonica (ordine-indipendente) per un lato di esagono, arrotondando le coordinate per evitare mismatch di floating point tra celle adiacenti che condividono lo stesso lato.
+
+### computeHexAreaBorder(centerX, centerY, radius)
+
+Calcola il bordo esterno (solo i lati rivolti verso l'esterno) dell'insieme di celle il cui centro cade entro l'area circolare `(centerX, centerY, radius)`. Costruisce l'insieme delle celle incluse, conta quante celle rivendicano ogni lato (via `hexBoard.getGridPoints`) e restituisce solo i lati con conteggio 1 (esterni). Se nessuna cella è inclusa, restituisce `[]` (culling). Con una sola cella restituisce l'esagono completo. Restituisce un array di segmenti `{ x1, y1, x2, y2 }`.
+
 ### drawSettlement()
 
-Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(population), settlementMinVisualRadiusPx)`) con bordo e, se `settlementSelected`, un anello di selezione giallo e il raggio locale effettivo (cerchio giallo semitrasparente di raggio `getEffectiveLocalGatherRadiusPx()`). Il cerchio, la label, l'anello di selezione e il raggio sono centrati su `settlement.x`/`settlement.y`. Viene chiamata ogni frame.
-
-**Nota**: l'etichetta testuale "SETTLEMENT" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
+Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(population), settlementMinVisualRadiusPx)`) con bordo e, se `settlementSelected`, un anello di selezione giallo e il raggio locale effettivo come **bordo esterno esagonale** delle celle incluse (via `computeHexAreaBorder`). Il cerchio, la label, l'anello di selezione e il bordo sono centrati su `settlement.x`/`settlement.y`. L'etichetta "SETTLEMENT" è creata una sola volta (`settlementLabel`). Viene chiamata ogni frame.
 
 ### updateWarningIndicators()
 
@@ -180,7 +187,7 @@ Aggiorna il testo in alto a sinistra con la velocità corrente, letta da `TimeMa
 Aggiorna il pannello info in alto a destra. Contenuto in base alla selezione:
 
 - **Spedizione selezionata** – id, workerCount, stato, provviste, cibo, capacità, flag `[FORCED]` e `[AUTO]`.
-- **Cella locale selezionata (in modalità settlement)** – coordinate, densità, lavoratori, frazione urbanizzata (`Urbanized: XX.X%`), cibo raccolto daily, cibo rimanente alla soglia 25%, giorni alla soglia 25%, incremento con un lavoratore in più, giorni ridotti alla soglia 25%.
+- **Cella locale selezionata (in modalità settlement)** – coordinate, densità, lavoratori, frazione urbanizzata (`Urbanized: XX.X%`), cibo raccolto daily, cibo totale rimanente (scalato per l'area libera `1 - urbanizedFraction`), cibo rimanente alla soglia 25%, giorni alla soglia 25%, incremento con un lavoratore in più, giorni ridotti alla soglia 25%.
 - **Campo selezionato (in modalità settlement)** – cibo, non assegnati, `gatheredDaily`, `consumedDaily`, cibo rimanente nell'area locale (to 25% e to 0%), statistiche dei gatherer (locali, spedizioni, disponibili).
 - **Altrimenti** – stringa vuota.
 
@@ -228,7 +235,6 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 ## Note per modifiche
 
 - La logica di rendering è mista a quella di gioco in questo file. In futuro potrà essere separata (`ui.js`).
-- L'etichetta "SETTLEMENT" viene ricreata ogni frame: bug noto da correggere.
 - Il pannello info viene aggiornato ogni frame: possibile ottimizzazione futura.
 - La griglia viene ridisegnata completamente ogni frame: collo di bottiglia su mappe grandi.
 - I warning sono persistenti e ridisegnati ogni frame.

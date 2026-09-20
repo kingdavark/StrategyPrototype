@@ -34,6 +34,7 @@ let cellWorkerTexts = {};       // map "cx,cy" -> Phaser.Text for worker count o
 let warningCells = [];
 let warningGraphics;
 let lastSettlementPopulation = -1;   // cached population, to recompute urbanized fractions only on change
+let settlementLabel = null;          // "SETTLEMENT" text, created once to avoid per-frame accumulation
 
 // Helper: check if an HTML input is focused (to avoid game hotkeys while typing)
 function isInputFocused() {
@@ -465,15 +466,21 @@ function drawPops() {
             if (!exp.useAssignedArea) {
                 // Auto mode: draw path from settlement to current position
                 drawDashedLine(popGraphics, settlement.x, settlement.y, exp.x, exp.y, 10, 5);
-                // Draw area radius around the expedition
+                // Draw gathering area as the outer hexagonal border around the expedition
+                const border = computeHexAreaBorder(exp.x, exp.y, exp.areaRadius);
                 popGraphics.lineStyle(1, 0xffff00, 0.2);
-                popGraphics.strokeCircle(exp.x, exp.y, exp.areaRadius);
+                for (const e of border) {
+                    popGraphics.lineBetween(e.x1, e.y1, e.x2, e.y2);
+                }
             } else {
                 // Manual mode: draw path from settlement to area center
                 drawDashedLine(popGraphics, settlement.x, settlement.y, exp.areaCenter.x, exp.areaCenter.y, 10, 5);
-                // Draw area radius around area center
+                // Draw gathering area as the outer hexagonal border around the area center
+                const border = computeHexAreaBorder(exp.areaCenter.x, exp.areaCenter.y, exp.areaRadius);
                 popGraphics.lineStyle(1, 0xffff00, 0.2);
-                popGraphics.strokeCircle(exp.areaCenter.x, exp.areaCenter.y, exp.areaRadius);
+                for (const e of border) {
+                    popGraphics.lineBetween(e.x1, e.y1, e.x2, e.y2);
+                }
             }
         }
 
@@ -514,6 +521,55 @@ function drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength) {
     }
 }
 
+// Canonical, order-independent key for a hexagon edge (coordinates rounded to avoid
+// floating-point mismatch between adjacent cells sharing the same side).
+function edgeKey(a, b) {
+    let ax = Math.round(a.x * 100), ay = Math.round(a.y * 100);
+    let bx = Math.round(b.x * 100), by = Math.round(b.y * 100);
+    if (ax > bx || (ax === bx && ay > by)) {
+        const tx = ax, ty = ay; ax = bx; ay = by; bx = tx; by = ty;
+    }
+    return ax + ',' + ay + '|' + bx + ',' + by;
+}
+
+// Compute the outer border (only sides facing "outside") of the set of cells whose
+// center falls within the circular area (centerX, centerY, radius). Returns an array
+// of { x1, y1, x2, y2 } segments forming a single outer hexagonal contour.
+function computeHexAreaBorder(centerX, centerY, radius) {
+    // Build the set of included cells (center within radius)
+    const included = new Set();
+    for (let cy = 0; cy < GRID_ROWS; cy++) {
+        for (let cx = 0; cx < GRID_COLS; cx++) {
+            const center = cellToWorld(cx, cy);
+            if (Phaser.Math.Distance.Between(centerX, centerY, center.x, center.y) <= radius) {
+                included.add(cx + ',' + cy);
+            }
+        }
+    }
+    if (included.size === 0) return []; // culling: no cell in the area
+
+    // Count how many included cells claim each edge. An edge claimed by exactly one
+    // included cell is on the outer boundary; by two it is internal (not drawn).
+    const edges = new Map();
+    for (const key of included) {
+        const [cx, cy] = key.split(',').map(Number);
+        const points = hexBoard.getGridPoints(cx, cy);
+        for (let i = 0; i < points.length; i++) {
+            const a = points[i];
+            const b = points[(i + 1) % points.length];
+            const k = edgeKey(a, b);
+            if (!edges.has(k)) edges.set(k, { x1: a.x, y1: a.y, x2: b.x, y2: b.y, count: 0 });
+            edges.get(k).count++;
+        }
+    }
+
+    const border = [];
+    for (const e of edges.values()) {
+        if (e.count === 1) border.push(e);
+    }
+    return border;
+}
+
 // Draw the settlement as a visual placeholder and (if selected) its local gathering radius
 function drawSettlement() {
     if (!settlementGraphics) return;
@@ -536,24 +592,23 @@ function drawSettlement() {
         settlementGraphics.lineStyle(2, 0xffff00, 1);
         settlementGraphics.strokeCircle(settlement.x, settlement.y, settlementRadiusPx);
 
-        // Local gathering radius (1.5h walk from the settlement border)
-        const effectiveRadius = getEffectiveLocalGatherRadiusPx();
+        // Local gathering radius (1.5h walk from the settlement border), drawn as
+        // the outer hexagonal border of the included cells
+        const border = computeHexAreaBorder(settlement.x, settlement.y, getEffectiveLocalGatherRadiusPx());
         settlementGraphics.lineStyle(1, 0xffff00, 0.3);
-        settlementGraphics.strokeCircle(settlement.x, settlement.y, effectiveRadius);
+        for (const e of border) {
+            settlementGraphics.lineBetween(e.x1, e.y1, e.x2, e.y2);
+        }
     }
-    // Label
-    gameScene.add.text(settlement.x, settlement.y - 25, 'SETTLEMENT', {
-        fontSize: '12px',
-        fill: '#ffffff',
-        backgroundColor: '#00000088',
-        padding: { x: 3, y: 1 }
-    }).setOrigin(0.5, 0.5);
-}
-
-function drawLocalRadius() {
-    if (!popGraphics || gameState !== 'settlement') return;
-    popGraphics.lineStyle(1, 0xffff00, 0.4);
-    popGraphics.strokeCircle(settlement.x, settlement.y, getEffectiveLocalGatherRadiusPx());
+    // Label (created once to avoid accumulating text objects every frame)
+    if (!settlementLabel) {
+        settlementLabel = gameScene.add.text(settlement.x, settlement.y - 25, 'SETTLEMENT', {
+            fontSize: '12px',
+            fill: '#ffffff',
+            backgroundColor: '#00000088',
+            padding: { x: 3, y: 1 }
+        }).setOrigin(0.5, 0.5);
+    }
 }
 
 // Redraw the grid colors based on current densities

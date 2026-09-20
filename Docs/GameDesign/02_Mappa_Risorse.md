@@ -235,7 +235,9 @@ La scelta della scala per il prototipo è **fissa a 1 km²**. La scala variabile
   - 0.05-0.24: arancione
   - 0.01-0.04: rosso
   - 0.00: nessun colore (sfondo)
-- L'area occupata dal settlement è evidenziata con una tinta marroncina.
-- Il raggio locale del settlement è mostrato come **bordo esterno giallo** degli esagoni al confine. Solo il lato esterno degli esagoni al confine è colorato, per formare un unico grande poligono giallo attorno all'area di sfruttamento.
+- Il raggio locale del settlement è mostrato come **poligono esagonale giallo**: vengono evidenziati solo i lati esterni delle celle incluse (quelle il cui centro cade entro il raggio locale), formando un unico contorno che racchiude esattamente le celle sfruttabili. Nessun lato interno tra due celle incluse viene disegnato.
+- L'area occupata dal settlement resta un **cerchio marrone** e non assume forma esagonale. Le celle che contengono il settlement non ricevono alcun bordo marrone: la loro appartenenza al settlement è comunicata solo dal cerchio visivo.
 - I numeri sopra gli esagoni indicano i lavoratori assegnati.
 - I triangoli rossi persistenti indicano esagoni sotto soglia.
+
+- 

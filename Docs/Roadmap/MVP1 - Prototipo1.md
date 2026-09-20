@@ -274,30 +274,34 @@ Da riorganizzare e rip rioritizzare in base a quello che ha senso e non è tropp
 
 7. Non abbiamo minimamente lavorato sulla tipologia del terreno (montagna, acqua, acqua profonda, collina, pianura) e le caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque, le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
 
-8. Spedizioni multi-pop con dinamiche di coesione interna (es. conflitti o collaborazioni tra individui di etnie/religioni diverse nello stesso gruppo).
+8. Countdown per tempo a riposo per le spedizioni a riposo
 
-9. Campo base che si sposta fisicamente sulla mappa durante le migrazioni o il nomadismo, e conseguente aggiornamento del punto di ritorno per le spedizioni attive.
+9. Spedizioni multi-pop con dinamiche di coesione interna (es. conflitti o collaborazioni tra individui di etnie/religioni diverse nello stesso gruppo).
 
-10. Rotazione automatica delle aree di raccolta da parte delle spedizioni, per evitare l'impoverimento permanente di una singola zona (comportamento di raccolta più conservativo e sostenibile).
+10. Campo base che si sposta fisicamente sulla mappa durante le migrazioni o il nomadismo, e conseguente aggiornamento del punto di ritorno per le spedizioni attive.
 
-11. Algoritmo di raccolta con priorità alle celle a media densità (es. 0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
+11. Rotazione automatica delle aree di raccolta da parte delle spedizioni, per evitare l'impoverimento permanente di una singola zona (comportamento di raccolta più conservativo e sostenibile).
 
-12. Rigenerazione e "fertilità" celle sulla base anche del terreno.
+12. Algoritmo di raccolta con priorità alle celle a media densità (es. 0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
 
-13. Meccaniche di frizione/resistenza al cambio di pop della popolazione (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso, tipo uomini giovani infelici se assegnati a gathering perché disonorevole). Da capire come fare distinzione popolazione per sesso ma soprattutto per età senza dover monitorare ogni singolo abitante.
+13. Rigenerazione e "fertilità" celle sulla base anche del terreno.
 
-14. Icone diverse per tipologia di pop con di fianco barre informative (tipo provviste o che).
+14. Meccaniche di frizione/resistenza al cambio di pop della popolazione (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso, tipo uomini giovani infelici se assegnati a gathering perché disonorevole). Da capire come fare distinzione popolazione per sesso ma soprattutto per età senza dover monitorare ogni singolo abitante.
 
-15. Giocatore seleziona manualmente il numero di pop da mandare in spedizione (con anche tasti rapidi di scelta).
+15. Icone diverse per tipologia di pop con di fianco barre informative (tipo provviste o che).
 
-16. Aggiungere crescita demografica: più cibo c'è, più la popolazione cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione finisce scorte, iniziano a morire o a consumare cibo raccolto.
+16. Giocatore seleziona manualmente il numero di pop da mandare in spedizione (con anche tasti rapidi di scelta).
 
-17. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno di partenza e con che tecnologie? In quanti anni arrivare a creare una città, in modo che il gioco non risulti troppo lento e noioso all'inizio (ma senza nemmeno fare come civilization che dura questa età come una roba da 10 minuti). Vogliamo fare che in realtà è un gruppo di superstiti che riparte e recupera le tecnologie già apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo andare sul lungo termine come civilization 4 cavemen to cosmos e quindi comunque rendere intriganti le meccaniche di sopravvivenza della tribù (e praticamente fare solo un gioco su questo, magari come primo titolo di una serie).
+17. Aggiungere crescita demografica: più cibo c'è, più la popolazione cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione finisce scorte, iniziano a morire o a consumare cibo raccolto.
 
-18. Ragionare sull'acqua.
+18. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno di partenza e con che tecnologie? In quanti anni arrivare a creare una città, in modo che il gioco non risulti troppo lento e noioso all'inizio (ma senza nemmeno fare come civilization che dura questa età come una roba da 10 minuti). Vogliamo fare che in realtà è un gruppo di superstiti che riparte e recupera le tecnologie già apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo andare sul lungo termine come civilization 4 cavemen to cosmos e quindi comunque rendere intriganti le meccaniche di sopravvivenza della tribù (e praticamente fare solo un gioco su questo, magari come primo titolo di una serie).
 
-19. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e unità e meccaniche intorno e link di timeline del progresso (wiki e altri link se funzionano).
+19. Ragionare sull'acqua.
 
-20. Aggiungere caricamento JSON da Excel per impostare i valori in config.
+20. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e unità e meccaniche intorno e link di timeline del progresso (wiki e altri link se funzionano).
 
-21. Creare script per simulazioni montecarlo. Da simulare in montecarlo il cambio cella e la quantità di provviste da prendere, ma magari non deve sempre essere perfetto ma dipendere dall'esperienza (dei singoli, della civiltà/città/comunità, del livello tecnologico?).
+21. Aggiungere caricamento JSON da Excel per impostare i valori in config.
+
+22. Creare script per simulazioni montecarlo. Da simulare in montecarlo il cambio cella e la quantità di provviste da prendere, ma magari non deve sempre essere perfetto ma dipendere dall'esperienza (dei singoli, della civiltà/città/comunità, del livello tecnologico?).
+
+23. Tooltip su valori in debug
