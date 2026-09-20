@@ -1,0 +1,3661 @@
+================================================================================
+PROJECT CONTEXT BUNDLE
+Generated: 2026-09-20 09:39:40
+Project root: C:\Users\david\OneDrive\Desktop\Omnia\Game Development\StrategyPrototype
+================================================================================
+
+FILE TREE
+--------------------------------------------------------------------------------
+  ProjectContext.md
+  Docs/GameDesign/00_Visione_Pilastri.md
+  Docs/GameDesign/01_ConcettiTrasversali.md
+  Docs/GameDesign/02_Mappa_Risorse.md
+  Docs/GameDesign/03_RaccoltaCibo.md
+  Docs/GameDesign/04_Spedizioni.md
+  Docs/GameDesign/05_Popolazione.md
+  Docs/GameDesign/06_Tecnologia_Cultura.md
+  Docs/GameDesign/07_Governo_Amministrazione.md
+  Docs/GameDesign/08_Diplomazia_Guerra.md
+  Docs/GameDesign/09_UI.md
+  Docs/GameDesign/10_MondoSimulato_Eventi.md
+  Docs/GameDesign/11_Città_Edifici.md
+  Docs/Roadmap/MVP1 - Prototipo1.md
+  Docs/Roadmap/MVP2 - DiversificazioneDelleFontiDiCibo.md
+  Docs/Roadmap/MVP3 - RaccoltaLegna_Lavorazione_Strumenti.md
+  Docs/Roadmap/MVP4 - InformazioneImperfetta_Report.md
+  Docs/Roadmap/MVP5 - SecondaTribù_Territorio.md
+  Docs/Roadmap/MVP6 - Oltre.md
+  Docs/Technical/00_ArchitetturaGenerale.md
+  Docs/Technical/01_Config.md
+  Docs/Technical/02_World.md
+  Docs/Technical/03_Units.md
+  Docs/Technical/04_Main.md
+  Docs/Technical/05_Debug.md
+  Docs/Technical/06_Time.md
+  Docs/Technical/07_Resources.md
+  Docs/Technical/08_UI - Copia.md
+  Docs/Technical/08_UI.md
+  Docs/Skills/GameDesigner.md
+  Docs/Skills/Programmer.md
+
+================================================================================
+
+## FILE: ProjectContext.md
+
+# Contesto progetto Dinastia
+
+Prototipo di strategico 4X in tempo reale con Phaser 3.
+
+## Documentazione
+
+- Docs/GameDesign/ – logica di gioco, sistemi, UI/UX, formule. **Non modificare mai questi file.**
+- Docs/Technical/ – descrizione di ogni script, sue funzioni, dipendenze in ingresso e in uscita.
+- Docs/Skills/ – pipeline di lavoro (Game Designer e Programmer Agent).
+- Docs/Roadmap/ – stato di avanzamento.
+
+## Convenzioni
+
+- Codice e commenti in inglese.
+- Ogni nuovo parametro va in GameConfig e nel pannello debug.
+- Usare delta time per aggiornamenti temporali.
+- Non mischiare input di stati diversi (map vs camp).
+- La raccolta riduce solo la cella esatta, non le celle vicine.
+
+## Flusso di lavoro
+
+1. Leggi il prompt del Game Designer.
+2. Leggi i documenti Technical degli script coinvolti e le loro sezioni "Dipendenze".
+3. Fai un brief generale delle modifiche e attendi OK.
+4. Applica le modifiche una per una, con approvazione per ciascuna.
+5. Dopo tutte le modifiche del batch, fornisci test tecnici.
+6. Aggiorna SOLO i documenti Technical, mai quelli di Game Design.
+7. Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git.
+
+## Regole
+
+- **Non modificare mai i file in `Docs/GameDesign/`.** Se noti un'incoerenza, segnalala all'utente, non correggerla tu.
+- Prima di modificare uno script, leggi il suo documento Technical e le sezioni "Dipendenze in ingresso" e "Dipendenze in uscita".
+- Se una modifica cambia una dipendenza o un'interfaccia usata da altri script, aggiorna il documento Technical corrispondente.
+- Segui la skill `Docs/Skills/Programmer.md` per il flusso completo.
+
+## File principali
+
+- `js/config.js` – GameConfig e parametri
+- `js/world.js` – griglia spaziale e densità
+- `js/units.js` – Pop, Expedition, camp
+- `js/main.js` – scena Phaser, input, rendering, raccolta locale
+- `js/debug.js` – pannello debug e assegnazione lavoratori
+- `js/time.js` – controllo velocità di gioco
+
+================================================================================
+
+## FILE: Docs/GameDesign/00_Visione_Pilastri.md
+
+# Visione e Pilastri
+
+## Concept
+
+**Titolo provvisorio:** Dinastia (o Eredità)
+
+**Genere:** Strategico 4X in tempo reale con elementi gestionali e simulativi. Il giocatore controlla una dinastia, non uno Stato astratto.
+
+## Pilastri del design
+
+1. **Dinastia e interessi personali**
+   
+   Il giocatore incarna una famiglia con possedimenti propri (terreni, industrie, beni). Può essere a capo di una civiltà, all'opposizione o ridotto a un ruolo marginale. Altre famiglie competono per risorse e influenza. Se si perde il comando, il gioco continua dai propri interessi privati. Tu puoi possedere elementi di una civiltà, e così altre famiglie che potrebbero opporsi a decisioni che danneggiano i loro interessi (es. dichiarare guerra a un partner commerciale).
+
+2. **Risorse limitate e logistica fisica**
+   
+   Le risorse naturali sono un *continuum* che si degrada o esaurisce: foreste scompaiono se tagliate troppo in fretta, animali si estinguono se cacciati intensamente, campi perdono fertilità se non lasciati riposare, miniere e pozzi hanno un hard cap. Le materie prime vanno trasportate fisicamente da chi le raccoglie. I beni raffinati vanno immagazzinati e possono deteriorarsi. Eserciti e spedizioni consumano provviste durante gli spostamenti. Le rotte commerciali consegnano merci dopo un tempo di viaggio reale.
+
+3. **Tempo reale con controllo del ritmo**
+   
+   Il mondo scorre sempre. Il giocatore può mettere in pausa, accelerare o rallentare il tempo. Un giorno di gioco dura pochi secondi (regolabile).
+
+4. **Informazione imperfetta e locale**
+   
+   Tre stati di conoscenza per ogni unità/risorsa: *Certa*, *Da report*, *Proiettata*. Anche dati come felicità, scorte o produzione sono mediati da chi li riporta, con arrotondamenti o errori. Senza un sistema di raccolta informazioni, certe cose non saranno note. Per sapere quanta legna hai realmente, serve qualcuno che la conti e te lo riferisca.
+
+5. **Popolazione simulata (pop system)**
+   
+   La popolazione è suddivisa in gruppi (pop) con attributi: occupazione, età, cultura, religione, status. Le unità militari sono pop arruolati: se combattono, non producono. Etnia e interessi creano sottogruppi che possono essere sleali (es. eserciti di cultura affine al nemico potrebbero tradire).
+
+6. **Mappa continua senza griglia**
+   
+   Spazio continuo, niente esagoni o province predefinite. Il territorio è definito dall'uso effettivo: una foresta che usi è "tua" finché nessuno te la contesta. Con il progresso diplomatico si possono tracciare confini. Le strade accelerano il movimento. La suddivisione interna in province è manuale (decidi tu come organizzare l'impero).
+
+7. **Tecnologia organica e indirizzabile**
+   
+   I progressi emergono dall'attività ripetuta (caccia → armi, raccolta → agricoltura, estrazione → metallurgia). Con lo sviluppo di centri di ricerca (laboratori, università) si può indirizzare lo sviluppo tecnologico e culturale, ma l'innovazione spontanea continua. Due rami principali: tecnologico e culturale/sociale. La tecnologia si diffonde geograficamente per contatto, non istantaneamente ovunque.
+
+8. **Potere variabile e governo customizzabile**
+   
+   A seconda della forma di governo, il giocatore dà ordini diretti (tribù) o incentivi indiretti (democrazia). Le forme di governo possono essere customizzate. Non sei sempre al comando: talvolta detieni il potere, altre volte devi sopravvivere come emarginato o agire dietro le quinte.
+
+9. **Mondo vivo e simulato**
+   
+   Variazioni climatiche e stagioni. Migrazioni spinte da benessere e influenza culturale. Malattie ed epidemie. Eventi critici (carestie, rivolte, guerre civili) generati dal sistema quando certe condizioni si accumulano.
+
+10. **Amministrazione interna e deleghe**
+    
+    La diplomazia traccia confini esterni, ma il giocatore può suddividere il proprio territorio in regioni/province per migliorare la governabilità. Può affidarle a sottoposti (governatori, vassalli) che riportano dati e gestiscono per suo conto. Questi delegati hanno lealtà e competenza variabili, influenzando la qualità dei report e l'efficienza amministrativa.
+
+11. **Storia emergente e simulazione delle crisi**
+    
+    Non esistono alberi di missioni o percorsi storici prestabiliti. La storia emerge dall'interazione di variabili profonde (economia, demografia, fedeltà, religione, clima). Eventi critici sono generati dal sistema quando squilibri si accumulano. Ogni partita è un racconto unico e storicamente plausibile.
+
+## Meccaniche chiave (sommario)
+
+- Raccolta, trasporto, lavorazione e stoccaggio di risorse.
+
+- Consumo di cibo e provviste per pop e unità.
+
+- Sistema di pop con demografia, bisogni, fedeltà.
+
+- Movimento e pathfinding su mappa continua.
+
+- Sistema di visibilità e report (certo / da report / proiettato).
+
+- Progresso tecnologico organico + indirizzabile.
+
+- Diplomazia e definizione di confini.
+
+- Dinamiche dinastiche e fazioni interne.
+
+- Combattimento con eserciti composti da pop, rischio tradimento.
+
+- Gestione delle crisi e storia emergente.
+
+## Stile visivo e interfaccia
+
+- Prototipo: 2D dall'alto (Phaser 3).
+
+- Versione finale: 3D in stile Crusader Kings 3.
+
+- UI minimale ma informativa: mappa, pannelli pop, risorse, tempo.
+
+================================================================================
+
+## FILE: Docs/GameDesign/01_ConcettiTrasversali.md
+
+# Concetti Trasversali
+
+## Scopo
+
+Questo documento raccoglie i concetti condivisi tra tutti i sistemi di gioco. Serve come riferimento rapido per comprendere le entità principali, la terminologia e le relazioni generali tra i moduli.
+
+---
+
+## Loop di gioco minimo
+
+1. Osservi la mappa 2D con il tuo insediamento (settlement).
+2. Selezioni un gruppo di persone e le assegni a un compito (raccogliere cibo, cacciare, raccogliere legna).
+3. Il gruppo si sposta in tempo reale, consuma cibo durante il viaggio, raggiunge la risorsa, la sfrutta, torna.
+4. La risorsa arriva all'insediamento: è disponibile per sfamare o costruire.
+5. Puoi mettere in pausa per ripianificare o accelerare per vedere gli effetti nel tempo.
+
+---
+
+## Entità principali
+
+### Settlement (Insediamento)
+
+- È il punto di riferimento della tribù. Nel prototipo attuale si chiama "campo" o "accampamento"; diventerà una città con il progresso del gioco. Nella documentazione usiamo il termine "settlement" per coerenza a lungo termine.
+- Contiene le scorte di cibo e la popolazione non assegnata.
+- Ha un'area occupata (per ora circolare, in futuro plasmata dal terreno) che cresce con la popolazione.
+- Ha un raggio locale entro il quale i lavoratori possono essere assegnati direttamente alle celle esagonali per la raccolta.
+- Può essere selezionato per gestire la raccolta locale e vedere il riepilogo giornaliero.
+
+### Pop (Gruppo di persone)
+
+- Un Pop rappresenta un insieme di individui con le stesse caratteristiche (occupazione, cultura, religione, status, etnia).
+- Per il prototipo attuale esiste solo il Pop `gatherer` (raccoglitori).
+- Ogni Pop ha:
+  - `totalWorkers`: numero totale di individui appartenenti al Pop.
+  - `availableWorkers`: lavoratori disponibili al settlement, pronti per essere assegnati a spedizioni o compiti locali.
+  - `assignedWorkers`: lavoratori attualmente in spedizione.
+  - `localWorkers`: lavoratori assegnati alla raccolta locale nelle celle attorno al settlement.
+- I lavoratori non tornano automaticamente al pool `unassignedPopulation`; serve un'azione esplicita del giocatore.
+
+### Expedition (Spedizione)
+
+- Un gruppo mobile di lavoratori prelevati da un Pop.
+- Ha uno stato (`travellingToArea`, `gathering`, `returningToCamp`, `resting`, `movingToCell`).
+- Ha un inventario con cibo raccolto e provviste.
+- Può avere un'area di raccolta assegnata o vagare liberamente (modalità automatica).
+- Consuma provviste durante il viaggio e la raccolta.
+- Dopo il rientro, i lavoratori rientrano nel Pop e la spedizione riposa prima di ripartire.
+
+### Hex (Cella esagonale)
+
+- Unità spaziale della griglia esagonale.
+- Ogni esagono ha un centro, un raggio (vertice-centro) e un'area.
+- La distanza tra i centri di esagoni adiacenti è uniforme in tutte le direzioni (nessun bias diagonale).
+- Contiene valori di densità per risorse naturali (es. `forageDensity`), e un valore `urbanizedFraction` che indica quanta parte dell'esagono è coperta da un settlement.
+- Tiene traccia del cibo raccolto oggi (`foodGatheredToday`) e del cibo raccolto ieri (`gatheredDaily`).
+
+### Branchi (Herd)
+
+- Entità mobili di grandi animali (es. cervi, bisonti).
+- Hanno specie, numero di capi, habitat preferito.
+- Si muovono lentamente nell'habitat e si riproducono se non disturbati.
+- La caccia riduce il numero di capi e produce carne e pelli.
+- Se scendono sotto una soglia, si estinguono localmente.
+
+---
+
+## Griglia esagonale
+
+La mappa è composta da una griglia di esagoni point-top (vertice in alto). Ogni esagono rappresenta un'area di riferimento con distanza tra centri adiacenti pari a 1 km.
+
+- **Raggio** (vertice-centro): ~0.577 km
+- **Larghezza** (lato a lato): 1 km
+- **Altezza** (vertice a vertice): ~1.155 km
+- **Area**: ~0.866 km²
+- **Distanza tra centri adiacenti**: 1 km, uniforme in tutte le 6 direzioni
+
+La conversione in pixel dipende dal parametro `pixelsPerKm`. Attualmente è 20 (l'esagono ha raggio ~11.5 px).
+
+---
+
+## Risorse naturali
+
+Le risorse naturali sono rappresentate come layer di densità distribuiti sugli esagoni.
+
+| Layer              | Descrizione                                      |
+| ------------------ | ------------------------------------------------ |
+| `forageDensity`    | Vegetazione raccoglibile (bacche, erbe, radici). |
+| `forestDensity`    | Alberi per legna.                                |
+| `smallGameDensity` | Piccola fauna terrestre (conigli, uccelli).      |
+| `fishDensity`      | Pesci, solo in celle d'acqua.                    |
+| `fertility`        | Fertilità del suolo per futura agricoltura.      |
+
+La raccolta riduce la densità solo dell'esagono esatto su cui lavorano i lavoratori.
+
+---
+
+## Urbanized fraction
+
+Ogni esagono ha un valore `urbanizedFraction` (tra 0 e 1) che rappresenta quanta parte dell'esagono è coperta da un settlement.
+
+- `urbanizedFraction = 0`: esagono libero, raccolta al 100%.
+- `urbanizedFraction = 1`: esagono interamente coperto da settlement, non raccoglibile.
+- Valori intermedi: la raccolta è scalata proporzionalmente all'area libera.
+
+Il calcolo avviene trattando l'esagono come cerchio equivalente e intersecandolo con il cerchio del settlement.
+
+---
+
+## Stati di conoscenza
+
+Ogni unità o risorsa può essere conosciuta in tre modi:
+
+- **Certa**: nel raggio visivo del giocatore.
+- **Da report**: valida all'ultimo messaggio ricevuto, può essere falsificata.
+- **Proiettata**: posizione stimata in base a velocità e ultime informazioni note.
+
+Anche dati come felicità, scorte o produzione sono mediati da chi li riporta.
+
+---
+
+## Tempo
+
+- Il mondo scorre sempre.
+- Il giocatore può mettere in pausa, accelerare o rallentare.
+- Un giorno di gioco dura pochi secondi reali (parametro `dayLengthSeconds`).
+- Il consumo di cibo della popolazione al settlement avviene a fine giornata.
+- Le spedizioni consumano provviste in modo continuo durante il viaggio e la raccolta.
+
+---
+
+## UI e feedback
+
+- Pannello info in alto a destra per dettagli su spedizioni, esagoni o riepilogo settlement.
+- Pannello debug per modificare parametri in tempo reale.
+- Pannello lavoratori locali con bottoni `+` e `-`.
+- Esagoni colorati in base alla densità.
+- Raggio locale mostrato come bordo esterno giallo degli esagoni al confine.
+- Numeri sopra gli esagoni con lavoratori assegnati.
+- Triangoli rossi persistenti per esagoni sotto soglia.
+- Banner notifiche in alto a destra, sotto eventuali menu, in colonna, dismissibili con click destro.
+
+---
+
+## Interazioni tra sistemi
+
+- La **raccolta locale** usa i lavoratori del Pop gatherer, riduce la densità degli esagoni entro il raggio locale e aggiorna le scorte del settlement.
+- Le **spedizioni** prelevano lavoratori dal Pop gatherer, si muovono sulla mappa, raccolgono dagli esagoni e riportano il cibo al settlement.
+- Il **consumo** di cibo dipende dalla popolazione totale (settlement + spedizioni).
+- La **tecnologia** (futura) influenzerà velocità di raccolta e sblocco di nuovi compiti.
+- La **diplomazia** e le **fazioni** (future) potranno modificare la fedeltà dei Pop e l'accesso alle risorse.
+
+================================================================================
+
+## FILE: Docs/GameDesign/02_Mappa_Risorse.md
+
+# Mappa e Risorse Naturali
+
+## Scopo
+
+Questo documento descrive la struttura della mappa, la griglia esagonale, i layer di densità delle risorse naturali e le regole di sfruttamento e rigenerazione. Include anche la visione futura sulla simulazione persistente a livelli di dettaglio.
+
+---
+
+## Griglia esagonale
+
+La mappa è composta da una griglia di **esagoni point-top** (vertice in alto). Ogni esagono è un'unità spaziale con coordinate assiali `(q, r)`.
+
+Misure di un esagono:
+
+- **Raggio** (vertice-centro): ~0.577 km
+- **Larghezza** (da lato a lato, orizzontale): 1 km
+- **Altezza** (da vertice a vertice, verticale): ~1.155 km
+- **Area**: ~0.866 km²
+- **Distanza tra centri di esagoni adiacenti**: 1 km, uniforme in tutte le 6 direzioni (nessun bias diagonale)
+
+La conversione tra pixel e km dipende da `pixelsPerKm`. Attualmente è 20, quindi l'esagono ha raggio ~11.5 px.
+
+La mappa del prototipo è limitata a una finestra di 1280×720 pixel, che corrisponde a circa 2.300 km². Non c'è wrap-around: i bordi della mappa sono netti.
+
+---
+
+## Perché esagoni
+
+La scelta della griglia esagonale deriva da tre motivi:
+
+1. **Distanze uniformi**: ogni esagono ha 6 vicini equidistanti. Non esiste il bias diagonale dei quadrati (dove muoversi in diagonale costa `√2` volte un passo ortogonale).
+2. **Realismo geometrico**: le aree di influenza (raggio locale, area di raccolta) sono più realistiche come esagoni che come rettangoli o cerchi sovrapposti a griglia quadrata.
+3. **Standard 4X**: Civ V/VI e la maggior parte dei giochi Paradox usano esagoni.
+
+---
+
+## Proprietà di un esagono
+
+Ogni esagono è un oggetto con le seguenti proprietà:
+
+- `q`, `r`: coordinate assiali nella griglia esagonale
+- `cx`, `cy`: coordinate del centro in pixel (derivate)
+- `entities`: array di entità mobili attualmente in questo esagono
+- `forageDensity`: densità di vegetazione raccoglibile (0..1)
+- `forestDensity`: densità di alberi (0..1). Futuro.
+- `smallGameDensity`: densità di piccola fauna terrestre (0..1). Futuro.
+- `fishDensity`: densità di pesci (0..1, solo esagoni d'acqua). Futuro.
+- `fertility`: fertilità del suolo (0..1, default medio). Futuro.
+- `assignedWorkers`: numero di lavoratori locali assegnati all'esagono
+- `urbanizedFraction`: frazione dell'esagono coperta da un settlement (0..1)
+- `foodGatheredToday`: cibo raccolto da lavoratori locali oggi
+- `gatheredDaily`: cibo raccolto da lavoratori locali nel giorno precedente
+- `warningShown`: flag per evitare avvisi ripetuti
+
+---
+
+## Layer di densità
+
+| Layer                    | Proprietà          | Descrizione                                                             |
+| ------------------------ | ------------------ | ----------------------------------------------------------------------- |
+| Foresta                  | `forestDensity`    | Densità di alberi. Ridotta dal taglio, rigenerazione lenta.             |
+| Vegetazione raccoglibile | `forageDensity`    | Bacche, erbe, radici. Ridotta dalla raccolta, rigenerazione stagionale. |
+| Piccola fauna terrestre  | `smallGameDensity` | Conigli, uccelli. Ridotta dalla caccia, rigenerazione continua.         |
+| Pesci                    | `fishDensity`      | Disponibile solo in esagoni d'acqua. Ridotto dalla pesca.               |
+| Fertilità                | `fertility`        | Per uso futuro (agricoltura).                                           |
+
+---
+
+## Biomi e risorse naturali
+
+*(da sviluppare)*
+
+---
+
+## Strade e infrastrutture
+
+*(da sviluppare)*
+
+---
+
+## Confini e province
+
+*(da sviluppare)*
+
+---
+
+## Risorse naturali (prototipo)
+
+### Vegetazione raccoglibile (bacche, erbe, radici)
+
+- **Layer:** `forageDensity`
+- **Sfruttamento:** raccolta manuale, riduce la densità solo dell'esagono esatto in cui lavorano i lavoratori.
+- **Rigenerazione:** stagionale o continua lenta (semplificata per MVP).
+- **Risorsa prodotta:** cibo vegetale.
+- **Sviluppo futuro:** propedeutico all'agricoltura.
+
+### Foresta (legna)
+
+- **Layer:** `forestDensity`
+- **Sfruttamento:** taglio con strumenti, riduce la densità dell'esagono esatto.
+- **Effetto locale:** una foresta può essere disboscata solo in parte senza distruggere l'intera area.
+- **Rigenerazione:** lenta e costante (in futuro influenzata da clima e stagioni).
+- **Risorsa prodotta:** legna grezza, trasportata fisicamente al settlement.
+
+### Fauna minore terrestre (conigli, uccelli, piccola selvaggina)
+
+- **Layer:** `smallGameDensity`
+- **Sfruttamento:** caccia/cattura con strumenti rudimentali, riduce la densità locale.
+- **Rigenerazione:** continua, più rapida in aree con vegetazione fitta.
+- **Risorsa prodotta:** cibo (carne) e eventuali pelli.
+- **Sviluppo futuro:** porta a trappole, armi da caccia, domesticazione.
+
+### Pesci (fiumi, laghi, coste)
+
+- **Layer:** `fishDensity`
+- **Distribuzione:** presente solo negli esagoni che intersecano corpi idrici; zero altrove.
+- **Sfruttamento:** pesca, riduce la densità locale.
+- **Rigenerazione:** continua, influenzata dalla dimensione del corpo idrico e dalle stagioni.
+- **Risorsa prodotta:** cibo (pesce).
+- **Sviluppo futuro:** tecniche di pesca, navigazione, commercio marittimo.
+
+### Grandi animali (branchi mobili)
+
+- **Modello:** unità autonome (branchi) con posizione `(x, y)`, specie e numero di capi.
+- **Comportamento:** si muovono lentamente nell'habitat preferito, si riproducono se non disturbati.
+- **Caccia:** i cacciatori devono avvicinarsi al branco; ogni ciclo riduce i capi e produce cibo (carne e pelli). Sotto una soglia il branco si estingue.
+- **Visualizzazione:** sprite che si sposta sulla mappa.
+
+### Fertilità del suolo
+
+- **Layer:** `fertility` (float 0..1)
+- **Utilizzo futuro:** consumata dall'agricoltura, rigenerata dal maggese.
+- **Per il prototipo attuale:** layer definito ma non ancora utilizzato.
+
+---
+
+## Sfruttamento e riduzione della densità
+
+La raccolta riduce la densità solo dell'esagono esatto su cui lavorano i lavoratori (riduzione puntuale).
+
+- La quantità di cibo raccolta per secondo è proporzionale alla densità locale: esagoni ricchi rendono di più, esagoni poveri di meno.
+- Formula raccolta: `gatherRate = baseGatherRate * density * workers`
+- Formula riduzione densità: `densityReduction = gatherRate * densityReductionPerFood / (1 - urbanizedFraction)`
+- La densità segue un decadimento esponenziale: `d(t) = d0 * exp(-k * t)`, con `k = workers * baseGatherRate * densityReductionPerFood / (1 - urbanizedFraction)`
+
+La divisione per `(1 - urbanizedFraction)` riflette il fatto che, se un esagono è parzialmente occupato dal settlement, la raccolta avviene solo sull'area libera. A parità di cibo raccolto, la densità dell'area libera cala più rapidamente.
+
+---
+
+## Urbanized fraction
+
+Ogni esagono ha un valore `urbanizedFraction` che rappresenta la frazione di area coperta da un settlement. Il calcolo avviene trattando l'esagono come un cerchio di area equivalente (raggio `R_hex_eq ≈ 1.05 * R`) e intersecandolo con il cerchio del settlement.
+
+Risultati possibili:
+
+- `urbanizedFraction = 0`: esagono completamente libero, raccolta al 100%.
+- `urbanizedFraction = 1`: esagono interamente coperto dal settlement, non raccoglibile. I lavoratori eventualmente assegnati vengono liberati con un avviso.
+- Valori intermedi: la raccolta è scalata proporzionalmente all'area libera.
+
+---
+
+## Rigenerazione base delle risorse
+
+- Gli esagoni con `forageDensity` si rigenerano lentamente nel tempo.
+- Un'area completamente esaurita (densità zero) impiega più tempo a iniziare a rigenerare.
+- Meccanica: il giocatore non può esaurire una zona per sempre, ma deve ruotare le aree di raccolta per non restare senza cibo.
+- Nota: la rigenerazione attuale è semplificata e temporanea. In futuro sarà legata alla tipologia di terreno e seguirà una curva di crescita più realistica (più rapida a densità più alte).
+
+---
+
+## Simulazione persistente e livelli di dettaglio (visione futura)
+
+Il mondo deve continuare a evolversi anche fuori dalla vista del giocatore. Tuttavia, simulare ogni cella al massimo dettaglio a ogni tick è insostenibile su mappe grandi. La soluzione è una **simulazione multi-livello**:
+
+- **Esagoni vicini al giocatore**: simulazione a ogni tick. Densità, raccolta, eventi.
+- **Esagoni di interesse** (settlement di altre fazioni, eventi attivi, spedizioni in corso): tick più lenti.
+- **Esagoni remoti attivi**: tick molto lenti, aggiornamenti aggregati.
+- **Esagoni inattivi** (oceani, deserti, terre desolate): nessuna simulazione attiva finché non vengono toccati da un evento o da una spedizione.
+
+Tutte le celle hanno uno stato persistente. Cambia solo la frequenza e il dettaglio della simulazione. Questa logica sarà implementata quando la mappa supererà la dimensione iniziale del prototipo.
+
+---
+
+## Scala variabile (visione futura)
+
+Il mondo non può avere la stessa risoluzione ovunque. La visione è:
+
+- **Regioni attive** (dove gioca il giocatore e i rivali): celle piccole (1 km²).
+- **Regioni di interesse** (fazioni lontane, eventi globali): celle medie (25-100 km²).
+- **Regioni remote** (oceani, continenti non abitati): celle grandi, simulazione aggregata.
+
+La scelta della scala per il prototipo è **fissa a 1 km²**. La scala variabile verrà introdotta in futuro, quando la mappa crescerà oltre la dimensione iniziale.
+
+---
+
+## Visualizzazione
+
+- Gli esagoni sono colorati in base alla densità di cibo con una scala a 7 colori:
+  - 0.90-1.00: verde scuro
+  - 0.75-0.89: verde medio
+  - 0.50-0.74: verde chiaro
+  - 0.25-0.49: giallo
+  - 0.05-0.24: arancione
+  - 0.01-0.04: rosso
+  - 0.00: nessun colore (sfondo)
+- L'area occupata dal settlement è evidenziata con una tinta marroncina.
+- Il raggio locale del settlement è mostrato come **bordo esterno giallo** degli esagoni al confine. Solo il lato esterno degli esagoni al confine è colorato, per formare un unico grande poligono giallo attorno all'area di sfruttamento.
+- I numeri sopra gli esagoni indicano i lavoratori assegnati.
+- I triangoli rossi persistenti indicano esagoni sotto soglia.
+
+================================================================================
+
+## FILE: Docs/GameDesign/03_RaccoltaCibo.md
+
+# Raccolta del Cibo
+
+## Scopo
+
+Questo documento descrive come funziona la raccolta di cibo vegetale, sia tramite lavoratori locali assegnati agli esagoni attorno al settlement, sia tramite spedizioni che si spostano sulla mappa. Include formule, consumo, provviste, previsioni e avvisi.
+
+## Tipi di raccolta
+
+### Raccolta locale
+
+- I lavoratori vengono assegnati manualmente a esagoni specifici entro il raggio locale del settlement.
+- I lavoratori locali non sono entità mobili: producono cibo direttamente al settlement.
+- Ogni esagono ha un numero di lavoratori assegnati (`assignedWorkers`).
+- Il raggio locale è definito come il percorso che un pendolare può fare in mezza giornata di lavoro (1.5 ore di andata, 3 ore andata e ritorno):
+  - `localGatherRadiusKm = walkingSpeedKmh * hoursWalkingRadius`
+  - Convertito in pixel con `pixelsPerKm`.
+- Il raggio parte dal bordo dell'area occupata dal settlement, non dal centro.
+
+### Spedizioni di raccolta
+
+- Gruppi mobili di lavoratori che si spostano sulla mappa per raccogliere cibo fuori dal raggio locale.
+- Possono avere un'area di raccolta assegnata o vagare liberamente.
+- Le spedizioni consumano provviste durante il viaggio e la raccolta, e riportano il cibo al settlement.
+
+---
+
+## Formule di raccolta
+
+Tasso di raccolta per esagono (al secondo):
+
+`gatherRate = baseGatherRate * density * workers`
+
+dove `density` è la densità attuale dell'esagono e `workers` il numero di lavoratori.
+
+Riduzione della densità (al secondo):
+
+`densityReduction = gatherRate * densityReductionPerFood / (1 - urbanizedFraction)`
+
+La densità segue un decadimento esponenziale:
+
+`d(t) = d0 * exp(-k * t)`
+`k = workers * baseGatherRate * densityReductionPerFood / (1 - urbanizedFraction)`
+
+La riduzione della densità avviene solo sull'esagono esatto su cui lavorano i lavoratori (riduzione puntuale).
+
+Se `urbanizedFraction = 1`, l'esagono è interamente coperto dal settlement: la raccolta è impossibile e i lavoratori eventualmente assegnati vengono liberati automaticamente con un avviso.
+
+---
+
+## Consumo di cibo
+
+Popolazione al settlement: consuma una razione giornaliera fissa, calcolata per l'intera tribù a fine giornata:
+
+`dailyConsumption = totalPopulation * foodConsumptionPerPersonPerDay`
+
+Spedizioni in viaggio: consumano provviste in modo continuo, proporzionalmente al tempo trascorso e con un moltiplicatore maggiore rispetto al riposo:
+
+`travelConsumptionPerSec = baseConsumptionPerSec * travelConsumptionMultiplier`
+
+Spedizioni durante la raccolta: consumano ancora di più:
+
+`gatheringConsumptionPerSec = baseConsumptionPerSec * gatheringConsumptionMultiplier`
+
+`baseConsumptionPerSec` deriva da:
+
+`baseConsumptionPerSec = foodConsumptionPerPersonPerDay / dayLengthSeconds`
+
+---
+
+## Provviste per spedizioni
+
+Le provviste assegnate a una spedizione non sono un numero fisso, ma vengono calcolate alla partenza e a ogni ripartenza. Il calcolo considera:
+
+- Distanza da percorrere (andata e ritorno)
+- Velocità di spostamento della spedizione
+- Numero di lavoratori
+- Margine di sicurezza per tempo di raccolta e imprevisti
+
+Formula:
+
+`provisionsNeeded = workerCount * travelConsumptionPerSec * (distance / expeditionSpeed * 2) * safetyMultiplier`
+
+Il limite principale è la capacità di carico: se le provviste calcolate superano la capacità massima, la spedizione parte con meno provviste e tornerà prima.
+
+---
+
+## Riposo dopo la spedizione
+
+Dopo una spedizione, i lavoratori devono riposare. Il tempo di riposo è proporzionale alla durata della spedizione appena conclusa:
+
+`restDuration = tripDurationSec * restMultiplier`
+
+Spedizioni lunghe richiedono riposi più lunghi.
+
+---
+
+## Previsioni sugli esagoni
+
+Per ogni esagono selezionato (in modalità settlement) vengono calcolati:
+
+Cibo rimanente sfruttabile fino a soglia 25%:
+
+`foodTo25 = max(0, (density - cellWarningThreshold) / densityReductionPerFood * (1 - urbanizedFraction))`
+
+Cibo totale rimanente stimato:
+
+`ciboTotale = density / densityReductionPerFood * (1 - urbanizedFraction)`
+
+Giorni al raggiungimento della soglia 25% con il ritmo attuale (tenendo conto del decadimento esponenziale della densità):
+
+`daysTo25 = -ln(cellWarningThreshold / density) / k`
+
+dove `k = workers * baseGatherRate * densityReductionPerFood / (1 - urbanizedFraction)`.
+
+(solo se `workers > 0` e `density > cellWarningThreshold`)
+
+Aumento di cibo raccolto al giorno aggiungendo un lavoratore (scalato per l'area libera):
+
+`increasePerDay = baseGatherRate * density * dayLengthSeconds * (1 - urbanizedFraction)`
+
+Giorni risparmiati per raggiungere la soglia se aggiungo un lavoratore:
+
+`k2 = (workers + 1) * baseGatherRate * densityReductionPerFood / (1 - urbanizedFraction)`
+`daysTo25_extra = -ln(cellWarningThreshold / density) / k2`
+`reducedDays25 = max(0, daysTo25 - daysTo25_extra)`
+
+---
+
+## Avvisi di soglia
+
+- Soglia unica di avviso: `cellWarningThreshold = 0.25`.
+- Quando un esagono con lavoratori scende sotto la soglia, viene aggiunto alla lista `warningCells` e viene mostrato un indicatore persistente:
+  - In modalità settlement: triangolo rosso sopra l'esagono.
+  - In modalità mappa: triangolo rosso sopra il settlement.
+- L'indicatore rimane finché l'esagono non torna sopra soglia.
+- L'avviso in console viene emesso solo la prima volta che l'esagono scende sotto soglia.
+
+### Avvisi per liberazione automatica dei lavoratori
+
+Quando i lavoratori vengono liberati automaticamente (es. esagono totalmente urbanizzato, esagono fuori raggio dopo cambio velocità), viene mostrato un banner in alto a destra, sotto eventuali menu. Il banner è dismissibile con click destro.
+
+---
+
+## Dati giornalieri
+
+Durante il giorno vengono accumulati:
+
+- `settlement.foodGatheredToday`: cibo raccolto oggi da lavoratori locali.
+- `hex.foodGatheredToday`: cibo raccolto oggi da uno specifico esagono.
+- `settlement.foodConsumedToday`: cibo consumato oggi (in tempo reale, ma mostrato solo a fine giornata).
+
+A fine giornata:
+
+- `settlement.gatheredDaily = settlement.foodGatheredToday`
+- `settlement.consumedDaily = consumoTotaleGiornaliero`
+- `hex.gatheredDaily = hex.foodGatheredToday`
+- I contatori `foodGatheredToday` vengono azzerati.
+
+Nel riepilogo del settlement e nelle info esagono vengono mostrati i valori daily (del giorno precedente), non quelli in tempo reale.
+
+---
+
+## Interazioni con altri sistemi
+
+- Popolazione: i lavoratori locali appartengono al Pop `gatherer` (se non esiste, viene creato al momento dell'assegnazione).
+- Mappa: la raccolta locale è limitata agli esagoni entro il raggio locale. Le spedizioni possono andare oltre.
+- Tempo: il consumo giornaliero avviene a fine giornata; le spedizioni consumano in continuo.
+- Informazione: in futuro i dati su scorte e raccolto saranno offuscati o mediati da report.
+
+---
+
+## UI/UX collegata
+
+- In modalità settlement, cliccando su un esagono entro il raggio locale si seleziona l'esagono e si mostra il pannello info con i dettagli e le previsioni.
+- Bottoni `+` e `-` nel pannello `local-worker-panel` per assegnare/rimuovere lavoratori.
+- Sopra ogni esagono con lavoratori appare il numero di lavoratori.
+- Il raggio locale è visualizzato come bordo esterno giallo degli esagoni al confine (solo il lato esterno, per formare un unico poligono).
+- Triangoli rossi persistenti indicano esagoni sotto soglia.
+- Banner di notifica in alto a destra per la liberazione automatica dei lavoratori.
+
+================================================================================
+
+## FILE: Docs/GameDesign/04_Spedizioni.md
+
+# Spedizioni
+
+## Scopo
+
+Questo documento descrive il funzionamento delle spedizioni: gruppi mobili di lavoratori che si allontanano dal settlement per raccogliere cibo o svolgere altri compiti futuri.
+
+## Definizione
+
+Una spedizione è un'entità mobile sulla mappa, creata prelevando un certo numero di lavoratori da un Pop (inizialmente solo il Pop `gatherer`). La spedizione si muove, raccoglie risorse e torna al settlement per scaricarle.
+
+## Proprietà di una spedizione
+
+- `id`: identificativo univoco
+- `popType`: tipo di Pop da cui proviene (es. `gatherer`)
+- `workerCount`: numero di individui nella spedizione
+- `x`, `y`: posizione continua in pixel
+- `targetX`, `targetY`: destinazione corrente
+- `speed`: velocità in pixel al secondo (derivata)
+- `state`: stato attuale (vedi sotto)
+- `maxCapacity`: capacità massima di carico (cibo + provviste)
+- `inventory`: oggetto con `provisions` e `food` trasportati
+- `areaCenter`: centro dell'area di raccolta assegnata
+- `areaRadius`: raggio dell'area di raccolta in pixel
+- `settlementRef`: riferimento al settlement per il ritorno
+- `cooldownRemaining`: secondi di riposo rimanenti
+- `lastCellEvaluation`: tempo trascorso dall'ultima valutazione esagono
+- `isForced`: se true, la spedizione ignora l'esaurimento delle provviste per il ritorno
+- `useAssignedArea`: se true, la spedizione raccoglie solo all'interno dell'area assegnata; se false, vaga liberamente
+- `toBeDisbanded`: se true, la spedizione verrà sciolta all'arrivo al settlement
+- `tripStartGameTime`: tempo di gioco all'inizio del viaggio (per calcolare il riposo)
+
+---
+
+## Stati di una spedizione
+
+- `travellingToArea`: in viaggio verso l'area di raccolta
+- `movingToCell`: in movimento verso un esagono specifico migliore all'interno dell'area
+- `gathering`: sta raccogliendo dall'esagono corrente
+- `returningToCamp`: sta tornando al settlement
+- `resting`: a riposo al settlement prima di ripartire
+
+---
+
+## Comportamento automatico
+
+### Partenza
+
+- La spedizione riceve provviste dalle scorte del settlement.
+- La quantità di provviste è calcolata dinamicamente in base a distanza, velocità, numero di lavoratori e margine di sicurezza.
+- Se le provviste calcolate superano la capacità massima, la spedizione parte con meno provviste e tornerà prima.
+- Il settlement scala le proprie scorte di cibo della quantità data.
+
+### Viaggio di andata
+
+- La spedizione si muove in linea retta verso il centro dell'area assegnata o verso l'esagono migliore trovato.
+- Durante il viaggio consuma provviste in modo continuo:
+
+`consumoViaggio = workers * travelConsumptionPerSec * deltaSec`
+
+### Raccolta
+
+- Arrivata all'area, la spedizione individua l'esagono con `forageDensity` più alta entro il raggio dell'area.
+- Inizia a raccogliere da quell'esagono.
+- Quando la densità dell'esagono corrente scende sotto la soglia di abbandono (`cellAbandonThreshold`), la spedizione cerca un altro esagono migliore.
+- Se trova un esagono con densità superiore alla soglia e con un punteggio migliore oltre una certa soglia di switch, si sposta.
+- Se nessun esagono supera la soglia, continua su quello corrente fino a esaurimento o fino a quando le provviste lo permettono.
+- Durante la raccolta consuma provviste:
+
+`consumoRaccolta = workers * gatheringConsumptionPerSec * deltaSec`
+
+- Se l'esagono ha `urbanizedFraction = 1`, la spedizione non può raccogliere lì e cerca un altro esagono.
+
+### Ritorno
+
+La spedizione torna al settlement quando:
+
+- L'inventario è pieno (`food + provisions >= maxCapacity`).
+- Le provviste scendono sotto la soglia minima per il viaggio di ritorno (a meno che non sia forzata).
+- Il giocatore ordina il ritorno manualmente (tasto R).
+- Viene ordinata la cancellazione (tasto C).
+
+### Scarico e riposo
+
+- Al ritorno al settlement, la spedizione deposita il cibo raccolto in `settlement.foodStock`.
+- I lavoratori rientrano nel Pop di origine (`availableWorkers`).
+- La spedizione entra in stato `resting` con durata proporzionale alla durata del viaggio appena concluso.
+- Se la spedizione era marcata per lo scioglimento (`toBeDisbanded`), viene rimossa.
+
+### Ripartenza
+
+- Terminato il riposo, se ci sono ancora lavoratori disponibili nel Pop e l'area non è stata disattivata, la spedizione riparte automaticamente.
+- Le provviste vengono ricalcolate come alla partenza iniziale.
+
+---
+
+## Scelta dell'esagono migliore
+
+- Periodicamente (ogni `cellEvaluationInterval`), la spedizione valuta se spostarsi su un esagono migliore.
+- Il punteggio di un esagono è dato da:
+
+`score = density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`
+
+- Si passa a un nuovo esagono se il punteggio è maggiore del punteggio corrente moltiplicato per `cellSwitchScoreThreshold`.
+- Il nuovo esagono deve avere densità >= `cellAbandonThreshold`.
+- Le funzioni di ricerca esagoni escludono sempre l'esagono del settlement.
+
+### Geometria dell'area di raccolta
+
+L'area di raccolta è definita da un centro (`areaCenter`) e un raggio (`areaRadius`) in pixel. Gli esagoni validi sono quelli il cui **centro** è entro il raggio (distanza euclidea in pixel). Questo vale anche in modalità automatica (`useAssignedArea = false`), dove il raggio è relativo alla posizione corrente della spedizione.
+
+---
+
+## Modalità operative
+
+### Area assegnata (`useAssignedArea = true`)
+
+- La spedizione raccoglie solo all'interno del cerchio definito da `areaCenter` e `areaRadius`.
+- La scelta iniziale e i cambi esagono avvengono tramite `findBestCellInArea`.
+
+### Modalità automatica (`useAssignedArea = false`)
+
+- La spedizione vaga liberamente e sceglie l'esagono migliore attorno alla propria posizione corrente (`findBetterCell`).
+- Non è limitata a un'area prestabilita.
+
+### Modalità forzata (`isForced = true`)
+
+- La spedizione non torna al settlement per esaurimento provviste.
+- Continua a raccogliere finché l'inventario non è pieno o il giocatore ordina il ritorno.
+
+---
+
+## Interazione del giocatore
+
+- **Click destro su mappa** (con settlement selezionato o spedizione selezionata), **fuori dal raggio di raccolta locale**: crea una nuova spedizione di raccolta o aggiorna l'area di una esistente.
+
+- **Click destro dentro il raggio di raccolta locale**: non crea spedizioni né aggiorna aree. Quell'area è riservata alla raccolta locale.
+
+- **Shift + click destro** (fuori dal raggio locale): crea una spedizione forzata.
+
+- **Tasto R**: richiama la spedizione selezionata al settlement.
+
+- **Tasto F**: attiva/disattiva la modalità forzata.
+
+- **Tasto A**: attiva/disattiva la modalità automatica (area assegnata vs libera).
+
+- **Tasto C**: cancella la spedizione selezionata. Se è al settlement, viene sciolta immediatamente; altrimenti torna al settlement e poi viene rimossa.
+
+- **Click su una spedizione**: la seleziona e mostra le informazioni.
+
+---
+
+## Priorità di assegnazione lavoratori
+
+Quando viene creata una spedizione, i lavoratori vengono presi in questo ordine:
+
+1. Dalla popolazione non assegnata (`settlement.unassignedPopulation`) → vengono spostati nel Pop gatherer e poi prelevati.
+2. Dai lavoratori disponibili del Pop gatherer (`availableWorkers`).
+
+Se non ci sono lavoratori disponibili, la spedizione non viene creata.
+
+---
+
+## Bug noti e comportamenti da correggere
+
+- Se rimando una spedizione e ho gatherers disponibili, non prende quelli, ma ne crea di nuovi. La logica corretta è: se vi sono gatherers disponibili, prendere prima quelli. In futuro il giocatore potrà scegliere da quale pool pescare.
+- A volte la spedizione va fuori dall'area assegnata, perché valuta esagoni sul bordo e da lì vede esagoni migliori nel raggio. Deve rimanere sempre all'interno dell'area quando `useAssignedArea` è true.
+
+---
+
+## Note a lungo termine
+
+- In futuro, le spedizioni potranno essere composte da individui di Pop diversi (es. un gatherer cristiano e uno musulmano).
+- Il settlement potrà spostarsi fisicamente durante le migrazioni o il nomadismo; tutte le spedizioni attive aggiorneranno il punto di ritorno alla nuova posizione.
+- Le spedizioni potranno trasportare risorse diverse (legna, carne, pesce, assi) con inventari differenziati.
+
+---
+
+## Interazioni con altri sistemi
+
+- Popolazione: le spedizioni prelevano e restituiscono lavoratori al Pop di origine.
+- Risorse: riducono la densità degli esagoni di raccolta e portano cibo al settlement.
+- Tempo: consumano provviste in tempo reale.
+- UI: mostrano stato, inventario e percorsi quando selezionate.
+
+---
+
+## Formule di riferimento
+
+Le formule per consumo, provviste e riposo sono descritte in `03_RaccoltaCibo.md`. Qui si richiamano solo quelle specifiche:
+
+- Consumo viaggio: `workers * travelConsumptionPerSec * deltaSec`
+- Consumo raccolta: `workers * gatheringConsumptionPerSec * deltaSec`
+- Provviste necessarie: `workerCount * travelConsumptionPerSec * (distance / expeditionSpeed * 2) * safetyMultiplier`
+- Riposo: `tripDuration * restMultiplier`
+
+================================================================================
+
+## FILE: Docs/GameDesign/05_Popolazione.md
+
+# Popolazione e Demografia
+
+## Scopo
+
+Questo documento descrive il sistema di popolazione simulata (pop system), la demografia, il consumo di cibo, la gestione dei lavoratori e la futura crescita demografica. Include tutte le regole attuali e le evoluzioni previste.
+
+## Pop system
+
+La popolazione è suddivisa in **gruppi (pop)** con attributi condivisi: occupazione, età, cultura, religione, status sociale, etnia.
+Per il prototipo attuale esiste un solo Pop: `gatherer` (raccoglitori).
+Ogni Pop ha:
+
+- `type`: tipo di Pop (es. `gatherer`)
+- `totalWorkers`: numero totale di individui appartenenti al Pop
+- `availableWorkers`: lavoratori attualmente al campo, pronti per essere assegnati a spedizioni o compiti locali
+- `assignedWorkers`: lavoratori attualmente in spedizione
+- `localWorkers`: lavoratori assegnati alla raccolta locale nelle celle attorno al campo
+
+---
+
+## Popolazione non assegnata
+
+Oltre ai Pop specializzati, esiste un pool di popolazione non assegnata:
+
+- `camp.unassignedPopulation`
+  Questo pool rappresenta individui generici che non hanno ancora un'occupazione specifica. Possono essere convertiti in lavoratori di un Pop quando necessario (es. assegnazione a una cella locale o creazione di una spedizione).
+  Quando un lavoratore viene assegnato a una cella locale, smette di far parte della popolazione non assegnata e diventa membro del Pop `gatherer`. Anche se non parte in spedizione, appartiene comunque al Pop gatherer come lavoratore locale.
+
+---
+
+## Consumo di cibo
+
+Il cibo è l'unica risorsa vitale nel prototipo. Il consumo si divide in base al contesto:
+
+- Popolazione al campo: consuma una razione giornaliera fissa, calcolata per l'intera tribù a fine giornata.
+- Spedizioni in viaggio: consumano provviste in modo continuo, proporzionalmente al tempo trascorso e con un moltiplicatore maggiore rispetto al riposo.
+- Spedizioni durante la raccolta: consumano ancora di più, perché lo sforzo fisico è superiore.
+  Il consumo giornaliero totale della popolazione al campo è:
+  
+  ```text
+  dailyConsumption = totalPopulation * foodConsumptionPerPersonPerDay
+  ```
+
+dove `totalPopulation` include sia la popolazione non assegnata sia tutti i lavoratori dei Pop, compresi quelli in spedizione.
+
+Se le scorte arrivano a zero, per ora viene mostrato solo un avviso. In futuro comporterà la morte dei pop.
+
+---
+
+## Assegnazione dei lavoratori
+
+### Priorità di prelievo per le spedizioni
+
+Quando viene creata una spedizione, i lavoratori vengono presi in questo ordine:
+
+1. Dalla popolazione non assegnata (`camp.unassignedPopulation`), che viene prima convertita nel Pop `gatherer` e poi assegnata alla spedizione.
+
+2. Dai lavoratori disponibili del Pop `gatherer` (`availableWorkers`).
+
+Se non ci sono lavoratori disponibili, la spedizione non viene creata.
+
+### Assegnazione locale
+
+- I lavoratori locali vengono assegnati manualmente a celle specifiche entro il raggio locale.
+
+- Non sono entità mobili e producono cibo direttamente al campo.
+
+- Quando un lavoratore viene assegnato a una cella locale, diventa membro del Pop `gatherer` e incrementa sia `pop.localWorkers` sia `cell.assignedWorkers`.
+
+---
+
+## Riposo dei lavoratori
+
+Dopo una spedizione, i lavoratori devono riposare. Il tempo di riposo è proporzionale alla durata della spedizione appena conclusa:
+
+text
+
+restDuration = tripDurationSec * restMultiplier
+
+Il riposo si applica alla spedizione, non ai singoli lavoratori. Terminato il riposo, la spedizione può ripartire se ci sono ancora lavoratori disponibili nel Pop.
+
+---
+
+## Crescita demografica (futura)
+
+Questa meccanica non è ancora implementata. Le regole previste sono:
+
+- Più cibo c'è, più la popolazione cresce.
+
+- Se il cibo scarseggia, aumenta il tasso di morte.
+
+- Se una spedizione esaurisce le scorte, i lavoratori iniziano a morire o a consumare il cibo raccolto.
+
+---
+
+## Distinzione per età e sesso (futura)
+
+Dovremo introdurre una distinzione della popolazione per sesso ed età senza dover monitorare ogni singolo abitante. Questo sarà necessario per applicare meccaniche di frizione/resistenza al cambio di occupazione (es. uomini giovani infelici se assegnati alla raccolta perché disonorevole).
+
+L'approccio esatto deve ancora essere definito, ma l'idea è di usare categorie demografiche aggregate piuttosto che individui singoli.
+
+---
+
+## Fedeltà e fazioni (future)
+
+In futuro i Pop potranno avere:
+
+- Cultura e religione diverse
+
+- Fedeltà verso il giocatore o verso altre fazioni
+
+- Rischio di tradimento in base a composizione etnica, culturale e religiosa
+
+Queste meccaniche non sono implementate nel prototipo attuale.
+
+---
+
+## Interazioni con altri sistemi
+
+- Raccolta cibo: i lavoratori locali e le spedizioni sono prelevati dai Pop.
+
+- Spedizioni: le spedizioni prelevano e restituiscono lavoratori al Pop di origine.
+
+- Consumo: la popolazione totale determina il consumo giornaliero di cibo.
+
+- Governo e amministrazione: future forme di governo potranno influenzare la gestione della popolazione.
+
+- Mondo simulato: migrazioni e malattie (future) influenzeranno la demografia.
+
+---
+
+## UI/UX collegata
+
+- Nel riepilogo del campo vengono mostrati i dati sulla popolazione (non assegnata, lavoratori locali, in spedizione, disponibili).
+
+- Nel pannello info della cella selezionata viene mostrato il numero di lavoratori assegnati.
+
+- Sopra ogni cella con lavoratori compare il numero di lavoratori.
+
+- I bottoni `+` e `-` nel pannello `local-worker-panel` permettono di assegnare o rimuovere lavoratori dalla cella selezionata.
+
+---
+
+## Note tecniche (per il programmatore)
+
+- La popolazione non assegnata è un numero intero.
+
+- I Pop hanno contatori separati per lavoratori disponibili, in spedizione e locali.
+
+- L'assegnazione a una cella locale non crea un nuovo Pop: se il Pop gatherer esiste già, viene usato quello.
+
+================================================================================
+
+## FILE: Docs/GameDesign/06_Tecnologia_Cultura.md
+
+# Tecnologia e Cultura
+
+## Scopo
+
+Questo documento descrive il sistema di progressione tecnologica e culturale: come le tecnologie emergono organicamente dall'attività ripetuta, come possono essere indirizzate con centri di ricerca, e come si diffondono geograficamente. Include anche i rami culturali e sociali.
+
+## Progressione organica
+
+I progressi si sbloccano automaticamente quando una determinata attività viene svolta per un certo numero di cicli. Esempi:
+
+- Dopo X sessioni di caccia, appare "arco rudimentale".
+
+- La raccolta ripetuta porta all'agricoltura.
+
+- L'estrazione ripetuta porta alla metallurgia.
+
+L'innovazione spontanea continua anche quando si indirizza la ricerca.
+
+## Ricerca indirizzata
+
+Tramite laboratori, università e centri culturali si può investire per accelerare specifici filoni tecnologici, culturali o sociali.
+
+## Diffusione geografica
+
+Le tecnologie si propagano per contatto tra civiltà vicine. Non appaiono istantaneamente ovunque.
+
+## Rami principali
+
+Almeno due rami principali:
+
+- Tecnologico: strumenti, armi, costruzioni.
+
+- Culturale/sociale: leggi, religione, forme organizzative.
+
+## Progressione storica (Roadmap tecnologica)
+
+La roadmap segue la progressione storica. Ogni era sblocca nuove possibilità di gameplay.
+
+### Era 0 – Nomadismo (MVP iniziale)
+
+Tecnologie assenti. Comandi diretti del capo tribù.
+
+- Raccolta e caccia.
+
+- Movimento su mappa continua.
+
+- Consumo cibo e morte per fame.
+
+- Nessuna proprietà privata, nessuna lavorazione.
+
+- Pop generici, poche decine di individui.
+
+- Informazione imperfetta base (visuale diretta vs. proiezione).
+
+### Era 1 – Stanzialità e agricoltura primitiva
+
+Scoperta dell'agricoltura (da raccolta ripetuta) e della domesticazione.
+
+- Primi campi coltivabili, fertilità dinamica.
+
+- Villaggio permanente con edifici base (magazzino, falegnameria).
+
+- Lavorazione legno (assi) e conservazione cibo.
+
+- Inizio degrado risorse se sovrasfruttate.
+
+- La popolazione può specializzarsi: contadini, artigiani.
+
+- Prime strade semplici per accelerare trasporto.
+
+- Tecnologia organica: "ascia migliorata", "irrigazione base".
+
+### Era 2 – Età dei metalli e della scrittura
+
+Scoperta della metallurgia e della scrittura (da necessità amministrative).
+
+- Estrazione mineraria (hard cap per miniere).
+
+- Lavorazione metalli → strumenti e armi.
+
+- Scrittura: report più accurati, archiviazione dati, possibilità di tracciare confini interni.
+
+- Amministrazione interna: province, governatori con lealtà e competenza.
+
+- Comparsa di altre famiglie con interessi economici.
+
+- Il potere può essere perso: se deposto, il giocatore continua con i propri possedimenti.
+
+### Era 3 – Commercio complesso e diplomazia
+
+Sviluppo della moneta e delle rotte commerciali a lungo raggio.
+
+- Rotte commerciali con merci che viaggiano fisicamente.
+
+- Diplomazia per tracciare confini con altre civiltà.
+
+- Eserciti composti da pop di diversa estrazione, possibile tradimento.
+
+- Informazione imperfetta applicata a diplomazia (report degli ambasciatori).
+
+- Diffusione tecnologica tra civiltà per contatto.
+
+### Era 4 – Governo avanzato e religioni organizzate
+
+Sviluppo di forme di governo complesse e religioni strutturate.
+
+- Forme di governo customizzabili (monarchia, repubblica, teocrazia...).
+
+- Ordini diventano incentivi se il governo lo richiede.
+
+- Religioni organizzate: influenzano lealtà, cultura e migrazioni.
+
+- Missionari e conversione.
+
+- Università e centri di ricerca per indirizzare tecnologia/cultura.
+
+- Gestione delle crisi: carestie, rivolte, eresie generate dal sistema.
+
+### Era 5 – Globalizzazione e industrializzazione
+
+Scoperte scientifiche, stampa, macchine a vapore...
+
+- Variazioni climatiche e migrazioni di massa.
+
+- Malattie ed epidemie (diffusione lungo rotte commerciali).
+
+- Tecnologia che accelera e si diffonde più rapidamente.
+
+- Catene produttive complesse, fabbriche, proletariato.
+
+- Ideologie politiche che competono per il potere.
+
+- Potenza di fuoco e logistica militare su larga scala.
+
+### Era 6 – Contemporanea e futuro
+
+Dalla rivoluzione informatica in poi...
+
+- Reti di comunicazione istantanea (riduzione dell'incertezza informativa).
+
+- Economia globale, mercati finanziari.
+
+- Armi di distruzione di massa, diplomazia multilaterale.
+
+- Simulazione di crisi globali (climatiche, pandemiche, nucleari).
+
+## Note per lo sviluppo
+
+- Lo sviluppo del codice può seguire la stessa progressione storica, implementando prima le basi che rendono possibile l'era successiva.
+
+- Il prototipo parte dalle fondamenta trasversali (mappa continua, pop system, informazione imperfetta, tempo reale) e sblocca nuove meccaniche man mano che la civiltà raggiunge le soglie corrispondenti.
+
+## Interazioni con altri sistemi
+
+- Raccolta cibo: tecnologie future miglioreranno velocità e metodi di raccolta.
+
+- Spedizioni: nuovi strumenti e veicoli (futuri) cambieranno velocità e capacità di carico.
+
+- Popolazione: nuove occupazioni saranno sbloccate dalla tecnologia.
+
+- Governo: forme di governo più complesse dipendono da progressi culturali e sociali.
+
+- Mondo simulato: eventi storici e crisi possono accelerare o ritardare lo sviluppo.
+
+## UI/UX collegata
+
+- In futuro, un pannello dedicato mostrerà lo stato di avanzamento tecnologico e culturale.
+
+- Le tecnologie organiche appariranno come notifiche quando sbloccate.
+
+- La diffusione geografica potrà essere mostrata sulla mappa (aree che hanno una certa tecnologia).
+
+- Nel prototipo attuale, non c'è ancora UI per la tecnologia.
+
+================================================================================
+
+## FILE: Docs/GameDesign/07_Governo_Amministrazione.md
+
+# Governo e Amministrazione
+
+## Scopo
+
+Questo documento descrive il sistema di governo e amministrazione interna: forme di governo, personalizzazione, deleghe a governatori e vassalli, perdita del potere, confini interni e province. Non è ancora implementato nel prototipo, ma definisce la visione a lungo termine.
+
+## Forme di governo
+
+Il giocatore può trovarsi a capo di una civiltà con forme di governo diverse, dalla tribù nomade alle democrazie moderne.
+
+- Il livello di controllo varia: si passa da ordini diretti (tribù) a incentivi indiretti (democrazia).
+
+- Le forme di governo possono essere modificate nel tempo, con leggi e politiche interne.
+
+- Non sei sempre al comando: talvolta detieni il potere, altre volte devi sopravvivere come emarginato o agire dietro le quinte.
+
+## Personalizzazione del governo
+
+- Le forme di governo possono essere customizzate.
+
+- Si possono definire leggi e politiche interne.
+
+- In futuro, a seconda della forma di governo, gli ordini diretti potrebbero diventare incentivi (es. in una democrazia non comandi direttamente, ma puoi incentivare).
+
+## Amministrazione interna e deleghe
+
+- La diplomazia traccia i confini esterni, ma il giocatore può suddividere il proprio territorio in regioni/province per migliorare la governabilità.
+
+- Può affidare le province a sottoposti: governatori, vassalli.
+
+- Questi delegati hanno lealtà e competenza variabili.
+
+- La qualità dei report e l'efficienza amministrativa dipendono da lealtà e competenza dei delegati.
+
+- I delegati gestiscono per conto del giocatore, ma potrebbero non essere affidabili.
+
+## Perdita del potere
+
+- Se il capo della dinastia viene rimosso, il giocatore non perde la partita.
+
+- Continua a gestire i propri interessi privati come famiglia: possedimenti, terreni, industrie, beni.
+
+- Può essere a capo di una civiltà, all'opposizione o ridotto a un ruolo marginale.
+
+- Altre famiglie competono per risorse e influenza, e possono opporsi a decisioni che danneggiano i loro interessi.
+
+## Confini e province
+
+- I confini esterni sono tracciati tramite diplomazia con altre civiltà.
+
+- All'interno, i confini amministrativi sono definiti liberamente dal giocatore.
+
+- La suddivisione in province è manuale: decidi tu come organizzare l'impero.
+
+- Il territorio è definito dall'uso effettivo: una foresta che usi è "tua" finché nessuno te la contesta.
+
+## Rapporti con le famiglie e fazioni interne
+
+- Altre famiglie competono per risorse e influenza.
+
+- Possono opporsi a decisioni che danneggiano i loro interessi (es. dichiarare guerra a un partner commerciale).
+
+- I pop possono avere fedeltà variabile verso il giocatore o verso altre fazioni.
+
+## Interazioni con altri sistemi
+
+- Popolazione: i governatori influenzano la gestione dei pop e delle province.
+
+- Diplomazia e guerra: i confini amministrativi interni si appoggiano ai confini esterni.
+
+- Informazione: i report dei governatori possono essere inaccurati.
+
+- Tecnologia e cultura: forme di governo più complesse richiedono progressi culturali e sociali.
+
+- Mondo simulato: eventi come rivolte o guerre civili possono far perdere il potere.
+
+## UI/UX collegata (futura)
+
+- Schermata di gestione delle province con elenco governatori, lealtà e competenza.
+
+- Pannello per modificare leggi e politiche interne.
+
+- Mappa con confini interni tra province.
+
+- Notifiche quando un governatore è sleale o inefficiente.
+
+## Note per lo sviluppo
+
+- Il sistema di governo non è ancora implementato.
+
+- Si inizierà a introdurre quando la civiltà raggiungerà l'Era 2 (scrittura e amministrazione) e l'Era 4 (governo avanzato).
+
+- La perdita del potere richiederà di separare le risorse della dinastia da quelle dello stato.
+
+================================================================================
+
+## FILE: Docs/GameDesign/08_Diplomazia_Guerra.md
+
+# Diplomazia e Guerra
+
+## Scopo
+
+Questo documento descrive i sistemi di diplomazia e guerra previsti per il gioco: confini esterni, eserciti composti da pop, logistica militare, report e spionaggio. Non sono ancora implementati nel prototipo, ma definiscono la visione a lungo termine.
+
+## Confini
+
+- La diplomazia permette di tracciare confini riconosciuti con altre civiltà.
+
+- I confini interni amministrativi sono definiti liberamente dal giocatore.
+
+- Il territorio è definito dall'uso effettivo: una foresta che usi è "tua" finché nessuno te la contesta.
+
+- Con il progresso diplomatico si possono definire confini più stabili.
+
+## Eserciti
+
+- Gli eserciti sono composti da pop arruolati.
+
+- Se i pop combattono, non producono: arruolare popolazione riduce la forza lavoro.
+
+- La composizione etnica e culturale degli eserciti influisce sulla fedeltà e sul rischio di tradimento.
+
+- Eserciti composti da pop di cultura affine al nemico potrebbero tradire o disertare.
+
+- Il giocatore deve considerare non solo il numero di soldati, ma anche la loro lealtà.
+
+## Logistica militare
+
+- I rifornimenti devono viaggiare fisicamente dalle retrovie al fronte.
+
+- Le rotte di rifornimento possono essere interrotte dal nemico.
+
+- Gli eserciti in marcia consumano provviste come le spedizioni, ma in quantità maggiore.
+
+- La pianificazione militare deve tenere conto della distanza e delle scorte disponibili.
+
+## Report e spionaggio
+
+- Le informazioni sulle forze nemiche sono limitate e soggette a errori.
+
+- Valgono i tre stati di conoscenza: certa, da report, proiettata.
+
+- I report possono essere ritardati o imprecisi in base alla distanza e all'affidabilità della fonte.
+
+- Lo spionaggio può falsificare le informazioni nemiche.
+
+- Il giocatore non conosce mai con certezza la posizione o la forza esatta del nemico senza un contatto visivo diretto.
+
+## Interazioni con altri sistemi
+
+- Popolazione: arruolare pop riduce i lavoratori disponibili.
+
+- Risorse: gli eserciti consumano cibo e provviste.
+
+- Governo: la decisione di guerra può essere contrastata da famiglie o fazioni con interessi commerciali.
+
+- Tecnologia: armi e tattiche migliorano con la progressione tecnologica.
+
+- Mondo simulato: guerre possono generare crisi, migrazioni e carestie.
+
+- Informazione: la nebbia di guerra e i report imprecisi rendono la diplomazia e la guerra più incerte.
+
+## UI/UX collegata (futura)
+
+- Mappa con confini diplomatici e zone di influenza.
+
+- Pannello per gestire trattative, alleanze e dichiarazioni di guerra.
+
+- Indicatori di fedeltà degli eserciti e rischio di tradimento.
+
+- Linee di rifornimento visibili sulla mappa.
+
+- Notifiche di report su movimenti nemici.
+
+## Note per lo sviluppo
+
+- Il sistema di diplomazia e guerra non è ancora implementato.
+
+- Le prime basi arriveranno con MVP5 (seconda tribù e territorio) per testare la competizione per le risorse.
+
+- Il combattimento basilare sarà introdotto quando ci saranno abbastanza pop e risorse per giustificarlo.
+
+================================================================================
+
+## FILE: Docs/GameDesign/09_UI.md
+
+# Informazione e UI
+
+## Scopo
+
+Questo documento descrive il sistema di informazione imperfetta e l'interfaccia utente collegata: stati di conoscenza, report, pannelli informativi, visualizzazioni e feedback. Include le regole attuali e le evoluzioni previste.
+
+## Stati di conoscenza
+
+Ogni unità o risorsa può essere conosciuta in tre modi:
+
+- Certa: nel raggio visivo del giocatore.
+- Da report: valida all'ultimo messaggio ricevuto, può essere falsificata da nemici o traditori.
+- Proiettata: posizione stimata in base a velocità e ultime informazioni note.
+
+Anche dati come felicità, scorte o produzione sono mediati da chi li riporta, con arrotondamenti o errori.
+
+Senza un sistema di raccolta informazioni, certe cose non saranno note. Per sapere quanta legna hai realmente, serve qualcuno che la conti e te lo riferisca.
+
+## Filigrana informativa
+
+Anche le statistiche interne (scorte, felicità) sono filtrate da chi le riporta. I dati mostrati potrebbero essere inaccurati, arrotondati o ritardati.
+
+## Gestione dei report
+
+I report possono essere ritardati o imprecisi in base alla distanza e all'affidabilità della fonte. La qualità delle informazioni dipende da chi le invia e da quando.
+
+## Raggio visivo del giocatore
+
+Dove hai uomini, vedi; il resto è buio o sfocato. La visualizzazione della posizione delle unità dipende dallo stato di conoscenza:
+
+- Certa: colore pieno se nel raggio visivo.
+- Proiettata: desaturata con interpolazione se fuori dal raggio.
+- Da report: lampeggiante o con indicatore "R" quando arriva un messaggio.
+
+## Interfaccia utente attuale
+
+### Pannello info in alto a destra
+
+Mostra dettagli su spedizioni, esagoni selezionati o riepilogo settlement. Il contenuto cambia in base alla selezione:
+
+- **Spedizione selezionata**: mostra lavoratori, stato, provviste, cibo, capacità, modalità forzata/automatica.
+- **Esagono selezionato (in modalità settlement)**: mostra densità, lavoratori, cibo raccolto daily, `urbanizedFraction`, cibo rimanente fino a 25%, cibo totale rimanente, giorni alla soglia 25%, incremento con un lavoratore in più, giorni risparmiati con un lavoratore in più.
+- **Settlement selezionato (senza esagono)**: mostra cibo, non assegnati, raccolto e consumo giornaliero, cibo rimanente nell'area locale, lavoratori per pop, area occupata in km².
+
+### Pannello debug
+
+Permette di modificare i parametri di gioco in tempo reale. Accessibile con pulsante "Debug" in alto a destra. Contiene campi per tutti i parametri di GameConfig. Le modifiche si applicano subito.
+
+### Pannello lavoratori locali
+
+Mostra informazioni sull'esagono selezionato e bottoni "+" e "-" per assegnare o rimuovere lavoratori. Appare solo quando un esagono locale è selezionato in modalità settlement.
+
+### Banner di notifica
+
+In alto a destra, sotto eventuali menu aperti. Se ci sono più banner, appaiono in colonna uno sotto l'altro (come le notifiche di Crusader Kings 3). Ogni banner è dismissibile con click destro su di esso. Il click destro sul banner non deve propagarsi alla mappa (nessuna spedizione creata).
+
+Uso attuale:
+
+- Avviso di liberazione automatica dei lavoratori da un esagono (cella totalmente urbanizzata, o uscita dal raggio locale).
+
+### Indicatori visivi sulla mappa
+
+- Esagoni colorati in base alla densità di cibo con scala a 7 colori.
+- Area occupata dal settlement evidenziata con tinta marroncina.
+- Raggio locale del settlement mostrato come bordo esterno giallo sugli esagoni al confine. Solo il lato esterno degli esagoni al confine viene colorato, per formare un unico poligono giallo attorno all'area di sfruttamento.
+- Numeri sopra gli esagoni con lavoratori assegnati.
+- Triangoli rossi persistenti per esagoni sotto soglia (in modalità settlement) e sul settlement (in modalità mappa).
+- Percorsi tratteggiati per le spedizioni selezionate.
+- Area di raccolta visualizzata per le spedizioni selezionate.
+
+## Interazione con il giocatore
+
+- Click sinistro: seleziona/deseleziona spedizioni, settlement, esagoni.
+- Shift+click su esagono: ispezione debug (mostra densità, coordinate, `urbanizedFraction`).
+- Click destro su mappa (con settlement o spedizione selezionata, fuori dal raggio locale): crea una nuova spedizione o aggiorna l'area di una esistente.
+- Click destro dentro il raggio di raccolta locale: non crea spedizioni né aggiorna aree. Quell'area è riservata alla raccolta locale.
+- Shift+click destro (fuori dal raggio locale): crea una spedizione forzata.
+- Tasto R: richiama la spedizione selezionata.
+- Tasto F: attiva/disattiva modalità forzata.
+- Tasto A: attiva/disattiva modalità automatica.
+- Tasto C: cancella la spedizione selezionata.
+- Spazio: pausa/play.
+- Tasti 0-4: impostano velocità.
+- Tasti + e -: aumentano/diminuiscono velocità.
+
+## Regole di visualizzazione
+
+- I testi informativi devono essere chiari e non tagliati.
+- Il pannello debug deve adattarsi al contenuto senza scroll orizzontale.
+- Le etichette dei pannelli devono essere concise ma comprensibili.
+- Le informazioni sono da considerarsi "di debug" nel prototipo; in futuro saranno offuscate o mediate.
+- Le previsioni mostrano il cibo rimanente fino a 25% e il cibo totale rimanente stimato. Non mostrano più il cibo rimanente fino a 0% (non ha senso pratico, il decadimento è esponenziale e non arriva mai a 0 in tempo finito).
+- I giorni alla soglia 25% sono calcolati tenendo conto del decadimento esponenziale della densità e del fattore di urbanizzazione.
+
+## Evoluzioni future
+
+- Barra del tempo con indicatori di velocità.
+- Tooltip base per risorse e pop.
+- Pannello per gestione report e filigrana informativa.
+- Visualizzazione della diffusione tecnologica.
+- Pannelli diplomatici e militari.
+- Schermata di gestione province e governatori.
+- Notifiche per eventi critici.
+
+## Interazioni con altri sistemi
+
+- Popolazione: i pannelli mostrano dati su lavoratori e pop.
+- Raccolta cibo: gli esagoni selezionati mostrano previsioni e dati di raccolta.
+- Spedizioni: selezione e comandi tastiera.
+- Tempo: indicatori di velocità e pausa.
+- Debug: modifica parametri in tempo reale.
+
+================================================================================
+
+## FILE: Docs/GameDesign/10_MondoSimulato_Eventi.md
+
+# Mondo Simulato e Eventi
+
+## Scopo
+
+Questo documento descrive i sistemi di simulazione del mondo: clima e stagioni, migrazioni, malattie, eventi emergenti e cicli storici. Questi sistemi non sono ancora implementati nel prototipo, ma sono parte della visione a lungo termine.
+
+## Clima e stagioni
+
+- Il clima e le stagioni influenzano la produttività agricola, la rigenerazione delle risorse e la migrazione animale.
+
+- Non ancora implementato nel prototipo.
+
+## Migrazioni
+
+- I pop si spostano in base a fattori economici, culturali e di sicurezza.
+
+- Le migrazioni possono essere spinte dal benessere e dall'influenza culturale.
+
+- Non ancora implementato.
+
+## Malattie ed epidemie
+
+- Si diffondono lungo le rotte commerciali e in condizioni igieniche precarie.
+
+- Possono avere effetti su popolazioni e unità.
+
+- Non ancora implementato.
+
+- Previsto per le ere più avanzate.
+
+## Eventi emergenti
+
+- Carestie, rivoluzioni, guerre civili emergono quando variabili come scarsità di cibo, oppressione fiscale e tensioni etniche superano soglie critiche.
+
+- Questi eventi sono generati dal sistema, non scriptati.
+
+- Ogni partita è un racconto unico e storicamente plausibile.
+
+- Non ancora implementato.
+
+## Cicli storici
+
+- Eventi e modificatori spingono per replicare i reali cicli storici.
+
+- La storia emerge dall'interazione di variabili profonde (economia, demografia, fedeltà, religione, clima).
+
+- Non ancora implementato.
+
+## Interazioni con altri sistemi
+
+- Popolazione: malattie e migrazioni influenzano la demografia.
+
+- Risorse: carestie e clima influenzano produzione e rigenerazione.
+
+- Governo: guerre civili e rivolte possono far perdere il potere.
+
+- Diplomazia e guerra: tensioni etniche e oppressione fiscale possono scatenare conflitti.
+
+- Tecnologia: progressi possono mitigare effetti di malattie o migliorare produzione.
+
+- Informazione: gli eventi possono essere riportati in modo impreciso.
+
+## UI/UX collegata (futura)
+
+- Notifiche per eventi critici.
+
+- Mappa con indicatori climatici o di malattie.
+
+- Grafici o riepiloghi di variabili profonde.
+
+- In futuro, l'incertezza informativa si applicherà anche a questi eventi.
+
+## Note per lo sviluppo
+
+- Il sistema di mondo simulato non è ancora implementato.
+
+- Partirà con eventi semplici legati a soglie (es. carestia se cibo < soglia) nelle ere avanzate.
+
+- La simulazione completa richiederà di tracciare molte variabili.
+
+================================================================================
+
+## FILE: Docs/GameDesign/11_Città_Edifici.md
+
+# Città ed Edifici
+
+## Scopo
+
+Questo documento raccoglie la visione futura su città ed edifici. Non è ancora implementato nel prototipo, ma definisce la direzione di lungo termine per la parte urbana del gioco: come cresce una città, come si distribuiscono gli edifici, come interagisce con il terreno, come si espande nel territorio.
+
+---
+
+## Dalla tribù alla città
+
+Nel prototipo attuale l'insediamento è chiamato "settlement" ed è una singola area occupata da una tribù nomade o semi-stanziale. Nel corso del gioco, con la progressione storica e tecnologica, il settlement diventa **città**, poi **grande città**, poi **metropoli**.
+
+La differenza non è solo dimensionale, ma qualitativa:
+
+- Una tribù occupa un'area piccola, con strutture temporanee (tende, ripari).
+- Un villaggio ha case stabili, magazzini, spazi comuni.
+- Una città ha edifici specializzati, più piani, quartieri.
+- Una metropoli ha grattacieli, infrastrutture, densità estrema.
+
+---
+
+## Crescita della città
+
+### Come cresce
+
+La città cresce in **area occupata**, misurata in km². Per il prototipo la crescita è lineare:
+
+`areaCittaKm2 = popolazione * settlementGrowthPerPerson`
+
+con `settlementGrowthPerPerson` (default 0.001 km²/persona) e area minima `settlementMinAreaKm2` (default 0.01 km²).
+
+### Come si espande
+
+La città parte da un punto e si espande nel territorio circostante. Per il prototipo la forma è approssimata a un cerchio di raggio `√(area/π)`. In futuro la forma sarà **plasmata dal terreno** e **indirizzata dal giocatore**.
+
+### Fattori che influenzano la crescita (futuri)
+
+La crescita non sarà uniforme in tutte le direzioni. Sarà plasmata da:
+
+- **Terreno**: la città non cresce sull'acqua (a meno di costruzioni speciali come Venezia). Cresce più velocemente in pianura, più lentamente su colline e montagne.
+- **Strade**: la presenza di strade accelera la crescita lungo di esse.
+- **Risorse**: la vicinanza a risorse preziose (miniere, terreni fertili, porti) può indirizzare la crescita.
+- **Volontà del giocatore**: il giocatore potrà **prioritizzare** la crescita verso una direzione specifica (es. "cresci verso est, verso quella foresta"). Questo è un comando futuro.
+- **Ostacoli naturali**: fiumi, laghi, montagne bloccano o rallentano la crescita.
+
+### Edifici inglobati, non distrutti
+
+Quando la città si espande, non distrugge gli elementi esistenti (miniere, foreste, campi coltivati, altri insediamenti minori). Li **ingloba**. Un elemento inglobato continua a esistere come parte della città, con la sua funzione.
+
+- Una miniera inglobata continua a produrre.
+- Un campo coltivato inglobato continua a essere coltivabile.
+- Un piccolo villaggio inglobato diventa un quartiere della città.
+
+Questo è diverso dall'approccio "distruggi e ricostruisci": la città è un organismo che cresce **attorno** alle cose, non **al posto** delle cose.
+
+---
+
+## Edifici
+
+### Cosa sono
+
+Gli edifici sono strutture costruite dalla popolazione all'interno della città. Occupano **spazio** e forniscono **funzioni**:
+
+- **Abitazioni**: case, palazzi, grattacieli. Forniscono spazio abitativo per la popolazione.
+- **Magazzini**: depositi per risorse e beni.
+- **Edifici produttivi**: laboratori, officine, fabbriche.
+- **Edifici civici**: templi, piazze, edifici amministrativi.
+- **Infrastrutture**: strade, mura, acquedotti.
+
+### Coefficiente di spazio
+
+Ogni edificio occupa una certa **quantità di spazio** all'interno della cella (o della città). Il coefficiente di spazio può essere:
+
+- **Fisso** per tipo (es. una casa occupa 1 unità, un magazzino 2 unità).
+- **Variabile** con il livello (es. un grattacielo occupa più spazio in altezza ma non in pianta).
+- **Efficiente nel tempo**: gli edifici moderni (palazzi, grattacieli) forniscono più abitazioni per unità di spazio occupato.
+
+### Spazio interno della cella
+
+Ogni cella (esagono) della mappa ha una **capacità di spazio interno** (es. 100 unità). Quando la città cresce e consuma spazio, gli edifici si distribuiscono nelle celle disponibili.
+
+Quando lo spazio di una cella è esaurito, la città inizia a costruire in una cella adiacente. Il giocatore può (in futuro) decidere dove prioritizzare la crescita.
+
+### Piani e densità
+
+Un concetto futuro importante: gli edifici possono avere **piani** e **densità variabile**. Un grattacielo di 50 piani occupa la stessa pianta di una casa di 1 piano, ma ospita 50 volte più persone.
+
+Questo cambia radicalmente la crescita urbana:
+
+- **Città pre-moderna**: edifici bassi (2-3 piani), densità media.
+- **Città industriale**: edifici più alti, densità alta.
+- **Metropoli moderna**: grattacieli, densità estrema.
+
+Per il prototipo, questo è rimandato. Ma va tenuto presente perché definisce come la città "cresce" nel tempo: con l'evoluzione tecnologica, gli stessi km² ospitano più persone.
+
+---
+
+## Città vs settlement
+
+Il termine "settlement" nella documentazione attuale è generico: vale sia per una tribù nomade, sia per una città moderna. Per chiarezza:
+
+- **Settlement** = insediamento umano di qualunque tipo. Termine neutro.
+- **Tribù** = settlement nomade o semi-stanziale dell'Era 0.
+- **Villaggio** = settlement stanziale piccolo (Era 1-2).
+- **Città** = settlement grande con specializzazione (Era 2-4).
+- **Metropoli** = settlement molto grande con edifici ad alta densità (Era 5+).
+
+Nel codice, per ora, si usa "settlement" come nome unico.
+
+---
+
+## Modello a due livelli (visione futura)
+
+### Il problema
+
+Simulare ogni edificio di ogni città del mondo a livello di singola cella è insostenibile. Eppure, il giocatore vuole vedere il dettaglio locale (quartieri, edifici, strade).
+
+### La soluzione
+
+Un modello a **due livelli di dettaglio**:
+
+- **Livello mondo**: la mappa globale di esagoni. Ogni esagono ha statistiche aggregate (popolazione, area occupata, livello di urbanizzazione).
+- **Livello locale**: quando il giocatore "apre" una cella, si genera una **mappa dettagliata** con edifici, strade, quartieri. Questa mappa è generata proceduralmente o derivata da dati aggregati.
+
+Il giocatore vede la stessa mappa continua, ma la simulazione è aggregata dove serve e dettagliata dove il giocatore guarda.
+
+### Cosa rimane persistente
+
+- Le statistiche aggregate di ogni esagono (popolazione, area occupata, tipo di edifici principali) sono persistenti.
+- La mappa dettagliata della città è generata al volo quando serve, in modo deterministico (stesso seed = stessa mappa).
+- Le modifiche del giocatore (es. costruzione manuale di un edificio) sono persistite come delta rispetto alla generazione procedurale.
+
+### Livelli di dettaglio
+
+- **Esagoni remoti**: solo statistiche aggregate. Nessuna mappa locale.
+- **Esagoni di interesse** (fazioni rivali, eventi): statistiche aggregate + qualche dato locale.
+- **Esagoni vicini al giocatore**: mappa locale dettagliata, simulazione a tick frequenti.
+
+---
+
+## Note per lo sviluppo
+
+- Il sistema di edifici non è ancora implementato. Arriverà con l'Era 1 (stanzialità e agricoltura primitiva), quando avremo magazzini, falegnamerie e prime case.
+- La logica dello spazio interno delle celle sarà affrontata quando la città inizierà a occupare più di una cella.
+- Il modello a due livelli è una visione di lungo termine, non del prototipo.
+- La crescita plasmata dal terreno e indirizzata dal giocatore è una visione di medio termine.
+
+---
+
+## Interazioni con altri sistemi
+
+- **Popolazione**: la popolazione abita gli edifici. La capacità abitativa determina la crescita demografica.
+- **Risorse**: gli edifici consumano risorse per essere costruiti e mantenuti.
+- **Tecnologia**: nuove tecnologie sbloccano nuovi tipi di edifici.
+- **Mondo simulato**: eventi (incendi, epidemie, guerre) possono danneggiare gli edifici.
+- **Informazione**: il giocatore vede gli edifici solo se sono nel suo raggio visivo o se riceve report.
+
+
+================================================================================
+
+## FILE: Docs/Roadmap/MVP1 - Prototipo1.md
+
+# Prototipo 1
+
+## Panoramica
+
+Il Prototipo 1 copre l'Era 0 (Nomadismo) e getta le basi tecniche per le ere successive. L'obiettivo è validare il loop di sopravvivenza: esplorare, raccogliere, tornare al campo, sopravvivere.
+
+## Logica di sviluppo
+
+Il prototipo parte implementando le fondamenta trasversali del gioco (mappa continua, pop system, informazione imperfetta, tempo reale) e aggiunge funzionalità in parallelo alla progressione storica simulata. Ogni iterazione sblocca nuove meccaniche quando la civiltà del giocatore raggiunge la soglia tecnologica/sociale corrispondente, o quando le fondamenta precedenti sono state validate. In pratica, l'MVP copre l'Era 0 (nomadismo), e le iterazioni successive attivano le ere successive, aggiungendo strati di complessità al sistema già esistente.
+
+## MVP1 – Raccolta cibo e sopravvivenza base
+
+Obiettivo generale: il giocatore controlla un gruppo di raccoglitori, può spostarli su una mappa continua, raccogliere cibo vegetale, vedere le zone impoverirsi e rigenerarsi, e gestire le scorte che vengono consumate nel tempo. Il loop base è: esplorare, raccogliere, tornare al campo, sopravvivere.
+
+### IMPLEMENTATO
+
+#### Batch 1 – Setup Phaser funzionante
+
+- Installazione di Phaser 3 via CDN.
+
+- Struttura base di index.html, main.js, style.css.
+
+- Canvas visualizzato correttamente nel browser.
+
+- Nessuna meccanica di gioco, solo infrastruttura tecnica.
+
+#### Batch 2 – Griglia spaziale e mappa con zone di cibo
+
+- Implementazione della griglia spaziale nascosta (world.js).
+
+- Layer forageDensity con distribuzione non uniforme:
+  
+  - Zone ad alta densità (macchie di bacche) rappresentate visivamente con colori più intensi.
+  
+  - Zone a bassa densità con colori tenui.
+  
+  - Zone a densità zero senza colore.
+
+- Visualizzazione di debug: ogni cella della griglia è colorata in base alla densità, così il giocatore può vedere dove il cibo è più abbondante.
+
+- Meccanica: il mondo contiene risorse diffuse; il giocatore distingue a colpo d'occhio le aree più ricche e decide dove mandare i raccoglitori.
+
+- La densità di cibo è visualizzata con una scala a 7 colori, con intervalli precisi e non sovrapposti:
+  
+  - 0.90-1.00: verde scuro
+  
+  - 0.75-0.89: verde medio
+  
+  - 0.50-0.74: verde chiaro
+  
+  - 0.25-0.49: giallo
+  
+  - 0.05-0.24: arancione
+  
+  - 0.01-0.04: rosso
+  
+  - 0.00: nessun colore (sfondo)
+
+#### Batch 3 – Pop e movimento
+
+- Definizione della classe base per entità mobili e della classe Pop (units.js).
+
+- Un pop (gruppo di raccoglitori) appare sulla mappa.
+
+- Click su un punto qualsiasi della mappa: il pop si muove in modo continuo, senza scatti, verso quella posizione.
+
+- Meccanica: interazione diretta con il mondo. Non esistono griglie visibili che vincolano il movimento. Il giocatore sposta fisicamente la sua gente.
+
+#### Batch 4 – Raccolta cibo e riduzione della densità
+
+- Quando il pop arriva su una cella con forageDensity maggiore di zero, inizia automaticamente a raccogliere cibo.
+
+- La quantità di cibo raccolta per secondo è proporzionale alla densità locale: zone ricche rendono di più, zone povere di meno.
+
+- La funzione modifyDensity riduce la densità della cella e di quelle vicine (raggio configurabile), simulando un prelievo localizzato.
+
+- Se la densità arriva a zero, quella zona è temporaneamente esaurita e non produce più cibo.
+
+- Meccanica: il giocatore vede le zone impoverirsi dopo la raccolta. Deve decidere se insistere su una zona ricca rischiando di esaurirla, o spostarsi altrove.
+
+Nota: la logica di riduzione della densità è stata successivamente modificata. La raccolta ora riduce solo la cella esatta (reduceCellDensity), non le celle vicine. La modifica è avvenuta durante l'implementazione del punto 4 (Previsioni e avvisi) per evitare di consumare risorse non effettivamente raccolte.
+
+#### Batch 5 – Rientro al campo, scorta e consumo
+
+- Definizione di un punto base (accampamento) sulla mappa.
+
+- Il giocatore può selezionare il numero di abitanti (in base a quelli disponibili nell'accampamento) da mandare a raccogliere una specifica risorsa.
+
+- Un contatore globale mostra le scorte di cibo della tribù.
+
+- Introduzione del consumo: ogni giorno di gioco, una quantità di cibo viene consumata dalle scorte in base alla popolazione totale (campo + spedizioni).
+
+- Quando l'inventario è pieno o le provviste sono insufficienti per il ritorno, la spedizione torna automaticamente al campo, deposita il cibo nelle scorte globali, e i lavoratori rientrano nel Pop.
+
+- Dopo un breve cooldown, la spedizione riparte automaticamente verso la stessa area, se ci sono ancora lavoratori disponibili.
+
+- Se le scorte arrivano a zero, per ora viene mostrato un avviso; in futuro comporterà la morte dei pop.
+
+- Meccanica: il giocatore deve bilanciare la raccolta con il consumo costante. Non basta accumulare, bisogna mantenere un flusso positivo. Il ritorno al campo diventa una decisione strategica: tornare troppo presto spreca tempo di viaggio, tornare troppo tardi rischia di far esaurire le scorte.
+
+#### Batch 6 – Controlli del tempo (pausa, play, velocità)
+
+##### 6.1 – Time Manager (pausa/play/velocità)
+
+- Implementare time.js con velocità multiple (0x, 0.5x, 1x, 2x, 4x, 8x).
+
+- Modificare update in main.js per usare il gameDelta dal TimeManager.
+
+- Tasti rapidi: spazio per pausa, 0/1/2/3/4 per velocità, + e - per aumentare/diminuire.
+
+##### 6.4 – Selezione e ispezione avanzata delle spedizioni
+
+- Completare l'info panel con il percorso tratteggiato.
+
+- Aggiungere la visualizzazione dell'area di raccolta per le spedizioni automatiche.
+
+##### 6.5 – Cancellazione spedizioni
+
+- Tasto C per cancellare la spedizione selezionata.
+
+- La spedizione torna al campo, deposita il cibo, restituisce i lavoratori al pop.
+
+##### 6.2 – Pannello di debug via console
+
+- Rendere accessibili e modificabili da console le variabili chiave (tasso consumo, velocità raccolta, soglia abbandono, cooldown, raggio).
+
+##### 6.3 – Pannello di debug UI (insieme a 6.2)
+
+- Creare un pannello UI sovrapposto al canvas con input per le variabili.
+
+- Collegarlo alle variabili di gioco.
+
+##### 6.6 – Ribilanciamento e parametri esposti
+
+- Ricalcolare le provviste per spedizione e legare tra di loro variabili sulla base di durata effettiva del giorno e velocità di spostamento.
+
+- Esporre tutti i parametri di gioco nel pannello di debug.
+
+- Testare diverse combinazioni per trovare un bilanciamento iniziale.
+
+##### 6.7 – Revisione sistema raccolta risorse
+
+###### 1. Fix bug spedizioni
+
+- Bug 1 – Blocco in returningToCamp: escludere il controllo delle provviste quando lo stato è già returningToCamp. La spedizione deve andare dritta al campo. Risolto.
+
+- Bug 2 – Spedizione torna nell'area invece del campo: la ripartenza delle spedizioni con area assegnata deve usare findBestCellInArea, non areaCenter. Inoltre, le funzioni di ricerca celle devono escludere sempre la cella del campo. Risolto.
+
+- Bug 3 – Ritorno prima di riempire l'inventario: per le spedizioni di gathering, semplificare il consumo. Niente provviste separate per ora: la spedizione parte, raccoglie, torna quando piena o quando il giocatore ordina il rientro. Parzialmente risolto.
+
+Bug ancora aperto: spedizione non va in una cella all'interno dell'area assegnata, ma nella migliore in generale. Attenzione perché in futuro tutte le celle avranno un certo livello di fertilità, e se le spedizioni vanno semplicemente nella migliore non all'interno della zona assegnata, questo è un problema perché consumano magari fertilità dove il giocatore voleva farla riprendere.
+
+###### 2. Raccolta locale e gestione cittadini
+
+- Aggiungere localGatherers al campo (popolazione non assegnata usata per raccolta locale).
+
+- Assegnazione manuale per cella entro il raggio locale: ogni cella ha assignedWorkers.
+
+- Il giocatore clicca su una cella nel raggio e assegna/rimuove lavoratori con tasti o pannello.
+
+- I lavoratori locali non sono entità mobili: producono cibo direttamente al campo.
+
+- Quando un lavoratore viene assegnato a lavorare come gatherer una cella, esso diventa membro del pop dei gatherers anche se non fa parte di una spedizione gatherers.
+
+###### 3. Raggio locale
+
+- Il raggio locale è definito come una giornata di viaggio dai confini del campo.
+
+- Formula: localGatherRadiusKm = walkingSpeedKmh * 24.
+
+- Convertire in pixel con pixelsPerKm.
+
+- Visualizzare il raggio quando il campo è selezionato.
+
+###### 4. Previsioni e avvisi
+
+- Soglia unica di avviso: cellWarningThreshold = 0.25.
+
+- Quando una cella con lavoratori scende sotto la soglia, mostrare un avviso unico.
+
+- Nella schermata città, riepilogo giornaliero:
+  
+  - Cibo raccolto oggi (gatheredDaily: valore del giorno precedente).
+  
+  - Cibo consumato oggi (consumedDaily: valore del giorno precedente).
+  
+  - Cibo rimanente sfruttabile nell'area locale (fino a soglia 0.25) e teorico (fino a 0).
+  
+  - Lavoratori per pop (al momento avremo solo gatherers), poi suddivisi in gatherers locali e gatherers in spedizioni.
+
+- Queste informazioni saranno offuscate in futuro.
+
+- Per ogni cella mostrare sopra il numero di cittadini che la stanno lavorando (anche in gamestate).
+
+- Per ogni cella, quando selezionata mostrare:
+  
+  - Cibo raccolto ad oggi (gatheredDaily).
+  
+  - Cibo rimanente sfruttabile.
+  
+  - Giorni al raggiungimento soglia 0.25 con attuale ritmo.
+  
+  - Giorni al raggiungimento soglia 0 con attuale ritmo.
+  
+  - Aumento di cibo raccolto al giorno se aggiungo qualcuno a lavorarci.
+  
+  - Giorni in meno che ci vorranno per raggiungere la soglia 0.25 e 0 se aggiungo un lavoratore (rinominati "Days reduced to X if +1 worker").
+
+### DA IMPLEMENTARE
+
+- [ ] **Campo proporzionale a popolazione e scala**
+
+- La dimensione del campo (raggio visivo) dipende da popolazione totale e da cellSizeInKm.
+
+- Formula da definire, ma basata su radice quadrata della popolazione.
+
+#### 
+
+- [x] **Rimozione spedizioni automatiche**
+
+- Il tasto destro sul campo non crea più spedizioni automatiche.
+
+- Restano solo spedizioni manuali verso aree fuori dal raggio locale.
+
+#### 
+
+- [ ] **Rivedere le formule di scelta celle per distanze in km**
+
+- Le logiche di scelta cella (per spedizioni e per futuri comportamenti) devono usare km reali, non pixel.
+
+- Introdurre getDistanceKm(pixelDist) basata su pixelsPerKm.
+
+- Il punteggio cella deve considerare densità, distanza in km e costo del viaggio.
+
+- [ ] **Batch 7 – Rigenerazione base del cibo**
+
+- Le celle con forageDensity si rigenerano lentamente nel tempo (es. una piccola frazione al giorno).
+
+- Una zona completamente esaurita (densità zero) impiega più tempo a iniziare a rigenerare.
+
+- Meccanica: il giocatore non può esaurire una zona per sempre, ma deve ruotare le aree di raccolta per non restare senza cibo. Questo introduce una prima forma di gestione sostenibile delle risorse.
+
+- Nota: la rigenerazione qui implementata sarà una versione semplificata e temporanea. In futuro sarà legata alla tipologia di terreno e seguirà una curva di crescita più realistica (rigenerazione più rapida a densità più alte). I valori attuali andranno poi bilanciati tramite il pannello di debug (Batch 6).
+
+### Dopo il Batch 7
+
+Al termine di MVP1 avremo un loop di sopravvivenza funzionante:
+
+- Il giocatore sposta i raccoglitori sulla mappa.
+
+- Raccoglie cibo in zone a densità variabile.
+
+- Le zone si impoveriscono e si rigenerano.
+
+- Le scorte vengono consumate nel tempo.
+
+- Il tempo può essere controllato con pausa, play e velocità.
+
+### NOTE FINE MVP1
+
+Da riorganizzare e rip rioritizzare in base a quello che ha senso e non è troppo complicato:
+
+1. Tool per disegnare la mappa (apporre foreste, pesci, gathering food ecc. con dei pennelli) [è forse troppo presto].
+
+2. Moltiplicatore provisions (dare + o – provisions alle spedizioni).
+
+3. Consumo di cibo, provisions, velocità ed efficacia spedizione in base a chi la compone (uomini, donne ecc.).
+
+4. Calcolo stanchezza e felicità per spedizioni (che non si annulli quando sono eliminate).
+
+5. Alternanza notte giorno (le spedizioni si fermano di notte)?
+
+6. Creazione di algoritmo per creazione foreste e cibo in base a tipologia terreno delle celle [anche questo forse da vedere più avanti].
+
+7. Non abbiamo minimamente lavorato sulla tipologia del terreno (montagna, acqua, acqua profonda, collina, pianura) e le caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque, le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
+
+8. Spedizioni multi-pop con dinamiche di coesione interna (es. conflitti o collaborazioni tra individui di etnie/religioni diverse nello stesso gruppo).
+
+9. Campo base che si sposta fisicamente sulla mappa durante le migrazioni o il nomadismo, e conseguente aggiornamento del punto di ritorno per le spedizioni attive.
+
+10. Rotazione automatica delle aree di raccolta da parte delle spedizioni, per evitare l'impoverimento permanente di una singola zona (comportamento di raccolta più conservativo e sostenibile).
+
+11. Algoritmo di raccolta con priorità alle celle a media densità (es. 0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
+
+12. Rigenerazione e "fertilità" celle sulla base anche del terreno.
+
+13. Meccaniche di frizione/resistenza al cambio di pop della popolazione (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso, tipo uomini giovani infelici se assegnati a gathering perché disonorevole). Da capire come fare distinzione popolazione per sesso ma soprattutto per età senza dover monitorare ogni singolo abitante.
+
+14. Icone diverse per tipologia di pop con di fianco barre informative (tipo provviste o che).
+
+15. Giocatore seleziona manualmente il numero di pop da mandare in spedizione (con anche tasti rapidi di scelta).
+
+16. Aggiungere crescita demografica: più cibo c'è, più la popolazione cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione finisce scorte, iniziano a morire o a consumare cibo raccolto.
+
+17. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno di partenza e con che tecnologie? In quanti anni arrivare a creare una città, in modo che il gioco non risulti troppo lento e noioso all'inizio (ma senza nemmeno fare come civilization che dura questa età come una roba da 10 minuti). Vogliamo fare che in realtà è un gruppo di superstiti che riparte e recupera le tecnologie già apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo andare sul lungo termine come civilization 4 cavemen to cosmos e quindi comunque rendere intriganti le meccaniche di sopravvivenza della tribù (e praticamente fare solo un gioco su questo, magari come primo titolo di una serie).
+
+18. Ragionare sull'acqua.
+
+19. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e unità e meccaniche intorno e link di timeline del progresso (wiki e altri link se funzionano).
+
+20. Aggiungere caricamento JSON da Excel per impostare i valori in config.
+
+21. Creare script per simulazioni montecarlo. Da simulare in montecarlo il cambio cella e la quantità di provviste da prendere, ma magari non deve sempre essere perfetto ma dipendere dall'esperienza (dei singoli, della civiltà/città/comunità, del livello tecnologico?).
+
+================================================================================
+
+## FILE: Docs/Roadmap/MVP2 - DiversificazioneDelleFontiDiCibo.md
+
+# MVP2 – Diversificazione delle fonti di cibo (caccia e pesca)
+
+MVP2 introduce i branchi mobili (grandi animali) e la pesca in acque interne. Il giocatore impara a diversificare le fonti di cibo oltre alla raccolta vegetale. La caccia richiede movimento attivo (inseguire il branco), mentre la pesca è stanziale ma limitata alle celle d'acqua.
+
+## Nuova definizione
+
+- Branchi di grandi animali appaiono sulla mappa come entità mobili. Ogni branco ha una specie, un numero di capi, un habitat preferito e un tasso di riproduzione.
+
+- Il giocatore può assegnare un pop alla caccia: deve avvicinarsi al branco, e ogni ciclo di caccia riduce i capi e produce carne e pelli. Se il branco scende sotto una soglia, si estingue localmente.
+
+- Nelle celle che intersecano fiumi o laghi, il layer fishDensity permette la pesca. Funziona come la raccolta vegetale (riduce densità, si rigenera), ma solo in acqua.
+
+- L'interfaccia mostra le nuove risorse (carne, pesce) accanto al cibo vegetale. Per ora tutte valgono come "cibo", ma vengono registrate separatamente per usi futuri.
+
+- Meccanica: la caccia è più redditizia ma richiede inseguimento ed è pericolosa e può esaurire i branchi. La pesca è stabile ma limitata geograficamente. Il giocatore deve decidere come allocare i pop tra raccolta, caccia e pesca.
+
+- Ogni tipo di spedizione ha quindi un certo livello di rischio e può causare la morte di qualcuno
+
+================================================================================
+
+## FILE: Docs/Roadmap/MVP3 - RaccoltaLegna_Lavorazione_Strumenti.md
+
+# MVP3 – Raccolta legna, lavorazione e strumenti
+
+MVP3 introduce il layer forestDensity e la raccolta di legna. Poi la lavorazione (legna → tool) per migliorare la caccia e la raccolta di cibo in generale. L'ordine logico è: risorsa grezza, lavorazione, tool.
+
+## Da ricordare a DeepSeek
+
+Controllare e confermare che gli strumenti in legna vennero prima di quelli in pietra.
+
+## Nuova definizione
+
+- Attivazione del layer forestDensity sulla griglia. Le foreste sono visivamente distinguibili (verde scuro). La raccolta di legna riduce la densità localmente, come per il forage.
+
+- Il giocatore può assegnare pop alla raccolta di legna. La legna grezza viene trasportata all'accampamento.
+
+- Introduzione della lavorazione: la legna grezza può essere trasformata in tool (azione "lavora legna" al campo).
+
+- Costruzione dei tool: consuma legna. I tool possono essere armi per la caccia, la pesca o bastoni/ceste per migliorare la raccolta delle bacche (aumenta efficienza, inventario e riduce rischio).
+
+- Meccanica: la legna diventa la prima risorsa non commestibile. La lavorazione introduce il concetto di catena produttiva. Si gettano le basi per la specializzazione dei pop (raccoglitori, taglialegna, artigiani).
+
+================================================================================
+
+## FILE: Docs/Roadmap/MVP4 - InformazioneImperfetta_Report.md
+
+# MVP4 – Informazione imperfetta e report
+
+Nessuna modifica necessaria. Le meccaniche di visibilità (certo, proiettato, da report) e di stima delle scorte sono indipendenti dal tipo di risorsa. Quando le implementeremo, applicheremo l'incertezza a tutte le risorse (cibo vegetale, carne, pesce, legna, assi).
+
+## Testo attuale confermato
+
+- Il campo base ha una "riserva di cibo" che non conosci esattamente: vedi una stima arrotondata.
+
+- Per sapere quanta legna hai realmente, devi inviare qualcuno a controllare o aspettare il report di chi torna.
+
+- Raggio visivo del giocatore: dove hai uomini, vedi; il resto è buio o sfocato.
+
+- I report possono essere ritardati o imprecisi in base alla distanza.
+
+## UI prevista
+
+- Barra del tempo (velocità 1x, 2x, pausa).
+
+- Indicatore di posizione:
+  
+  - Certa (colore pieno) se nel raggio visivo.
+  
+  - Proiettata (desaturata con interpolazione) se fuori dal raggio.
+  
+  - Da report (lampeggiante o con indicatore "R") quando arriva un messaggio.
+
+- Tooltip base per risorse e pop.
+
+================================================================================
+
+## FILE: Docs/Roadmap/MVP5 - SecondaTribù_Territorio.md
+
+# MVP5 – Seconda tribù e territorio
+
+Nessuna modifica necessaria. La competizione per le risorse funziona con qualsiasi tipo di layer o branco.
+
+## Testo attuale confermato
+
+- Una seconda tribù vicina condivide la stessa foresta e le stesse zone di cibo.
+
+- Se entrambe raccolgono o cacciano, le risorse si esauriscono prima.
+
+- Possibile scontro se i gruppi si incrociano (combattimento basilare).
+
+- Inizio del concetto di "territorio d'uso": la risorsa è di chi la sta usando.
+
+## Concetti da recuperare poi
+
+- Deterioramento risorse.
+
+# 
+
+================================================================================
+
+## FILE: Docs/Roadmap/MVP6 - Oltre.md
+
+# Oltre MVP5
+
+Le iterazioni successive del prototipo seguiranno la progressione storica (Era 1: stanzialità, agricoltura, prime strutture; Era 2: metalli, scrittura, amministrazione; ecc.), sbloccando funzionalità corrispondenti man mano che le fondamenta tecniche lo permettono. La priorità sarà sempre validare il loop di base prima di aggiungere complessità.
+
+Prima però procederemo a raffinare il loop cacciatore/raccoglitore con lo sviluppo tecnologico della pietra, dei primi edifici e delle prime strutture sociali e progressi culturali.
+
+## Concetti da recuperare
+
+- Deterioramento risorse.
+
+## Note
+
+Questo file raccoglie le idee e le direzioni future che vanno oltre i singoli MVP. Non contiene batch operativi, ma indicazioni di alto livello su dove sta andando il progetto.
+
+Per i dettagli di ogni MVP, fare riferimento ai file dedicati (`MVP1` … `MVP5`). Per la visione complessiva, fare riferimento a `Docs/GameDesign/00_Visione_Pilastri.md`.
+
+================================================================================
+
+## FILE: Docs/Technical/00_ArchitetturaGenerale.md
+
+# Architettura Generale
+
+## Scopo
+
+Questo documento descrive lo stack tecnologico, la struttura dei file, le convenzioni di codice e l'architettura generale del prototipo. Serve come punto di ingresso per comprendere come è organizzato il progetto.
+
+## Stack tecnologico
+
+- Linguaggio: JavaScript (ES6+)
+- Motore di rendering 2D: Phaser 3 (caricato da CDN)
+- Plugin rexBoard (griglia esagonale) caricato da CDN
+- Gestione moduli: inizialmente script globali concatenati; possibile migrazione a moduli ES6 con Vite in futuro
+
+## Struttura file
+
+Codice:
+
+- `index.html` – punto di ingresso, carica Phaser e gli script
+- `css/style.css` – stili per UI HTML sovrapposta
+- `js/config.js` – parametri di gioco centralizzati nell'oggetto `GameConfig`
+- `js/world.js` – griglia esagonale spaziale, layer di densità, query spaziali
+- `js/units.js` – classi per Pop, Expedition e oggetto camp
+- `js/resources.js` – logica di raccolta, consumo, deterioramento (futuro)
+- `js/ui.js` – interfaccia utente, pannelli, tooltip (futuro)
+- `js/time.js` – gestione pausa/play/velocità
+- `js/main.js` – scena Phaser, input, rendering, raccolta locale, previsioni
+- `js/debug.js` – pannello debug e assegnazione lavoratori locali
+
+Documentazione tecnica (uno per script):
+
+- `Docs/Technical/00_ArchitetturaGenerale.md` – questo documento
+- `Docs/Technical/01_Config.md` – `js/config.js`
+- `Docs/Technical/02_World.md` – `js/world.js`
+- `Docs/Technical/03_Units.md` – `js/units.js`
+- `Docs/Technical/04_Main.md` – `js/main.js`
+- `Docs/Technical/05_Debug.md` – `js/debug.js`
+- `Docs/Technical/06_Time.md` – `js/time.js`
+- `Docs/Technical/07_Resources.md` – `js/resources.js`
+- `Docs/Technical/08_UI.md` – `js/ui.js`
+
+## Ordine di caricamento degli script
+
+L'ordine di caricamento in `index.html` è importante perché gli script sono globali e dipendono l'uno dall'altro:
+
+1. Phaser (CDN)
+2. `config.js` (definisce GameConfig e funzioni derivate)
+3. `world.js` (usa GameConfig per la geometria esagonale e le dimensioni della griglia)
+4. `units.js` (usa GameConfig e world)
+5. `resources.js`
+6. `ui.js`
+7. `time.js`
+8. `main.js` (inizializza la scena Phaser)
+9. `debug.js` (collega il pannello HTML, caricato dopo gli elementi DOM)
+
+## Architettura ad alto livello
+
+Il prototipo è organizzato in moduli con responsabilità separate:
+
+- **Configurazione**: `GameConfig` centralizza tutti i parametri di gioco. Nessuna costante di gioco hardcoded nel resto del codice.
+- **Mondo**: la griglia esagonale spaziale (via rexBoard) e i layer di densità vivono in `world.js`. Espone funzioni di query e modifica (es. `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`).
+- **Entità**: le classi `Pop`, `Expedition` e l'oggetto `camp` sono in `units.js`. Gestiscono la logica di lavoratori e spedizioni.
+- **Tempo**: `TimeManager` in `time.js` controlla la velocità di simulazione e fornisce il delta di gioco.
+- **Scena e rendering**: `main.js` crea la scena Phaser, gestisce l'input, disegna griglia, pop, campo e indicatori, e implementa la raccolta locale e le previsioni.
+- **Debug**: `debug.js` collega gli input HTML del pannello debug ai parametri di `GameConfig` e gestisce l'assegnazione dei lavoratori locali.
+
+## Ciclo di aggiornamento (game loop)
+
+Phaser chiama `update(time, delta)` a ogni frame. La logica di gioco è disaccoppiata dal rendering per garantire coerenza temporale.
+
+1. **TimeManager** calcola il tempo di gioco effettivo (`gameDelta = delta * speedMultiplier`). Se in pausa, `gameDelta = 0`.
+2. **Movimento**: tutte le unità con stato `moving` vengono spostate verso il target in base a `speed` e `gameDelta`.
+3. **Azioni**: all'arrivo a destinazione, l'unità inizia il lavoro (raccolta, caccia, pesca). Il lavoro ha una durata in giorni/ore del mondo di gioco che corrispondono a un tot di secondi reali.
+4. **Consumo risorse**: a intervalli regolari di tempo di gioco (ogni `dayLength` secondi) tutti i pop consumano cibo dalle scorte dell'accampamento. Le spedizioni attive consumano provviste in modo continuo durante l'aggiornamento, usando i valori derivati da GameConfig. Il consumo della popolazione al campo è applicato a fine giornata.
+5. **Rigenerazione risorse**: a intervalli regolari, le celle della griglia rigenerano una frazione di densità per ogni layer.
+
+## Convenzioni di codice
+
+- **Lingua**: tutto il codice, i commenti e i nomi dei file sono in inglese. Questo include nomi di variabili, funzioni, classi, messaggi di commit e documentazione tecnica interna al codice.
+- **Documenti di design**: possono restare in italiano, in quanto rivolti alla progettazione e non all'implementazione.
+- **Commenti**: preservare i commenti già presenti. Aggiungere nuovi commenti solo se necessari.
+- **Delta time**: tutte le funzioni di update che modificano posizioni, timer o valori nel tempo devono utilizzare il delta time. Non si devono usare valori fissi per frame.
+- **Ricerca spaziale e raggi**: quando si definisce un raggio (es. `areaRadius`, `localGatherRadius`), la selezione delle celle deve essere sempre limitata da una distanza circolare dal centro, non da un riquadro rettangolare. Il loop può iterare su un rettangolo di celle, ma ogni cella deve essere testata con `Phaser.Math.Distance.Between(...) <= raggio`.
+- **Game state**: le modalità di gioco devono essere separate. Esempio: la selezione del campo attiva lo stato "gestione campo", in cui i click sulla mappa hanno significato diverso. Non si devono mischiare input di stati diversi.
+- **Configurazione**: ogni nuovo parametro di gioco deve essere aggiunto a `GameConfig`, esposto nel pannello di debug e usato dinamicamente nel codice, evitando costanti locali derivate.
+- **Raccolta puntuale**: la raccolta riduce la densità solo della cella esatta, non delle celle vicine.
+
+## Documentazione tecnica per script
+
+Ogni documento Technical per script contiene:
+
+- **Scopo** – descrizione breve di cosa fa lo script.
+- **Funzioni principali** – elenco delle funzioni pubbliche con input/output.
+- **Dipendenze in ingresso** – chi chiama questo script.
+- **Dipendenze in uscita** – cosa questo script chiama.
+- **Parametri GameConfig usati** – quali parametri legge.
+- **Stato globale modificato** – quali variabili globali tocca.
+- **Note per modifiche** – avvertenze utili a chi modifica lo script.
+
+Questo permette di capire l'impatto di una modifica senza dover leggere tutto il codice.
+
+## Repository
+
+Il codice è ospitato su un repository Git (GitHub). La chat è usata per discutere, scrivere snippet e aggiornare la documentazione, non come deposito principale del codice. Il repository contiene tutto il necessario per eseguire il prototipo localmente.
+
+## Riferimenti incrociati
+
+- I documenti di Game Design costituiscono la specifica di riferimento per il comportamento del gioco. Non vanno mai modificati dall'agente di programmazione.
+- I documenti Technical descrivono l'implementazione tecnica e devono essere aggiornati dall'agente di programmazione quando vengono introdotte nuove strutture dati, funzioni o dipendenze.
+
+================================================================================
+
+## FILE: Docs/Technical/01_Config.md
+
+# js/config.js
+
+## Scopo
+
+Definisce `GameConfig`, l'oggetto centralizzato che contiene tutti i parametri di gioco modificabili, e le funzioni derivate che calcolano valori dinamici a partire da essi. È il primo script caricato (dopo Phaser) e non dipende da nessun altro modulo di gioco.
+
+## Funzioni principali
+
+Tutte le funzioni derivano il loro valore da `GameConfig`, così che modificando un parametro base si aggiornino automaticamente tutti i calcoli dipendenti.
+
+### getSecondsPerGameHour()
+
+Restituisce `dayLengthSeconds / 24`, cioè quanti secondi reali corrispondono a un'ora di gioco. Usata internamente da `getExpeditionSpeed()`.
+
+### getBaseConsumptionPerSec()
+
+Restituisce `foodConsumptionPerPersonPerDay / dayLengthSeconds`, cioè il consumo base di cibo per persona per secondo reale. È il punto di partenza per calcolare i consumi delle spedizioni.
+
+### getPixelsPerKm()
+
+Restituisce `GameConfig.pixelsPerKm`, cioè quanti pixel rappresentano un chilometro reale. Serve per convertire distanze in pixel in distanze reali (km) e viceversa.
+
+### getHexRadiusPx()
+
+Restituisce `(hexCenterDistanceKm / √3) * pixelsPerKm`, cioè il raggio dell'esagono (distanza vertice-centro) in pixel. È la base geometrica usata da `world.js` per costruire la griglia esagonale.
+
+### getExpeditionSpeed()
+
+Restituisce la velocità di spedizione in pixel per secondo reale. Formula: `(walkingSpeedKmh * pixelsPerKm) / (secondsPerGameHour * 3600)`. Viene ricalcolata ogni volta perché dipende da parametri modificabili a runtime.
+
+### getTravelConsumptionPerSec()
+
+Restituisce `getBaseConsumptionPerSec() * travelConsumptionMultiplier`, cioè il consumo di provviste per lavoratore per secondo reale durante il viaggio.
+
+### getGatheringConsumptionPerSec()
+
+Restituisce `getBaseConsumptionPerSec() * gatheringConsumptionMultiplier`, cioè il consumo di provviste per lavoratore per secondo reale durante la raccolta. È maggiore del consumo in viaggio perché lo sforzo fisico è superiore.
+
+### getProvisionsNeeded(workerCount, distance)
+
+Restituisce le provviste necessarie per una spedizione con `workerCount` lavoratori e una distanza `distance` (in pixel, andata). Formula: `workerCount * getTravelConsumptionPerSec() * (distance / getExpeditionSpeed() * 2) * safetyMultiplier`. Il `* 2` considera andata e ritorno. Il `safetyMultiplier` aggiunge un margine per raccolta e imprevisti.
+
+### getRestDuration(tripDurationSec)
+
+Restituisce `tripDurationSec * restMultiplier`, cioè il tempo di riposo dopo una spedizione durata `tripDurationSec` secondi reali.
+
+### getLocalGatherRadiusPx()
+
+Restituisce il raggio locale in pixel, calcolato come `getExpeditionSpeed() * dayLengthSeconds`. Rappresenta una giornata di viaggio dal campo. Usato per limitare la raccolta locale e per disegnare il cerchio quando il campo è selezionato.
+
+## Parametri base in GameConfig
+
+Ogni parametro è modificabile a runtime tramite la console o il pannello di debug. I valori di default sono quelli attuali del prototipo.
+
+### Ciclo giorno
+
+- **`dayLengthSeconds`** (default `10`)  
+  Durata reale in secondi di un giorno di gioco. Influisce sul consumo della popolazione al campo (che avviene a fine giornata) e sul calcolo del raggio locale. Diminuendola, i giorni passano più velocemente e i consumi sono più frequenti.
+
+- **`foodConsumptionPerPersonPerDay`** (default `0.01`)  
+  Consumo base di cibo per persona al giorno. Usato per calcolare il consumo giornaliero della popolazione al campo e come base per i consumi delle spedizioni.
+
+### Raccolta
+
+- **`baseGatherRate`** (default `0.2`)  
+  Cibo raccolto per secondo per lavoratore a densità 1.0. A densità più basse, il tasso è proporzionalmente ridotto. Parametro chiave per bilanciare la velocità della raccolta.
+
+- **`densityReductionPerFood`** (default `0.001`)  
+  Quantità di densità rimossa per ogni unità di cibo raccolta. Determina quanto velocemente le celle si esauriscono quando vengono lavorate.
+
+- **`gatherImpactRadius`** (default `0.6`)  
+  Parametro legacy, attualmente **non usato**: la raccolta riduce solo la cella esatta. Era previsto per futuri effetti ad area (incendi, disboscamento diffuso).
+
+### Geometria griglia (esagonale)
+
+- **`hexCenterDistanceKm`** (default `1`)  
+  Distanza in km tra i centri di esagoni adiacenti. Definisce la dimensione della cella nel mondo di gioco. Modificarlo richiede il reload della pagina.
+
+- **`pixelsPerKm`** (default `20`)  
+  Pixel per chilometro. Definisce la dimensione visiva della cella sullo schermo. Modificarlo richiede il reload della pagina.
+
+### Movimento
+
+- **`walkingSpeedKmh`** (default `4`)  
+  Velocità di spostamento a piedi in km per ora di gioco. Determina la velocità delle spedizioni e il raggio locale. Modificarlo influisce su quanto lontano può arrivare una spedizione in un giorno.
+
+### Consumo spedizioni
+
+- **`travelConsumptionMultiplier`** (default `2.0`)  
+  Moltiplicatore del consumo durante il viaggio rispetto al consumo base. Il valore 2.0 indica che camminare consuma il doppio rispetto allo stare fermi.
+
+- **`gatheringConsumptionMultiplier`** (default `2.5`)  
+  Moltiplicatore del consumo durante la raccolta. Il valore 2.5 indica che la raccolta consuma più del viaggio perché lo sforzo fisico è superiore.
+
+### Provviste e riposo
+
+- **`safetyMultiplier`** (default `1.25`)  
+  Margine di sicurezza per il calcolo delle provviste. Un valore di 1.25 aggiunge il 25% alle provviste calcolate, per coprire imprevisti e tempo di raccolta.
+
+- **`restMultiplier`** (default `0.5`)  
+  Percentuale di riposo rispetto alla durata della spedizione precedente. Con 0.5, una spedizione durata 10 secondi impone 5 secondi di riposo prima di ripartire.
+
+### Capacità
+
+- **`maxCapacityPerWorker`** (default `1`)  
+  Slot di inventario per lavoratore. La capacità massima di una spedizione è `workerCount * maxCapacityPerWorker`. Include sia cibo che provviste.
+
+### Area e cambio cella
+
+- **`areaRadius`** (default `150`)  
+  Raggio predefinito dell'area di raccolta di una spedizione, in pixel. Una spedizione con area assegnata raccoglie solo all'interno di questo cerchio.
+
+- **`cellAbandonThreshold`** (default `0.2`)  
+  Soglia di densità sotto la quale la spedizione cerca un'altra cella. Se la densità della cella corrente scende sotto questa soglia, la spedizione valuta se spostarsi.
+
+- **`cellSwitchScoreThreshold`** (default `1.1`)  
+  Moltiplicatore del punteggio corrente necessario per cambiare cella. La nuova cella deve avere un punteggio superiore a `punteggio_corrente * cellSwitchScoreThreshold`.
+
+- **`cellScoreDensityWeight`** (default `100`)  
+  Peso della densità nel calcolo del punteggio di una cella. Un valore più alto rende la densità dominante rispetto alla distanza.
+
+- **`cellScoreDistanceWeight`** (default `0.2`)  
+  Peso della distanza nel calcolo del punteggio di una cella. Un valore più alto rende la vicinanza più importante.
+
+- **`cellEvaluationInterval`** (default `1.0`)  
+  Intervallo in secondi tra le valutazioni di cambio cella durante la raccolta. Un valore più basso rende le spedizioni più reattive a cambiare cella, ma consuma più calcoli.
+
+### Valori di partenza
+
+- **`startingFoodStock`** (default `10`)  
+  Cibo iniziale disponibile nel campo.
+
+- **`startingUnassignedPopulation`** (default `10`)  
+  Popolazione non assegnata iniziale. Da questa pool vengono prelevati i lavoratori per le spedizioni e per la raccolta locale.
+
+- **`startingExpeditionWorkers`** (default `5`)  
+  Numero di lavoratori prelevati automaticamente quando si crea una nuova spedizione.
+
+- **`campX`**, **`campY`** (default `100`, `100`)  
+  Posizione iniziale del campo sulla mappa, in pixel.
+
+### Mondo
+
+- **`worldWidth`** (default `1280`)  
+  Larghezza del mondo in pixel. Modificarla richiede il reload della pagina.
+
+- **`worldHeight`** (default `720`)  
+  Altezza del mondo in pixel. Modificarla richiede il reload della pagina.
+
+### Gestione informazioni
+
+- **`cellWarningThreshold`** (default `0.25`)  
+  Soglia sotto la quale una cella viene considerata "in esaurimento". Quando la densità di una cella con lavoratori scende sotto questa soglia, viene mostrato un avviso persistente.
+
+## Dipendenze in ingresso
+
+Nessuna. Questo script viene caricato direttamente da `index.html`.
+
+## Dipendenze in uscita
+
+Nessuna. Questo script non chiama altri moduli.
+
+## Stato globale modificato
+
+- `GameConfig`: oggetto globale con tutti i parametri. All'avvio, gli eventuali valori salvati in `localStorage` (chiave `GAME_CONFIG_STORAGE_KEY`) vengono riapplicati prima che la griglia venga costruita.
+- `GameConfigDefaults`: snapshot dei valori di default veri, creato prima di applicare eventuali valori persistiti. Usato da `debug.js` per il reset.
+- `GAME_CONFIG_STORAGE_KEY`: costante con la chiave `localStorage` usata per salvare/caricare la configurazione.
+- `gameTimeSec`: variabile globale che accumula il tempo di gioco effettivo (inizializzata a 0).
+
+## Note per modifiche
+
+- Ogni nuovo parametro di gioco va aggiunto a `GameConfig` e contestualmente esposto nel pannello di debug (in `index.html` con id `cfg-<nomeParametro>`, gestito da `05_Debug.md`).
+- I parametri derivati non vanno mai salvati come costanti: vanno ricalcolati ogni volta che servono.
+- I parametri strutturali (`hexCenterDistanceKm`, `pixelsPerKm`, `worldWidth`, `worldHeight`) richiedono il reload della pagina perché la griglia è costruita all'avvio con costanti derivate in `world.js`.
+- Modifiche a questo file possono impattare tutti gli altri script, perché tutti leggono da `GameConfig`.
+- Quando si aggiunge un parametro che influenza la fisica (es. velocità, consumi), aggiornare la sezione "Parametri GameConfig usati" dei documenti Technical degli script coinvolti.
+- La persistenza della configurazione usa `localStorage`: i valori vengono salvati solo al click di "Apply & Reload" (in `debug.js`) e applicati all'avvio. `GameConfigDefaults` non va modificato a runtime.
+
+================================================================================
+
+## FILE: Docs/Technical/02_World.md
+
+# js/world.js
+
+## Scopo
+
+Gestisce la griglia spaziale esagonale (point-top, via plugin rexBoard), i layer di densità delle risorse naturali e le funzioni di query e modifica delle celle. È il modulo che rappresenta la mappa continua a livello di dati.
+
+La griglia non impone vincoli al movimento o alla forma del territorio: i confini delle aree di risorsa emergono dai valori di densità.
+
+## Struttura dati
+
+Il mondo è suddiviso in una griglia di esagoni point-top (vertice in alto), con layout `staggeraxis 'x'`, `staggerindex 'odd'`. La dimensione della cella nel mondo è definita da `GameConfig.hexCenterDistanceKm` (distanza tra centri adiacenti, in km); la dimensione visiva da `GameConfig.pixelsPerKm`.
+
+Ogni cella è un oggetto con le seguenti proprietà:
+
+- `cx`, `cy` – coordinate assiali della cella nella griglia esagonale (`cx` = colonna q, `cy` = riga r).
+- `entities` – array di entità mobili (pop, branchi) attualmente in questa cella. Attualmente sempre vuoto.
+- `forageDensity` – densità di vegetazione raccoglibile (0..1).
+- `forestDensity` – densità di alberi (0..1). Futuro.
+- `smallGameDensity` – densità di piccola fauna terrestre (0..1). Futuro.
+- `fishDensity` – densità di pesci (0..1, solo celle d'acqua). Futuro.
+- `fertility` – fertilità del suolo (0..1, default medio). Futuro.
+- `assignedWorkers` – numero di lavoratori locali assegnati alla cella.
+- `foodGatheredToday` – cibo raccolto da lavoratori locali oggi (accumulato durante il giorno).
+- `gatheredDaily` – cibo raccolto da lavoratori locali nel giorno precedente.
+- `warningShown` – flag per evitare avvisi ripetuti in console.
+
+La griglia è memorizzata in un array 2D (`grid`), indicizzato con le coordinate tile `grid[cy][cx]` (la tile `(cx, cy)` è il q/r dell'esagono). Le chiavi stringa `"cx,cy"` (equivalente `"q,r"`) restano usate da `main.js` e `debug.js` per i testi e i warning.
+
+## Costanti derivate
+
+Queste costanti sono definite all'avvio dello script e non cambiano durante la sessione. Per applicare modifiche a `hexCenterDistanceKm`, `pixelsPerKm`, `worldWidth` o `worldHeight` è necessario ricaricare la pagina.
+
+- `HEX_RADIUS_PX = getHexRadiusPx()` (vertice-centro ≈ 11.55 px)
+- `HEX_WIDTH_PX = hexCenterDistanceKm * pixelsPerKm` (lato-a-lato = 1 km)
+- `HEX_HEIGHT_PX = 2 * HEX_RADIUS_PX` (vertice-a-vertice = 2/√3 km)
+- `HEX_VERTICAL_SPACING_PX = HEX_HEIGHT_PX * 0.75` (spaziatura tra righe per point-top)
+- `GRID_COLS = Math.ceil(worldWidth / HEX_WIDTH_PX) + 1`
+- `GRID_ROWS = Math.ceil(worldHeight / HEX_VERTICAL_SPACING_PX) + 1`
+
+## Funzioni principali
+
+### initHexBoard(scene)
+
+Crea la griglia e la board esagonale rexBoard (`scene.rexBoard.add.hexagonGrid(...)` con `size: HEX_RADIUS_PX`, `staggeraxis: 'x'`, `staggerindex: 'odd'`) e la board (`scene.rexBoard.add.board(...)`). Assegna i riferimenti globali `hexGrid` e `hexBoard`. Deve essere chiamata una sola volta, in fase di `create()`.
+
+### worldToCell(worldX, worldY)
+
+Wrapper sopra `hexBoard.worldXYToTileXY`. Converte coordinate mondo (pixel) in coordinate tile esagonali. Restituisce un oggetto `{ cx, cy }` (con `cx` = q, `cy` = r).
+
+### cellToWorld(cx, cy)
+
+Wrapper sopra `hexBoard.tileXYToWorldXY`. Converte coordinate tile esagonali nel centro (in pixel) della cella. Restituisce un oggetto `{ x, y }`.
+
+### getCell(cx, cy)
+
+Restituisce l'oggetto cella alle coordinate date. Se la cella non esiste, la crea con valori di default (densità 0, nessun lavoratore, nessun flag). Le celle vengono create in modo lazy, ma all'avvio `createGrid()` popola tutte le celle della griglia.
+
+### createGrid(scene)
+
+Chiama `initHexBoard(scene)` e poi popola tutte le celle della griglia chiamando `getCell` per ogni coordinata. Viene chiamata una sola volta in fase di `create()` (dalla scena Phaser in `main.js`).
+
+### initializeForageDensity()
+
+Popola i valori iniziali di `forageDensity` creando alcune patch circolari con densità decrescente dal centro verso il bordo. Usa una funzione interna `setPatch(centerCX, centerCY, radiusCells, peakDensity)` che applica un falloff lineare; la distanza è misurata in pixel tra i centri degli esagoni (via `cellToWorld`). Viene chiamata in fase di `create()`.
+
+I valori di default definiscono cinque patch di densità diverse, per avere un ambiente iniziale vario.
+
+### getEntitiesInRadius(worldX, worldY, radius)
+
+Restituisce le entità mobili entro un raggio da una posizione. Attualmente restituisce sempre un array vuoto: sarà implementata quando ci saranno entità che occupano celle (branchi, pop locali con posizione).
+
+### reduceCellDensity(cell, amount)
+
+Riduce la densità di una singola cella senza decadimento radiale. Usata dalla raccolta di risorse (sia locale che dalle spedizioni).
+
+- Prende in input un oggetto `cell` (ottenuto da `getCell`) e un `amount` positivo.
+- Sottrae `amount` da `cell.forageDensity` e clampa il risultato tra 0 e 1.
+- Non tocca altre celle.
+
+Questa funzione è stata scelta al posto di `modifyDensity` per la raccolta puntuale: evita di consumare risorse di celle vicine in modo non voluto. La logica di riduzione puntuale garantisce che il cibo venga prelevato solo dove viene effettivamente raccolto.
+
+### modifyDensity(worldX, worldY, layer, amount, impactRadius)
+
+**Funzione attualmente commentata nel codice.** Modifica la densità del layer indicato nelle celle intorno alla posizione, con decadimento radiale lineare. È riservata a futuri effetti ad area (incendi, disboscamento diffuso, fertilizzanti). Non è usata dalla raccolta.
+
+## Layer di densità attuali
+
+- **Foresta** (`forestDensity`) – densità di alberi. Ridotta dal taglio, rigenerazione lenta. Non ancora implementata.
+- **Vegetazione raccoglibile** (`forageDensity`) – bacche, erbe, radici. Ridotta dalla raccolta, rigenerazione stagionale. È il layer attivo nel prototipo.
+- **Piccola fauna terrestre** (`smallGameDensity`) – conigli, uccelli. Ridotta dalla caccia, rigenerazione continua. Non ancora implementata.
+- **Pesci** (`fishDensity`) – disponibile solo in celle d'acqua. Ridotto dalla pesca. Non ancora implementato.
+- **Fertilità** (`fertility`) – per uso futuro (agricoltura). Definito ma non utilizzato.
+
+## Parametri GameConfig usati
+
+- `hexCenterDistanceKm`, `pixelsPerKm` – per calcolare le costanti geometriche dell'esagono (`HEX_RADIUS_PX`, `HEX_WIDTH_PX`, ecc.).
+- `worldWidth`, `worldHeight` – per calcolare `GRID_COLS` e `GRID_ROWS`.
+- `getHexRadiusPx()` (da `config.js`) – per `HEX_RADIUS_PX`.
+
+Il resto dei parametri di raccolta (`baseGatherRate`, `densityReductionPerFood`) è usato da `main.js` e `units.js`, non da questo script.
+
+## Stato globale modificato
+
+- `grid`: array 2D di celle.
+- Le celle hanno proprietà `forageDensity`, `assignedWorkers`, `foodGatheredToday`, `gatheredDaily`, `warningShown` che vengono modificate da questo script e da altri.
+
+## Dipendenze in ingresso
+
+- `js/config.js` – per `GameConfig.hexCenterDistanceKm`, `pixelsPerKm`, `worldWidth`, `worldHeight` e `getHexRadiusPx()`.
+- Plugin rexBoard (caricato da `main.js`) – fornisce `hexagonGrid`, `board`, e le conversioni `worldXYToTileXY` / `tileXYToWorldXY`.
+- `js/units.js` – usa `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity` per la raccolta delle spedizioni.
+- `js/main.js` – usa `getCell`, `cellToWorld`, `worldToCell`, `hexBoard` per il rendering della griglia, la raccolta locale e le previsioni. Chiama `createGrid(scene)` e `initializeForageDensity()` in fase di `create()`.
+- `js/debug.js` – usa `getCell` per l'assegnazione e rimozione dei lavoratori locali.
+
+## Dipendenze in uscita
+
+- `js/config.js` – per `getHexRadiusPx()` (usata all'avvio per `HEX_RADIUS_PX`).
+- Plugin rexBoard – per la costruzione di griglia/board e le conversioni di coordinate.
+- `Math` nativo.
+
+## Note per modifiche
+
+- La creazione delle celle è lazy, ma `createGrid()` le popola tutte all'avvio, quindi la lazy serve solo come sicurezza.
+- I valori di densità sono float tra 0 e 1. La funzione `reduceCellDensity` garantisce che non scendano mai sotto 0 né superino 1.
+- La ricerca di celle con densità avviene tramite iterazione sulle coordinate della griglia e test di distanza con `Phaser.Math.Distance.Between`. Il loop può iterare su un rettangolo di celle, ma ogni cella deve essere testata con la distanza circolare dal centro.
+- Se si modificano le dimensioni della griglia (`hexCenterDistanceKm`, `pixelsPerKm`, `worldWidth`, `worldHeight`), è necessario ricaricare la pagina.
+- Se si aggiungono nuovi layer di densità (es. `forestDensity`), aggiornare la struttura cella in `getCell()` e le funzioni di rendering in `main.js`.
+- Se una modifica cambia la firma di una funzione pubblica (`getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `createGrid`, `initHexBoard`, `initializeForageDensity`), aggiornare i documenti Technical degli script che le usano (`03_Units.md`, `04_Main.md`, `05_Debug.md`).
+
+================================================================================
+
+## FILE: Docs/Technical/03_Units.md
+
+# js/units.js
+
+## Scopo
+
+Definisce le entità principali del gioco: il campo (`camp`), i Pop (gruppi di lavoratori) e le spedizioni (`Expedition`). Contiene anche l'alias globale `expeditions` che punta all'array delle spedizioni attive del campo.
+
+## Struttura dati
+
+### camp
+
+L'accampamento è il punto di riferimento della tribù. È un oggetto globale definito in questo file.
+
+Proprietà:
+
+- `x`, `y` – posizione in pixel sulla mappa. Inizializzati da `GameConfig.campX` e `GameConfig.campY`.
+- `foodStock` – scorte globali di cibo. Inizializzato da `GameConfig.startingFoodStock`.
+- `unassignedPopulation` – numero di individui non ancora assegnati a nessun Pop. Inizializzato da `GameConfig.startingUnassignedPopulation`.
+- `pops` – array di oggetti Pop presenti al campo. All'inizio è vuoto.
+- `expeditions` – array di spedizioni attive. Alias globale: `expeditions`.
+- `localGatherers` – numero totale di lavoratori assegnati a celle locali (somma di `assignedWorkers` di tutte le celle).
+- `foodGatheredToday` – cibo raccolto localmente oggi (accumulato durante il giorno).
+- `foodConsumedToday` – cibo consumato dalla popolazione nell'ultimo giorno completato (valore in tempo reale, ma mostrato solo a fine giornata).
+- `gatheredDaily` – cibo raccolto localmente nel giorno precedente (aggiornato a fine giornata).
+- `consumedDaily` – cibo consumato dalla popolazione nel giorno precedente (aggiornato a fine giornata).
+
+### Pop
+
+Un Pop rappresenta un insieme di individui con le stesse caratteristiche (occupazione, cultura, religione, status, etnia). Nel prototipo attuale esiste solo il Pop `gatherer`.
+
+Proprietà:
+
+- `type` – tipo di Pop (es. `gatherer`).
+- `totalWorkers` – numero totale di individui appartenenti a questo Pop.
+- `availableWorkers` – lavoratori attualmente al campo, pronti per essere assegnati a spedizioni o compiti locali.
+- `assignedWorkers` – lavoratori attualmente in spedizione.
+- `localWorkers` – lavoratori assegnati a celle locali di raccolta attorno al campo.
+
+Metodi:
+
+- `addWorkers(count)` – incrementa `totalWorkers` e `availableWorkers` di `count`. Usato quando si converte popolazione non assegnata in gatherer.
+- `takeWorkers(count)` – preleva fino a `count` lavoratori da `availableWorkers`, li sposta in `assignedWorkers` e restituisce il numero effettivamente prelevato. Se `availableWorkers` è minore di `count`, preleva solo quelli disponibili.
+- `returnWorkers(count)` – sposta `count` lavoratori da `assignedWorkers` a `availableWorkers`. Usato al rientro di una spedizione.
+
+### Expedition
+
+Una spedizione è un'entità mobile sulla mappa, creata prelevando `n` lavoratori da un Pop (o dalla popolazione non assegnata, creando il Pop al volo).
+
+Proprietà:
+
+- `id` – identificativo univoco (formato `exp_<timestamp>`).
+- `popType` – tipo di Pop da cui proviene (es. `gatherer`).
+- `workerCount` – numero di individui in questa spedizione.
+- `x`, `y` – posizione corrente in pixel.
+- `targetX`, `targetY` – destinazione corrente.
+- `speed` – velocità in pixel al secondo, calcolata dinamicamente con `getExpeditionSpeed()`.
+- `state` – stato attuale (vedi sotto).
+- `maxCapacity` – capacità massima di carico, calcolata come `workerCount * GameConfig.maxCapacityPerWorker`.
+- `inventory` – oggetto con `provisions` (provviste rimanenti) e `food` (cibo raccolto).
+- `areaCenter` – `{ x, y }` centro dell'area di raccolta assegnata.
+- `areaRadius` – raggio dell'area di raccolta in pixel. Inizializzato da `GameConfig.areaRadius`.
+- `campRef` – riferimento all'oggetto `camp`.
+- `cooldownRemaining` – secondi di riposo rimanenti.
+- `lastCellEvaluation` – tempo trascorso dall'ultima valutazione di cambio cella.
+- `isForced` – se `true`, la spedizione ignora l'esaurimento delle provviste per il ritorno.
+- `useAssignedArea` – se `true`, la spedizione raccoglie solo all'interno dell'area assegnata; se `false`, vaga liberamente.
+- `toBeDisbanded` – se `true`, la spedizione verrà sciolta all'arrivo al campo.
+- `tripStartGameTime` – tempo di gioco all'inizio del viaggio, usato per calcolare la durata e quindi il riposo.
+
+Stati:
+
+- `travellingToArea` – in viaggio verso l'area di raccolta.
+- `movingToCell` – in movimento verso una cella specifica all'interno dell'area.
+- `gathering` – sta raccogliendo dalla cella corrente.
+- `returningToCamp` – sta tornando al campo.
+- `resting` – a riposo al campo prima di ripartire.
+
+## Funzioni e metodi principali
+
+### Pop.addWorkers(count)
+
+Incrementa `totalWorkers` e `availableWorkers` di `count`. Usato quando si converte popolazione non assegnata in gatherer. Non restituisce nulla.
+
+### Pop.takeWorkers(count)
+
+Preleva fino a `count` lavoratori da `availableWorkers`, li sposta in `assignedWorkers` e restituisce il numero effettivamente prelevato. Se `availableWorkers` è minore di `count`, preleva solo quelli disponibili. Restituisce un intero.
+
+### Pop.returnWorkers(count)
+
+Sposta `count` lavoratori da `assignedWorkers` a `availableWorkers`. Usato al rientro di una spedizione. Non restituisce nulla.
+
+### Expedition.cellScore(cx, cy)
+
+Calcola il punteggio di una cella in base a densità e distanza dalla posizione corrente della spedizione. Formula: `density * cellScoreDensityWeight - distance * cellScoreDistanceWeight`. Restituisce `-Infinity` se la densità è 0. Usato da `findBetterCell` e `findBestCellInArea`.
+
+### Expedition.findBetterCell()
+
+Cerca la cella con il punteggio migliore attorno alla posizione corrente della spedizione. Esclude la cella del campo. Usata in modalità automatica (`useAssignedArea = false`). Restituisce `{ cx, cy, score }`. Se nessuna cella valida, `cx = -1`.
+
+### Expedition.findBestCellInArea(fromX, fromY)
+
+Cerca la cella con il punteggio migliore all'interno del cerchio definito da `areaCenter` e `areaRadius`. Testa la distanza dal centro dell'area con `Phaser.Math.Distance.Between`. Usata in modalità area assegnata (`useAssignedArea = true`). Restituisce `{ cx, cy, score }`.
+
+### Expedition.update(delta)
+
+Gestisce il comportamento della spedizione in base allo stato corrente. Consuma provviste, si muove, raccoglie, rientra, riposa e riparte. È il cuore della logica delle spedizioni.
+
+Il comportamento dettagliato per ciascuno stato è descritto nel documento di Game Design `Docs/GameDesign/04_Spedizioni.md`.
+
+## Dipendenze in ingresso
+
+- `index.html` – carica lo script dopo `world.js`.
+- `js/main.js` – crea le spedizioni (click destro su mappa), aggiorna Pop (tramite `debug.js`), disegna le spedizioni. Chiama `exp.update(delta)` ogni frame.
+- `js/debug.js` – modifica Pop e camp tramite l'assegnazione e la rimozione di lavoratori locali.
+
+## Dipendenze in uscita
+
+- `js/config.js` – per `GameConfig` (tutti i parametri usati dalle spedizioni), `getExpeditionSpeed()`, `getProvisionsNeeded()`, `getRestDuration()`, `getTravelConsumptionPerSec()`, `getGatheringConsumptionPerSec()`.
+- `js/world.js` – per `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `HEX_VERTICAL_SPACING_PX`, `GRID_COLS`, `GRID_ROWS`.
+- `Phaser.Math.Distance.Between` – per il calcolo delle distanze.
+
+## Parametri GameConfig usati
+
+- `campX`, `campY` – posizione iniziale del campo.
+- `startingFoodStock` – cibo iniziale.
+- `startingUnassignedPopulation` – popolazione non assegnata iniziale.
+- `maxCapacityPerWorker` – capacità per lavoratore.
+- `areaRadius` – raggio predefinito dell'area di raccolta.
+- `cellAbandonThreshold` – soglia di densità per abbandonare una cella.
+- `cellSwitchScoreThreshold` – soglia di cambio cella.
+- `cellScoreDensityWeight`, `cellScoreDistanceWeight` – pesi del punteggio cella.
+- `cellEvaluationInterval` – intervallo di valutazione cambio cella.
+- `baseGatherRate`, `densityReductionPerFood` – per la raccolta.
+
+Indirettamente, tramite le funzioni di `config.js`: `dayLengthSeconds`, `walkingSpeedKmh`, `pixelsPerKm`, `hexCenterDistanceKm`, `travelConsumptionMultiplier`, `gatheringConsumptionMultiplier`, `safetyMultiplier`, `restMultiplier`.
+
+## Stato globale modificato
+
+- `camp` (oggetto globale) e tutte le sue proprietà.
+- `expeditions` (alias di `camp.expeditions`).
+- Le celle della griglia (tramite `reduceCellDensity`).
+
+## Note per modifiche
+
+- Il Pop `gatherer` viene creato la prima volta che serve (assegnazione locale o creazione spedizione) e poi riutilizzato. Non ci sono più Pop con lo stesso `type`.
+- Quando un lavoratore viene assegnato a una cella locale, incrementa `localWorkers` e `totalWorkers` del Pop (se non era già nel Pop), e decrementa `unassignedPopulation`.
+- Solo un'azione esplicita del giocatore (non ancora implementata) potrebbe riconvertire un gatherer in popolazione non assegnata.
+- La riduzione della densità durante la raccolta avviene **solo** sulla cella esatta tramite `reduceCellDensity`.
+- Se si modifica la firma di un metodo pubblico di `Pop` o `Expedition`, aggiornare i documenti Technical degli script che li usano (`04_Main.md`, `05_Debug.md`).
+- Se si aggiunge una nuova proprietà a `Expedition` o `Pop`, aggiornare le sezioni "Stato globale modificato" e "Parametri GameConfig usati" dei documenti Technical collegati.
+- I bug noti delle spedizioni sono descritti in `Docs/GameDesign/04_Spedizioni.md`.
+
+================================================================================
+
+## FILE: Docs/Technical/04_Main.md
+
+# js/main.js
+
+## Scopo
+
+È il modulo principale del prototipo. Inizializza la scena Phaser, gestisce l'input del giocatore, disegna tutti gli elementi sulla mappa (griglia, campo, spedizioni, warning, etichette), implementa la raccolta locale, le previsioni sulle celle e il ciclo giorno. È lo script più grande e più interconnesso del progetto.
+
+## Variabili globali e stato
+
+Variabili di scena (create in `create()`):
+
+- `gameScene` – riferimento alla scena Phaser.
+- `gridGraphics` – graphics per griglia e cella selezionata.
+- `popGraphics` – graphics per spedizioni.
+- `campGraphics` – graphics per il campo e il raggio locale.
+- `warningGraphics` – graphics per i triangoli di warning (depth 300).
+- `infoText` – pannello info in alto a destra (`Phaser.Text`).
+- `campText` – riepilogo campo in basso a sinistra.
+- `speedText` – indicatore di velocità in alto a sinistra.
+
+Variabili di stato globali:
+
+- `gameState` – `'map'` o `'camp'`. Determina il significato dei click.
+- `campSelected` – `true` se il campo è selezionato (sempre `true` in `gameState === 'camp'`).
+- `selectedExpedition` – spedizione selezionata, o `null`.
+- `selectedLocalCell` – cella locale selezionata (in modalità camp), o `null`.
+- `cellWorkerTexts` – mappa `"cx,cy"` → `Phaser.Text` con il numero di lavoratori sopra le celle.
+- `warningCells` – array di stringhe `"cx,cy"` con le celle sotto soglia.
+- `dayAccumulator` – accumula delta per il ciclo giorno.
+- `gameDay` – contatore dei giorni di gioco.
+- `gameTimeSec` – tempo di gioco effettivo (da `config.js`).
+
+## Funzioni principali
+
+### preload()
+
+Carica il plugin rexBoard (griglia esagonale) via `this.load.scenePlugin(...)` da CDN.
+
+### create()
+
+Inizializza la scena:
+
+1. Chiama `createGrid(this)` (che inizializza la board esagonale rexBoard) e `initializeForageDensity()` (da `world.js`).
+2. Crea i graphics objects: `gridGraphics`, `campGraphics`, `popGraphics`, `warningGraphics`.
+3. Disegna la griglia esagonale iniziale chiamando `drawGrid()`.
+4. Aggiunge il testo di debug in alto a sinistra.
+5. Chiama `enableDebugClick(this)` per attivare i listener di input.
+6. Salva `gameScene = this`.
+7. Crea i testi UI: `infoText`, `campText`, `speedText`.
+8. Chiama `drawGrid()`, `drawPops()` e `drawCamp()`.
+9. Crea `warningGraphics` con depth 300.
+
+### update(time, delta)
+
+Chiamata ogni frame da Phaser. È il game loop.
+
+1. Converte `delta` in secondi reali.
+2. Chiama `TimeManager.getGameDelta(realDeltaSec)` per ottenere `deltaSec`.
+3. Accumula `gameTimeSec += deltaSec`.
+4. Aggiorna tutte le spedizioni: `for (const exp of expeditions) exp.update(deltaSec)`.
+5. Chiama `updateLocalGathering(deltaSec)`.
+6. Gestisce il ciclo giorno: quando `dayAccumulator >= dayLengthSeconds`, incrementa `gameDay`, calcola il consumo, aggiorna `gatheredDaily` e `consumedDaily`, azzera i contatori giornalieri (camp e celle).
+7. Aggiorna i pannelli: `updateInfoText()`, `updateSpeedText()`, `updateCampText()`, `updateLocalWorkerPanel()`.
+8. Ridisegna: `drawGrid()`, `drawSelectedCell()`, `drawPops()`, `drawCamp()`, `updateWarningIndicators()`.
+
+### enableDebugClick(scene)
+
+Attiva i listener di input sulla scena. Gestisce click sinistro (selezione) e click destro (creazione/modifica spedizioni, futuro), oltre alle scorciatoie da tastiera.
+
+**Click sinistro** (in ordine di priorità):
+
+1. Se Shift premuto: ispezione cella (tooltip temporaneo con densità e coordinate).
+2. Se clicca su una spedizione: la seleziona, entra in `gameState = 'map'`.
+3. Se clicca sul campo: toggle tra `gameState = 'map'` e `gameState = 'camp'`.
+4. Se in `gameState === 'camp'` e clicca su una cella entro il raggio locale: la seleziona. Se clicca sulla cella già selezionata, la deseleziona e mostra di nuovo l'info del settlement.
+5. Se in `gameState === 'camp'` e clicca fuori dal raggio: esce dalla modalità camp.
+6. Altrimenti: deseleziona tutto.
+
+**Click destro**:
+
+1. Se c'è una spedizione selezionata: aggiorna la sua area di raccolta e la fa ripartire.
+2. Altrimenti (con campo o spedizione selezionata): crea una nuova spedizione manuale verso il punto cliccato.
+
+**Scorciatoie da tastiera**:
+
+- `R` – richiama la spedizione selezionata.
+- `F` – toggle modalità forzata.
+- `A` – toggle modalità automatica.
+- `C` – cancella spedizione selezionata.
+- `Spazio` – pausa/play.
+- `0-4` – imposta velocità.
+- `+` / `-` – aumenta/diminuisce velocità.
+
+Tutti i comandi sono ignorati se un input HTML ha il focus (`isInputFocused()`).
+
+### isInputFocused()
+
+Restituisce `true` se il focus è su un campo di input HTML (`INPUT`, `TEXTAREA`, `contentEditable`). Usata per evitare che le scorciatoie del gioco si attivino mentre si scrive nel pannello debug.
+
+### drawGrid()
+
+Ridisegna tutti gli esagoni della griglia in base a `forageDensity`. Viene chiamata ogni frame.
+
+Per ogni cella, sceglie un colore con scala a 7 intervalli:
+
+- `>= 0.90` – verde scuro (`0x1a4d0a`)
+- `>= 0.75` – verde medio (`0x2d6b14`)
+- `>= 0.50` – verde chiaro (`0x4a8c1f`)
+- `>= 0.25` – giallo (`0xc4a80b`)
+- `>= 0.05` – arancione (`0xc46e0b`)
+- `> 0.00` – rosso (`0x8b1a0a`)
+- `0.00` – nessun colore (sfondo)
+
+Ogni esagono è disegnato con `hexBoard.getGridPoints(cx, cy)` (6 vertici) e `fillPoints(points, true)`. Applica culling: disegna solo le celle il cui centro è entro la finestra visibile (con un margine pari alle dimensioni dell'esagono). La mappa attuale è limitata a `1280x720` pixel, con esagoni di raggio ≈ 11.5 px.
+
+### drawSelectedCell()
+
+Disegna un bordo giallo esagonale attorno alla cella selezionata (`selectedLocalCell`) usando `hexBoard.getGridPoints` e `strokePoints(points, true)`. Viene chiamata ogni frame dopo `drawGrid()`. Se `selectedLocalCell` è `null`, non fa nulla.
+
+### drawPops()
+
+Disegna tutte le spedizioni come cerchi colorati in base allo stato:
+
+- `gathering` – verde (`0x00ff00`)
+- `returningToCamp` – arancione (`0xff8800`)
+- `resting` – grigio (`0x888888`)
+- altri – bianco (`0xffffff`)
+
+Se `isForced`, disegna un bordo rosso. Se `!useAssignedArea`, un bordo blu semitrasparente. Se selezionata, un bordo giallo e il percorso tratteggiato (dal campo al target). Viene chiamata ogni frame.
+
+### drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength)
+
+Utility per disegnare una linea tratteggiata. Usata per il percorso delle spedizioni selezionate.
+
+### drawCamp()
+
+Disegna il campo (quadrato marrone con bordo) e, se `campSelected`, il raggio locale. Viene chiamata ogni frame.
+
+**Nota**: l'etichetta testuale "CAMP" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
+
+### updateWarningIndicators()
+
+Disegna i triangoli rossi persistenti per le celle sotto soglia. Viene chiamata ogni frame dopo `drawPops()` e `drawCamp()`.
+
+- In `gameState === 'camp'`: triangolo sopra ogni cella in `warningCells`.
+- In `gameState === 'map'`: triangolo sopra il campo se `warningCells.length > 0`.
+
+### updateCellWorkerLabels()
+
+Gestisce i testi sopra le celle con lavoratori assegnati. Viene chiamata solo quando cambia l'assegnazione (in `debug.js` e all'avvio), non ogni frame.
+
+- Per ogni cella con `assignedWorkers > 0`, crea o aggiorna un `Phaser.Text` con il numero.
+- Se `assignedWorkers` diventa 0, distrugge il testo.
+- I testi sono memorizzati in `cellWorkerTexts` con chiave `"cx,cy"`.
+
+### updateLocalGathering(deltaSec)
+
+Esegue la raccolta locale ogni frame.
+
+1. Calcola il raggio locale con `getLocalGatherRadiusPx()`.
+2. Itera su tutte le celle della griglia.
+3. Per ogni cella con `assignedWorkers > 0` e distanza dal campo <= raggio:
+   - Se `density > 0`, raccoglie: `gathered = assignedWorkers * baseGatherRate * density * deltaSec`. Aggiorna `camp.foodStock`, `camp.foodGatheredToday`, `cell.foodGatheredToday`, chiama `reduceCellDensity`.
+   - Controlla la soglia `cellWarningThreshold`: se scende sotto e `warningShown` è `false`, aggiunge la cella a `warningCells` e mostra un avviso in console. Se risale sopra, rimuove la cella da `warningCells`.
+
+La riduzione avviene **solo sulla cella esatta**, non sulle celle vicine.
+
+### updateCampText()
+
+Aggiorna il testo in basso a sinistra con cibo, popolazione totale, non assegnati e giorno corrente.
+
+### updateSpeedText()
+
+Aggiorna il testo in alto a sinistra con la velocità corrente, letta da `TimeManager.getSpeedLabel()`.
+
+### updateInfoText()
+
+Aggiorna il pannello info in alto a destra. Contenuto in base alla selezione:
+
+- **Spedizione selezionata** – id, workerCount, stato, provviste, cibo, capacità, flag `[FORCED]` e `[AUTO]`.
+- **Cella locale selezionata (in modalità camp)** – coordinate, densità, lavoratori, cibo raccolto daily, cibo rimanente alle soglie, giorni alle soglie, incremento con un lavoratore in più, giorni ridotti con un lavoratore in più.
+- **Campo selezionato (in modalità camp)** – cibo, non assegnati, `gatheredDaily`, `consumedDaily`, cibo rimanente nell'area locale (to 25% e to 0%), statistiche dei gatherer (locali, spedizioni, disponibili).
+- **Altrimenti** – stringa vuota.
+
+Alla fine chiama `updateLocalWorkerPanel()` per aggiornare la visibilità del pannello lavoratori locali.
+
+### updateLocalWorkerPanel()
+
+Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell` e `gameState === 'camp'`. Aggiorna il testo con coordinate e numero di lavoratori. È definita in `debug.js`, ma viene chiamata anche da `main.js`.
+
+## Dipendenze in ingresso
+
+- `index.html` – carica lo script dopo `time.js`.
+- Phaser – chiama `preload`, `create`, `update`.
+
+## Dipendenze in uscita
+
+- `js/config.js` – per `GameConfig` (tutti i parametri usati dal rendering e dalla raccolta), `getLocalGatherRadiusPx()`, `getBaseConsumptionPerSec()` (indirettamente via `updateLocalGathering`), `getSecondsPerGameHour()` (indirettamente).
+- `js/world.js` – per `createGrid`, `initializeForageDensity`, `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `hexBoard`, `HEX_WIDTH_PX`, `HEX_HEIGHT_PX`, `GRID_COLS`, `GRID_ROWS`.
+- `js/units.js` – per `camp`, `expeditions`, `Pop`, `Expedition`.
+- `js/time.js` – per `TimeManager` (delta, velocità, pausa).
+- `js/debug.js` – per `updateLocalWorkerPanel`.
+- `Phaser.Math.Distance.Between` – per calcolo distanze.
+
+## Parametri GameConfig usati
+
+- `baseGatherRate`, `densityReductionPerFood` – per la raccolta locale.
+- `cellWarningThreshold` – per il warning.
+- `dayLengthSeconds` – per il ciclo giorno.
+- `foodConsumptionPerPersonPerDay` – per il consumo.
+- `campX`, `campY` – per la posizione del campo.
+- `areaRadius` – per il raggio predefinito dell'area spedizione.
+- `cellEvaluationInterval` – indirettamente via `units.js`.
+- Altri parametri indirettamente tramite funzioni di `config.js`.
+
+## Stato globale modificato
+
+- `gameState`, `campSelected`, `selectedExpedition`, `selectedLocalCell`, `dayAccumulator`, `gameDay`.
+- `warningCells`, `cellWorkerTexts`.
+- `camp` (tramite `updateLocalGathering` e `update`).
+- `expeditions` (creazione e rimozione).
+- Le celle della griglia (tramite `reduceCellDensity`).
+
+## Note per modifiche
+
+- La logica di rendering è mista a quella di gioco in questo file. In futuro potrà essere separata (`ui.js`).
+- L'etichetta "CAMP" viene ricreata ogni frame: bug noto da correggere.
+- Il pannello info viene aggiornato ogni frame: possibile ottimizzazione futura.
+- La griglia viene ridisegnata completamente ogni frame: collo di bottiglia su mappe grandi.
+- I warning sono persistenti e ridisegnati ogni frame.
+- Se si modifica la logica di input, verificare che non ci siano conflitti con i game state (`map` vs `camp`).
+- Se si modifica una funzione pubblica usata da altri script (es. `updateInfoText`, `updateCellWorkerLabels`, `updateLocalWorkerPanel`), aggiornare i documenti Technical collegati (`05_Debug.md`).
+- Se si aggiunge una variabile globale, dichiararla in cima al file e documentarla in "Variabili globali e stato".
+- Se si modifica la logica di raccolta locale, verificare che `updateLocalGathering` continui a ridurre solo la cella esatta (non le vicine).
+
+================================================================================
+
+## FILE: Docs/Technical/05_Debug.md
+
+# js/debug.js
+
+## Scopo
+
+Gestisce il pannello di debug HTML e il pannello lavoratori locali. Collega gli input HTML ai parametri di `GameConfig` in tempo reale, e implementa l'assegnazione e la rimozione dei lavoratori locali sulle celle selezionate.
+
+È caricato in fondo al body di `index.html`, dopo gli elementi HTML che referenzia.
+
+## Elementi HTML gestiti
+
+### Pannello debug
+
+- `debug-toggle` – pulsante per mostrare/nascondere il pannello.
+- `debug-panel` – div contenitore del pannello.
+- `cfg-<nomeParametro>` – un input numerico per ogni parametro di `GameConfig`.
+- `debug-reset` – pulsante "Reset to Defaults".
+- `debug-apply` – pulsante "Apply & Reload".
+
+### Pannello lavoratori locali
+
+- `local-worker-panel` – div contenitore, nascosto di default.
+- `local-worker-info` – testo con coordinate della cella e numero lavoratori.
+- `local-worker-add` – pulsante `+`.
+- `local-worker-remove` – pulsante `-`.
+
+## Funzioni principali
+
+### populateDebugPanel()
+
+Scorre tutte le proprietà di `GameConfig`. Per ogni chiave:
+
+- Cerca un elemento HTML con id `cfg-<chiave>`.
+- Se esiste, imposta il valore con `input.value = GameConfig[key]`.
+- Aggiunge un listener `input` che, al cambiamento, aggiorna `GameConfig[key]` con il valore parsato come float. Se il valore non è un numero valido, viene ignorato.
+- Stampa in console il valore aggiornato.
+
+Viene chiamata quando il pannello debug viene aperto.
+
+### updateLocalWorkerPanel()
+
+Mostra o nasconde il pannello `local-worker-panel` in base allo stato:
+
+- Se `selectedLocalCell && gameState === 'camp'`: mostra il pannello e aggiorna il testo con coordinate e `assignedWorkers`.
+- Altrimenti: nasconde il pannello.
+
+Viene chiamata da `updateInfoText()` in `main.js` e dai listener dei bottoni `+` e `-`.
+
+## Listener
+
+### debug-toggle
+
+Al click:
+
+- Se il pannello è nascosto, lo mostra e chiama `populateDebugPanel()`.
+- Se il pannello è visibile, lo nasconde.
+
+### debug-reset
+
+Al click:
+
+- Scorre tutte le chiavi di `defaultConfig` (copia dei valori di default veri, creata all'avvio con `{ ...GameConfigDefaults }`).
+- Ripristina `GameConfig[key]` con il valore di default.
+- Aggiorna il campo HTML corrispondente.
+- Cancella la configurazione salvata in `localStorage`.
+- Mostra un alert per ricordare che alcune modifiche (es. `hexCenterDistanceKm`, `pixelsPerKm`, `worldWidth`, `worldHeight`) richiedono il reload.
+
+### debug-apply
+
+Al click: salva i valori correnti di `GameConfig` in `localStorage` (chiave `GAME_CONFIG_STORAGE_KEY`) e ricarica la pagina (`location.reload()`). Serve per applicare modifiche ai parametri strutturali.
+
+### local-worker-add
+
+Al click, se una cella locale è selezionata e `gameState === 'camp'`:
+
+1. Verifica che `camp.unassignedPopulation > 0`.
+2. Cerca il Pop `gatherer` in `camp.pops`. Se non esiste, lo crea e lo aggiunge.
+3. Incrementa `cell.assignedWorkers`.
+4. Decrementa `camp.unassignedPopulation`.
+5. Incrementa `camp.localGatherers`.
+6. Incrementa `pop.totalWorkers` e `pop.localWorkers`.
+7. Chiama `updateInfoText()`, `updateCampText()`, `updateLocalWorkerPanel()`, `updateCellWorkerLabels()`.
+
+### local-worker-remove
+
+Al click, se una cella locale è selezionata e `gameState === 'camp'`:
+
+1. Verifica che `cell.assignedWorkers > 0`.
+2. Cerca il Pop `gatherer`. Se esiste e ha `localWorkers > 0`:
+   - Decrementa `cell.assignedWorkers`.
+   - Incrementa `camp.unassignedPopulation`.
+   - Decrementa `camp.localGatherers`.
+   - Decrementa `pop.totalWorkers` e `pop.localWorkers`.
+3. Aggiorna pannelli ed etichette.
+
+## Variabili globali
+
+- `defaultConfig` – copia dei valori di default veri di `GameConfig`, creata all'avvio con `{ ...GameConfigDefaults }`. Usata dal pulsante "Reset to Defaults".
+
+## Dipendenze in ingresso
+
+- `index.html` – carica lo script dopo i pannelli HTML.
+
+## Dipendenze in uscita
+
+- `js/config.js` – per `GameConfig` e `defaultConfig`.
+- `js/world.js` – per `getCell` (usato nei listener `+` e `-`).
+- `js/units.js` – per `camp`, `Pop`, `selectedLocalCell` (indirettamente).
+- `js/main.js` – per `updateInfoText`, `updateCampText`, `updateCellWorkerLabels`, `gameState`, `selectedLocalCell`, `isInputFocused`.
+
+## Parametri GameConfig usati
+
+Nessuno direttamente. Legge e scrive su `GameConfig` in modo generico, tramite iterazione sulle chiavi.
+
+## Stato globale modificato
+
+- `GameConfig` (tutti i parametri modificabili dal pannello).
+- `camp` (tramite i listener `+` e `-`).
+- Il Pop `gatherer` in `camp.pops`.
+- Le celle della griglia (`assignedWorkers`).
+
+## Note per modifiche
+
+- L'ordine di caricamento è critico: `debug.js` deve essere caricato **dopo** i pannelli HTML, altrimenti gli `addEventListener` falliscono con errore "Cannot read properties of null".
+- Per aggiungere un nuovo parametro al pannello debug, occorre:
+  1. Aggiungerlo a `GameConfig` in `config.js`.
+  2. Aggiungere un input HTML in `debug-panel` con id `cfg-<nomeParametro>`.
+  3. Il resto è automatico: `populateDebugPanel` lo troverà e lo collegherà.
+- Il pannello non gestisce valori non numerici (solo float).
+- Il pannello non ha un pulsante "Salva preset" o "Carica preset".
+- Se si modifica la logica di assegnazione lavoratori, verificare che `camp.localGatherers`, `pop.localWorkers` e `cell.assignedWorkers` siano sempre coerenti.
+- Se si aggiunge una nuova funzione chiamata da `main.js`, dichiararla prima dei listener per evitare errori di hoisting.
+
+================================================================================
+
+## FILE: Docs/Technical/06_Time.md
+
+# js/time.js
+
+## Scopo
+
+Gestisce il controllo della velocità di simulazione: pausa, velocità multiple e fornitura del delta di gioco effettivo. È il modulo che permette al mondo di scorrere a ritmi diversi, indipendentemente dal frame rate reale.
+
+## Struttura dati
+
+L'oggetto `TimeManager` contiene:
+
+- `speeds` – array dei moltiplicatori disponibili. Valori attuali: `[0, 0.5, 1, 2, 4, 8]`. Lo `0` corrisponde alla pausa.
+- `speedIndex` – indice corrente nell'array `speeds`. Default `2` (1x).
+- `lastNonZeroIndex` – indice dell'ultima velocità non-zero, usato per riprendere dopo una pausa. Default `2` (1x).
+- `get speed()` – getter che restituisce `speeds[speedIndex]`.
+
+## Metodi
+
+### get speed (getter)
+
+Restituisce il moltiplicatore corrente. Se `speedIndex` è 0, restituisce 0 (pausa).
+
+### setSpeedIndex(newIndex)
+
+Imposta l'indice della velocità corrente. Se `newIndex` è valido (compreso tra 0 e `speeds.length - 1`):
+
+- Aggiorna `speedIndex`.
+- Se `newIndex` non è 0, aggiorna anche `lastNonZeroIndex`.
+- Stampa in console il nuovo valore con `getSpeedLabel()`.
+
+### increaseSpeed()
+
+Incrementa l'indice di velocità di 1, in modo ciclico (`modulo speeds.length`). Chiama `setSpeedIndex`.
+
+### decreaseSpeed()
+
+Decrementa l'indice di velocità di 1, in modo ciclico (con wrap-around). Chiama `setSpeedIndex`.
+
+### togglePause()
+
+Se il gioco è in pausa (`speedIndex === 0`), riprende ripristinando `lastNonZeroIndex`. Altrimenti, mette in pausa impostando `speedIndex` a 0.
+
+### getGameDelta(deltaSec)
+
+Restituisce il delta di gioco effettivo moltiplicando `deltaSec` per la velocità corrente. Se il gioco è in pausa, restituisce 0.
+
+Formula: `gameDelta = deltaSec * speed`, dove `speed` è il moltiplicatore corrente.
+
+### getSpeedLabel()
+
+Restituisce un'etichetta leggibile per la velocità corrente:
+
+- `0` → `'Paused'`
+- `0.5` → `'0.5x'`
+- `1` → `'1x'`
+- `2` → `'2x'`
+- `4` → `'4x'`
+- `8` → `'8x'`
+- altri valori → `<valore>x`
+
+## Dipendenze in ingresso
+
+- `index.html` – carica lo script dopo `ui.js`.
+- `js/main.js` – usa `TimeManager.getGameDelta`, `togglePause`, `setSpeedIndex`, `increaseSpeed`, `decreaseSpeed`, `getSpeedLabel`.
+
+## Dipendenze in uscita
+
+Nessuna. Questo script non chiama altri moduli di gioco.
+
+## Parametri GameConfig usati
+
+Nessuno direttamente. La velocità di gioco è indipendente dai parametri di `GameConfig`, ma influenza indirettamente il consumo, i movimenti e l'avanzamento del giorno tramite il `deltaSec` fornito a `main.js`.
+
+## Stato globale modificato
+
+- `TimeManager.speedIndex`, `TimeManager.lastNonZeroIndex` (interni all'oggetto).
+
+## Note per modifiche
+
+- La velocità non influenza il rendering, solo la logica di gioco tramite `gameDelta`.
+- In pausa, `deltaSec` è 0 e nessuna logica di gioco avanza.
+- L'array `speeds` può essere modificato per aggiungere o togliere velocità. Se si modificano i valori, aggiornare anche i listener di tastiera in `main.js` (le scorciatoie `0-4` puntano a indici fissi).
+- Se si aggiunge un nuovo indice di velocità, aggiornare `getSpeedLabel()` per restituire un'etichetta corretta.
+
+================================================================================
+
+## FILE: Docs/Technical/07_Resources.md
+
+# js/resources.js
+
+## Scopo
+
+**File attualmente vuoto.** È previsto per ospitare la logica di raccolta, consumo e deterioramento delle risorse in futuro, quando la complessità lo richiederà.
+
+Nel prototipo attuale, la logica di raccolta è distribuita tra:
+
+- `js/world.js` – riduzione della densità della cella (`reduceCellDensity`).
+- `js/units.js` – raccolta da parte delle spedizioni.
+- `js/main.js` – raccolta locale e previsioni.
+
+## Funzioni principali
+
+Nessuna. File vuoto.
+
+## Dipendenze in ingresso
+
+- `index.html` – carica lo script per ordine di caricamento. Attualmente non contiene codice.
+
+## Dipendenze in uscita
+
+Nessuna.
+
+## Parametri GameConfig usati
+
+Nessuno.
+
+## Stato globale modificato
+
+Nessuno.
+
+## Note per modifiche
+
+- Quando si inizierà a implementare la lavorazione delle risorse (legna → assi), il deterioramento del cibo, o i magazzini, questa è la sede naturale per quella logica.
+- Se si sposta della logica qui, aggiornare i documenti Technical degli script che la contenevano (`04_Main.md`, `03_Units.md`).
+
+================================================================================
+
+## FILE: Docs/Technical/08_UI - Copia.md
+
+# js/ui.js
+
+## Scopo
+
+**File attualmente vuoto.** È previsto per ospitare la logica dell'interfaccia utente (pannelli, tooltip, notifiche) in futuro, quando la complessità lo richiederà.
+
+Nel prototipo attuale, la logica di rendering è distribuita tra:
+
+- `js/main.js` – pannelli info, camp, speed, e rendering sulla scena Phaser.
+- `js/debug.js` – pannelli HTML (debug e lavoratori locali).
+- `index.html` – struttura HTML dei pannelli.
+
+## Funzioni principali
+
+Nessuna. File vuoto.
+
+## Dipendenze in ingresso
+
+- `index.html` – carica lo script per ordine di caricamento. Attualmente non contiene codice.
+
+## Dipendenze in uscita
+
+Nessuna.
+
+## Parametri GameConfig usati
+
+Nessuno.
+
+## Stato globale modificato
+
+Nessuno.
+
+## Note per modifiche
+
+- Quando l'interfaccia diventerà più complessa (tooltip dinamici, notifiche, pannelli di gestione), questa è la sede naturale per quella logica.
+- Se si sposta dell'UI qui, aggiornare i documenti Technical degli script che la contenevano (`04_Main.md`, `05_Debug.md`).
+
+================================================================================
+
+## FILE: Docs/Technical/08_UI.md
+
+# js/ui.js
+
+## Scopo
+
+**File attualmente vuoto.** È previsto per ospitare la logica dell'interfaccia utente (pannelli, tooltip, notifiche) in futuro, quando la complessità lo richiederà.
+
+Nel prototipo attuale, la logica di rendering è distribuita tra:
+
+- `js/main.js` – pannelli info, camp, speed, e rendering sulla scena Phaser.
+- `js/debug.js` – pannelli HTML (debug e lavoratori locali).
+- `index.html` – struttura HTML dei pannelli.
+
+## Funzioni principali
+
+Nessuna. File vuoto.
+
+## Dipendenze in ingresso
+
+- `index.html` – carica lo script per ordine di caricamento. Attualmente non contiene codice.
+
+## Dipendenze in uscita
+
+Nessuna.
+
+## Parametri GameConfig usati
+
+Nessuno.
+
+## Stato globale modificato
+
+Nessuno.
+
+## Note per modifiche
+
+- Quando l'interfaccia diventerà più complessa (tooltip dinamici, notifiche, pannelli di gestione), questa è la sede naturale per quella logica.
+- Se si sposta dell'UI qui, aggiornare i documenti Technical degli script che la contenevano (`04_Main.md`, `05_Debug.md`).
+
+================================================================================
+
+## FILE: Docs/Skills/GameDesigner.md
+
+# Game Designer Skill
+
+## Scopo
+
+Questa skill definisce il processo di lavoro per la chat di Game Design. Serve a discutere, definire e documentare la logica dei sistemi di gioco, le meccaniche, la UI/UX, e a generare i prompt per l'agente di programmazione.
+
+## Ruolo
+
+La chat di Game Design non scrive codice e non prende decisioni implementative. Il suo compito è:
+
+- Discutere e definire il gameplay.
+- Approfondire la logica dei sistemi, le interconnessioni e la matematica sottostante.
+- Definire come il giocatore interagisce con il sistema (UI/UX).
+- Aggiornare i documenti di Game Design.
+- Generare un prompt chiaro e preciso per l'agente di programmazione.
+- Fornire test funzionali da eseguire dopo l'implementazione.
+
+## Flusso di lavoro
+
+Ogni richiesta dell'utente viene gestita come una sequenza di step. Non si passa allo step successivo finché l'utente non ha approvato esplicitamente lo step corrente.
+
+### Step 1 – Discussione gameplay generale
+
+- Cosa vogliamo ottenere con questa modifica o nuova meccanica.
+- Come si inserisce nel loop di gioco attuale.
+- Quali nuove scelte o vincoli crea per il giocatore.
+- Effetti attesi sul gameplay.
+
+### Step 2 – Definizione logica dettagliata e matematica
+
+- Descrivere il sistema nel dettaglio.
+- Elencare le interconnessioni con altri sistemi.
+- Definire le formule matematiche, se necessarie.
+- Specificare parametri e valori di default.
+- Considerare casi limite e comportamenti anomali.
+- Definire come il sistema si integra con i sistemi esistenti.
+
+### Step 3 – Definizione UI/UX
+
+- Come il giocatore interagisce con il sistema.
+- Cosa vede sullo schermo (pannelli, indicatori, testi).
+- Quali input (click, tasti) sono coinvolti.
+- Feedback visivo atteso.
+- Eventuali conflitti con UI esistente.
+
+### Step 4 – Aggiornamento documenti Game Design
+
+- Modificare i file in `Docs/GameDesign/` per riflettere le decisioni prese.
+- Se serve, aggiungere nuovi file o sezioni.
+- Mantenere coerenza con il resto della documentazione.
+- Non inserire dettagli implementativi o codice.
+- **Importante**: quando si aggiorna un documento di Game Design, verificare anche se altri documenti di Game Design fanno riferimento alla meccanica modificata e vanno aggiornati per coerenza.
+
+### Step 5 – Generazione prompt per programmatore
+
+- Scrivere un prompt chiaro e strutturato per l'agente di programmazione, seguendo il template sotto.
+- Il prompt deve essere auto-contenuto.
+- **Importante**: nei riferimenti, includere non solo i file direttamente modificati, ma anche i documenti Technical e gli script collegati (indicati nelle sezioni "Dipendenze in ingresso" e "Dipendenze in uscita" dei documenti Technical). Il programmatore deve sapere quali altri script controllare per non rompere dipendenze.
+
+### Step 6 – Proposta test funzionali
+
+- Elencare i test funzionali che l'utente dovrà eseguire dopo l'implementazione.
+- Devono verificare il comportamento atteso dal punto di vista del gameplay.
+- Devono essere chiari, specifici e verificabili.
+
+## Template del prompt per l'agente di programmazione
+
+Ogni prompt fornito all'agente (Cline, Cursor, o altro) deve seguire questa struttura fissa. Serve a garantire che l'agente riceva tutte le informazioni necessarie in modo ordinato e non debba rileggere l'intera conversazione.
+
+### Contesto
+
+Breve descrizione del progetto e del sistema su cui stiamo lavorando.
+
+### Obiettivo
+
+Cosa deve essere implementato, in linguaggio chiaro.
+
+### Riferimenti
+
+- @Docs/GameDesign/XX_Nome.md (logica di gioco)
+
+- @Docs/Technical/YY_Nome.md (architettura dello script da modificare)
+
+- @Docs/Technical/ZZ_Nome.md (script collegati, per dipendenze)
+
+- @ProjectContext.md (regole generali e flusso di lavoro)
+
+### Requisiti di gameplay
+
+Cosa deve fare il sistema dal punto di vista del giocatore.
+
+### Logica e formule
+
+Formule, soglie, parametri, casi limite.
+
+### UI/UX
+
+Come il giocatore interagisce, cosa vede, feedback.
+
+### Vincoli tecnici
+
+- Ogni nuovo parametro va in GameConfig e nel pannello debug.
+
+- Seguire il flusso: brief → approvazione → modifiche una per una → test tecnici → aggiornamento documentazione tecnica → titolo e descrizione per commit
+
+- Usare delta time.
+
+- Non mischiare game state.
+
+- Seguire il flusso definito in @Docs/Skills/Programmer.md.
+
+### Output atteso
+
+- Brief iniziale.
+
+- Modifiche una per una con approvazione.
+
+- Test tecnici a fine batch.
+
+- Aggiornamento documentazione tecnica.
+
+- Messaggio di commit.
+
+#### Regole
+
+- Non parlare di codice o dettagli implementativi.
+- Usare linguaggio semplice e comprensibile.
+- Non fare assunzioni: se qualcosa non è chiaro, chiedere.
+- Non sintetizzare: riportare tutte le informazioni rilevanti.
+- Aggiornare i documenti solo dopo approvazione.
+- Non saltare step.
+- I prompt per l'agente devono seguire il template sopra.
+- Ogni prompt deve essere auto-contenuto.
+- Nei riferimenti del prompt, usare sempre il tag `@`.
+- Chiedere sempre all'agente di leggere `@ProjectContext.md` e di seguirne le istruzioni.
+- Chiedere sempre all'agente di leggere i documenti Technical degli script collegati, oltre a quelli da modificare.
+- **Ricordare esplicitamente al programmatore che non deve MAI modificare i documenti in `Docs/GameDesign/`.**
+
+## Output atteso
+
+Alla fine del processo, l'utente avrà:
+
+- Una definizione chiara del gameplay.
+- Una logica dettagliata con formule.
+- Una UI/UX definita.
+- Documenti di Game Design aggiornati.
+- Un prompt pronto per l'agente di programmazione.
+- Una lista di test funzionali. 
+
+================================================================================
+
+## FILE: Docs/Skills/Programmer.md
+
+# Programmer Agent Skill
+
+## Scopo
+
+Questa skill definisce il processo di lavoro per l'agente di programmazione (IDE). Serve a implementare le modifiche richieste dal Game Designer, rispettando l'architettura esistente e il flusso di lavoro concordato.
+
+## Ruolo
+
+L'agente di programmazione:
+
+- Riceve un prompt dal Game Designer.
+- Legge i documenti Technical degli script coinvolti (comprese le sezioni "Dipendenze").
+- Discute con l'utente le modifiche tecniche da apportare.
+- Applica le modifiche solo dopo approvazione esplicita.
+- Fornisce test tecnici dopo che tutte le modifiche del batch sono state implementate.
+- Aggiorna SOLO la documentazione tecnica.
+- Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git manualmente.
+
+## Regole fondamentali
+
+1. **Non modificare MAI i file in `Docs/GameDesign/`.** Sono di competenza del Game Designer. Se noti un'incoerenza, segnalala all'utente, non correggerla.
+2. **Prima di modificare uno script, leggi il suo documento Technical** e presta attenzione alle sezioni:
+   - Dipendenze in ingresso (chi chiama questo script)
+   - Dipendenze in uscita (cosa questo script chiama)
+   - Stato globale modificato
+3. **Leggi anche i documenti Technical degli script collegati** indicati dal Game Designer nel prompt (o dalla sezione Dipendenze). Questo evita di rompere dipendenze.
+4. **Se una modifica cambia una dipendenza** (es. nuova funzione pubblica, cambio di firma, nuovo stato globale), aggiorna il documento Technical corrispondente.
+5. **Aggiorna solo i documenti Technical**, mai quelli di Game Design.
+
+## Flusso di lavoro
+
+### Step 1 – Brief generale
+
+- Leggi il prompt ricevuto.
+- Leggi i documenti Technical indicati.
+- Leggi le sezioni Dipendenze per capire l'impatto.
+- Fornisci un brief generale in linguaggio semplice:
+  - Cosa si andrà a fare.
+  - Quali effetti avrà sul gameplay e sulla UI.
+  - Quali script saranno toccati e perché.
+  - Eventuali limiti tecnici o approcci alternativi.
+- Attendi l'OK dell'utente.
+
+### Step 2 – Modifiche una per una
+
+- Per ogni modifica:
+  - Spiega cosa fa.
+  - Descrivi le conseguenze sul codice e sul gameplay.
+  - Indica i file coinvolti.
+  - Indica quali dipendenze vengono toccate.
+  - Attendi l'OK dell'utente prima di applicare.
+- Non applicare modifiche non approvate.
+- Preservare i commenti esistenti.
+- Usare delta time per aggiornamenti temporali.
+- Ogni nuovo parametro va in GameConfig e nel pannello debug.
+
+### Step 3 – Test tecnici (dopo tutte le modifiche del batch)
+
+- Fornisci una checklist di test tecnici complessivi.
+- I test devono includere:
+  - Azioni specifiche da compiere (es. "ricarica la pagina").
+  - Comportamento atteso.
+  - Controlli in console (es. "non devono apparire errori").
+- Attendi che l'utente esegua i test e segnali eventuali problemi.
+
+### Step 4 – Aggiornamento documentazione tecnica
+
+- Se sono state introdotte nuove strutture dati, funzioni, dipendenze o pattern, aggiorna i file in `Docs/Technical/`.
+- Aggiorna SOLO i documenti Technical, MAI quelli di Game Design.
+- Se una modifica cambia le dipendenze, aggiorna sia la sezione "Dipendenze" del documento Technical dello script modificato, sia quella degli script collegati.
+- Attendere conferma dell'utente.
+
+### Step 5 – Messaggio di commit
+
+- Fornisci solo il titolo e la descrizione del commit, basati sulle modifiche effettive del batch.
+- Non eseguire comandi git.
+- L'utente eseguirà il commit e il push manualmente nel terminale.
+
+#### Interazione con l'utente
+
+- L'agente applica direttamente le modifiche ai file del progetto in VS Code.
+- L'utente approva ogni modifica prima che venga applicata (auto-approve di "Edit project files" è disattivato).
+- L'agente mostra il diff o la porzione di codice che sta per modificare, e attende l'OK.
+- L'agente non esegue commit o push. L'utente li esegue manualmente nel terminale dopo aver ricevuto il messaggio di commit.
+- Se una modifica richiede l'aggiunta di un nuovo file, l'agente lo crea direttamente.
+- Se una modifica richiede l'eliminazione di un file, l'agente lo segnala e attende conferma esplicita.
+
+## Output atteso
+
+Alla fine del processo, l'utente avrà:
+
+- Modifiche implementate e testate.
+- Documentazione tecnica aggiornata (solo Technical).
+- Messaggio di commit pronto.
+
+
+================================================================================

@@ -208,7 +208,7 @@ Bug ancora aperto: spedizione non va in una cella all'interno dell'area assegnat
 
 ### DA IMPLEMENTARE
 
-- [ ]  **Campo proporzionale a popolazione e scala**
+- [ ] **Campo proporzionale a popolazione e scala**
 
 - La dimensione del campo (raggio visivo) dipende da popolazione totale e da cellSizeInKm.
 
@@ -216,7 +216,7 @@ Bug ancora aperto: spedizione non va in una cella all'interno dell'area assegnat
 
 #### 
 
-- [ ]  **Rimozione spedizioni automatiche**
+- [x] **Rimozione spedizioni automatiche**
 
 - Il tasto destro sul campo non crea più spedizioni automatiche.
 
@@ -224,15 +224,13 @@ Bug ancora aperto: spedizione non va in una cella all'interno dell'area assegnat
 
 #### 
 
-- [ ]  **Rivedere le formule di scelta celle per distanze in km**
+- [ ] **Rivedere le formule di scelta celle per distanze in km**
 
 - Le logiche di scelta cella (per spedizioni e per futuri comportamenti) devono usare km reali, non pixel.
 
 - Introdurre getDistanceKm(pixelDist) basata su pixelsPerKm.
 
 - Il punteggio cella deve considerare densità, distanza in km e costo del viaggio.
-
- 
 
 - [ ] **Batch 7 – Rigenerazione base del cibo**
 

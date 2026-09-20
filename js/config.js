@@ -8,11 +8,13 @@ const GameConfig = {
     // --- Gathering ---
     baseGatherRate: 0.2,                    // food per second per worker at density 1.0
     densityReductionPerFood: 0.001,         // density removed per food gathered
-    gatherImpactRadius: 0.6,                // multiplier for CELL_SIZE
+    gatherImpactRadius: 0.6,                // legacy: unused (reserved for future area effects)
+
+    // --- Grid geometry (hexagon) ---
+    hexCenterDistanceKm: 1,                 // km between centers of adjacent hexagons (world cell size)
+    pixelsPerKm: 10,                        // pixels per km (visual scale)
 
     // --- Movement (base parameters) ---
-    cellSize: 10,                           // pixels per cell
-    cellSizeInKm: 10,                        // real kilometers represented by one cell
     walkingSpeedKmh: 4,                     // walking speed in km/h
 
     // --- Expedition consumption multipliers ---
@@ -49,6 +51,29 @@ const GameConfig = {
     cellWarningThreshold: 0.25,              // threshold for warning when cell is getting depleted
 };
 
+// ---- Config persistence (saved by "Apply & Reload" in debug.js) ----
+const GAME_CONFIG_STORAGE_KEY = 'dinastiaGameConfig';
+
+// Snapshot of the true defaults, before applying any persisted values.
+const GameConfigDefaults = { ...GameConfig };
+
+// Apply persisted values (from localStorage) on startup, before the grid is built.
+(function loadPersistedConfig() {
+    try {
+        const saved = localStorage.getItem(GAME_CONFIG_STORAGE_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            for (const key in parsed) {
+                if (key in GameConfig && typeof parsed[key] === 'number') {
+                    GameConfig[key] = parsed[key];
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Could not load persisted game config:', e);
+    }
+})();
+
 // ---- Derived parameter helpers ----
 
 // Game seconds per game hour
@@ -61,9 +86,14 @@ function getBaseConsumptionPerSec() {
     return GameConfig.foodConsumptionPerPersonPerDay / GameConfig.dayLengthSeconds;
 }
 
-// Pixels per real kilometer
+// Pixels per kilometer (visual scale)
 function getPixelsPerKm() {
-    return GameConfig.cellSize / GameConfig.cellSizeInKm;
+    return GameConfig.pixelsPerKm;
+}
+
+// Hexagon radius (vertex to center) in pixels
+function getHexRadiusPx() {
+    return (GameConfig.hexCenterDistanceKm / Math.sqrt(3)) * GameConfig.pixelsPerKm;
 }
 
 // Current expedition speed in pixels per real second

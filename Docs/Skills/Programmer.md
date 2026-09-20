@@ -9,113 +9,107 @@ Questa skill definisce il processo di lavoro per l'agente di programmazione (IDE
 L'agente di programmazione:
 
 - Riceve un prompt dal Game Designer.
-
-- Discute con l'utente le modifiche tecniche da apportare.
-
+- Legge i documenti Technical degli script coinvolti (comprese le sezioni "Dipendenze").
+- Fornisce un **debrief unico** delle modifiche previste (codice + documentazione).
 - Applica le modifiche solo dopo approvazione esplicita.
+- Fornisce test tecnici a fine batch.
+- Aggiorna SOLO la documentazione tecnica.
+- Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git manualmente.
 
-- Fornisce test tecnici dopo che tutte le modifiche del batch sono state implementate.
+## Regole fondamentali
 
-- Aggiorna la documentazione tecnica.
-
-- Prepara commit e push su GitHub.
+1. **Non modificare MAI i file in `Docs/GameDesign/`.** Sono di competenza del Game Designer. Se noti un'incoerenza, segnalala all'utente, non correggerla.
+2. **Prima di modificare uno script, leggi il suo documento Technical** e presta attenzione alle sezioni:
+   - Dipendenze in ingresso (chi chiama questo script)
+   - Dipendenze in uscita (cosa questo script chiama)
+   - Stato globale modificato
+3. **Leggi anche i documenti Technical degli script collegati** indicati dal Game Designer nel prompt (o dalla sezione Dipendenze). Questo evita di rompere dipendenze.
+4. **Se una modifica cambia una dipendenza** (es. nuova funzione pubblica, cambio di firma, nuovo stato globale), aggiorna il documento Technical corrispondente.
+5. **Aggiorna solo i documenti Technical**, mai quelli di Game Design.
 
 ## Flusso di lavoro
 
-### Step 1 – Brief generale
+### Step 1 – Debrief unico
 
-- Leggere il prompt ricevuto.
+Prima di applicare qualsiasi modifica, fornisci un debrief in linguaggio semplice che copra:
 
-- Leggere i documenti di Game Design e Technical rilevanti.
+- **Cosa si andrà a fare** (panoramica).
+- **Quali file di codice saranno modificati** e perché.
+- **Quali file di codice saranno creati o eliminati**, se applicabile.
+- **Quali dipendenze vengono toccate** e come.
+- **Quali documenti Technical saranno aggiornati** e in che modo.
+- **Effetti attesi sul gameplay e sulla UI**.
+- **Limiti tecnici o approcci alternativi** che hai considerato.
 
-- Fornire un brief generale in linguaggio semplice:
-  
-  - Cosa si andrà a fare.
-  
-  - Quali effetti avrà sul gameplay e sulla UI.
-  
-  - Eventuali limiti tecnici o approcci alternativi.
+Attendi **una sola approvazione globale**. Non chiedere l'OK modifica per modifica.
 
-- Attendere l'OK dell'utente prima di procedere.
+### Step 2 – Implementazione
 
-### Step 2 – Modifiche una per una
-
-- Per ogni modifica:
-  
-  - Spiegare cosa fa.
-  
-  - Descrivere le conseguenze sul codice e sul gameplay.
-  
-  - Indicare i file coinvolti.
-  
-  - Attendere l'OK dell'utente prima di applicare.
-
+- Applica tutte le modifiche al codice come descritto nel debrief.
+- Se durante l'implementazione emergono problemi, deviazioni dal piano o decisioni non coperte dal debrief, **fermati e chiedi** prima di procedere.
+- Se una modifica si rivela diversa da come l'avevi descritta (es. serve toccare un file in più), fermati e aggiorna il debrief con l'utente.
 - Non applicare modifiche non approvate.
-
 - Preservare i commenti esistenti.
-
 - Usare delta time per aggiornamenti temporali.
-
 - Ogni nuovo parametro va in GameConfig e nel pannello debug.
 
-### Step 3 – Test tecnici (dopo tutte le modifiche del batch)
+### Step 3 – Aggiornamento documentazione tecnica
 
-- Dopo che tutte le modifiche del batch sono state implementate e approvate, fornire una checklist di test tecnici.
+- Applica le modifiche alla documentazione Technical come descritto nel debrief.
+- Se durante l'implementazione sono emerse nuove strutture dati, funzioni o dipendenze non previste, aggiungile alla documentazione e segnalale all'utente.
+- Aggiorna SOLO i documenti Technical, MAI quelli di Game Design.
 
+### Step 4 – Test tecnici
+
+- Fornisci una checklist di test tecnici complessivi.
 - I test devono includere:
-  
   - Azioni specifiche da compiere (es. "ricarica la pagina").
-  
   - Comportamento atteso.
-  
   - Controlli in console (es. "non devono apparire errori").
+- Attendi che l'utente esegua i test e segnali eventuali problemi.
 
-- Attendere che l'utente esegua i test e segnali eventuali problemi.
+### Step 5 – Messaggio di commit
 
-### Step 4 – Aggiornamento documentazione tecnica
-
-- Se sono state introdotte nuove strutture dati, funzioni o pattern architetturali, aggiornare i file in `Docs/Technical/`.
-
-- Non aggiornare per dettagli implementativi minori.
-
-- Attendere conferma dell'utente.
-
-### Step 5 – Commit e push
-
-- Fornire il messaggio di commit (titolo e descrizione).
-
-- Fornire i comandi git per il commit e il push.
-
-- Il messaggio deve riassumere tutte le modifiche effettive dall'ultimo commit, inclusi aggiornamenti ai documenti.
-
-## Regole
-
-- Non modificare file senza approvazione.
-
-- Non fornire test tecnici dopo ogni singola modifica, ma solo dopo l'intero batch.
-
-- Seguire le convenzioni di codice definite in `Docs/Technical/00_Architettura_Generale.md`.
-
-- Se ci sono dubbi, chiedere prima di procedere.
-
-- Non fare assunzioni: se qualcosa non è chiaro, chiedere.
+- Fornisci solo il titolo e la descrizione del commit, basati sulle modifiche effettive del batch.
+- Non eseguire comandi git.
+- L'utente eseguirà il commit e il push manualmente nel terminale.
 
 ## Interazione con l'utente
 
-- L'utente applica le modifiche localmente, testa, e poi committa.
+- L'agente applica direttamente le modifiche ai file del progetto in VS Code.
+- L'agente **non applica modifiche prima dell'approvazione del debrief unico**.
+- L'agente mostra il debrief completo all'inizio, e aspetta un unico OK.
+- L'agente non esegue commit o push. L'utente li esegue manualmente nel terminale dopo aver ricevuto il messaggio di commit.
+- Se una modifica richiede l'aggiunta di un nuovo file, l'agente lo crea direttamente (dopo OK del debrief).
+- Se una modifica richiede l'eliminazione di un file, l'agente lo segnala e attende conferma esplicita.
 
-- L'agente fornisce solo le porzioni di codice da modificare, indicando file e punto di inserimento.
+## Modalità Plan e Act
 
-- Per i nuovi file, fornire il contenuto completo.
+- L'agente deve operare in **Plan mode** finché l'utente non approva il debrief.
+- Solo dopo approvazione l'utente passa l'agente in **Act mode** per l'esecuzione.
+- Se l'agente si trova in Act mode prima dell'approvazione, deve fermarsi e chiedere conferma.
 
-- L'agente non scrive direttamente sul repository: fornisce istruzioni.
+## Regole per bug fix e compiti piccoli
+
+Le regole del flusso di lavoro valgono **per qualsiasi modifica**, inclusi bug fix, refactoring minori e compiti che sembrano semplici.
+
+Anche se un fix è "piccolo":
+
+- Va fornito il debrief unico prima di applicare qualsiasi modifica.
+- Va attesa l'approvazione dell'utente.
+- Va aggiornata la documentazione Technical se cambia strutture dati, funzioni o dipendenze (anche minime).
+- Va fornito un messaggio di commit.
+
+Non esistono eccezioni: se l'agente ritiene che un fix sia troppo piccolo per seguire il flusso, lo segnala all'utente e chiede conferma. Non procede autonomamente.
+
+### Auto-approve e strumenti esterni
+
+L'agente deve applicare le modifiche **solo** attraverso gli strumenti di modifica file di Cline, dopo approvazione esplicita. Non deve usare comandi shell (es. `echo`, `python`, `node`, redirezioni) per scrivere o modificare file, anche se i comandi sono auto-approvati.
 
 ## Output atteso
 
 Alla fine del processo, l'utente avrà:
 
 - Modifiche implementate e testate.
-
-- Documentazione tecnica aggiornata.
-
-- Commit e push eseguiti.
+- Documentazione tecnica aggiornata (solo Technical).
+- Messaggio di commit pronto.

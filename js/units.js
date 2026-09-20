@@ -70,15 +70,14 @@ class Expedition {
         if (!cell) return -Infinity;
         const density = cell.forageDensity;
         if (density <= 0) return -Infinity;
-        const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
-        const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
-        const dist = Phaser.Math.Distance.Between(this.x, this.y, cellWorldX, cellWorldY);
+        const center = cellToWorld(cx, cy);
+        const dist = Phaser.Math.Distance.Between(this.x, this.y, center.x, center.y);
         return density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
     }
 
     findBetterCell() {
         const centerCell = worldToCell(this.x, this.y);
-        const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
+        const cellRadius = Math.ceil(this.areaRadius / HEX_VERTICAL_SPACING_PX);
         let bestScore = -Infinity;
         let bestCx = -1, bestCy = -1;
 
@@ -106,7 +105,7 @@ class Expedition {
 
     findBestCellInArea(fromX, fromY) {
         const centerCell = worldToCell(this.areaCenter.x, this.areaCenter.y);
-        const cellRadius = Math.ceil(this.areaRadius / CELL_SIZE);
+        const cellRadius = Math.ceil(this.areaRadius / HEX_VERTICAL_SPACING_PX);
         let bestScore = -Infinity;
         let bestCx = -1, bestCy = -1;
 
@@ -118,12 +117,11 @@ class Expedition {
                     const cell = getCell(cx, cy);
                     const density = cell.forageDensity;
                     if (density <= 0) continue;
-                    const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
-                    const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
+                    const center = cellToWorld(cx, cy);
                     // Ensure the cell is within the circular area radius
-                    const distFromAreaCenter = Phaser.Math.Distance.Between(this.areaCenter.x, this.areaCenter.y, cellWorldX, cellWorldY);
+                    const distFromAreaCenter = Phaser.Math.Distance.Between(this.areaCenter.x, this.areaCenter.y, center.x, center.y);
                     if (distFromAreaCenter > this.areaRadius) continue;
-                    const dist = Phaser.Math.Distance.Between(fromX, fromY, cellWorldX, cellWorldY);
+                    const dist = Phaser.Math.Distance.Between(fromX, fromY, center.x, center.y);
                     const score = density * GameConfig.cellScoreDensityWeight - dist * GameConfig.cellScoreDistanceWeight;
                     if (score > bestScore) {
                         bestScore = score;
@@ -152,8 +150,9 @@ class Expedition {
                 if (this.useAssignedArea) {
                     const best = this.findBestCellInArea(this.campRef.x, this.campRef.y);
                     if (best.cx >= 0) {
-                        const targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
-                        const targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                        const target = cellToWorld(best.cx, best.cy);
+                        const targetX = target.x;
+                        const targetY = target.y;
                         targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
                         targetFound = true;
                         this.targetX = targetX;
@@ -164,8 +163,9 @@ class Expedition {
                 } else {
                     const best = this.findBetterCell();
                     if (best.cx >= 0) {
-                        const targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
-                        const targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                        const target = cellToWorld(best.cx, best.cy);
+                        const targetX = target.x;
+                        const targetY = target.y;
                         targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
                         targetFound = true;
                         this.targetX = targetX;
@@ -296,8 +296,9 @@ class Expedition {
                 }
 
                 if (best.cx >= 0 && best.score > currentScore * GameConfig.cellSwitchScoreThreshold && getCell(best.cx, best.cy).forageDensity >= GameConfig.cellAbandonThreshold) {
-                    this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
-                    this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                    const target = cellToWorld(best.cx, best.cy);
+                    this.targetX = target.x;
+                    this.targetY = target.y;
                     this.state = 'movingToCell';
                     return;
                 }
@@ -319,8 +320,9 @@ class Expedition {
                     best = this.findBetterCell();
                 }
                 if (best.cx >= 0 && getCell(best.cx, best.cy).forageDensity > 0) {
-                    this.targetX = best.cx * CELL_SIZE + CELL_SIZE / 2;
-                    this.targetY = best.cy * CELL_SIZE + CELL_SIZE / 2;
+                    const target = cellToWorld(best.cx, best.cy);
+                    this.targetX = target.x;
+                    this.targetY = target.y;
                     this.state = 'movingToCell';
                 } else {
                     this.targetX = this.campRef.x;

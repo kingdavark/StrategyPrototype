@@ -1,7 +1,7 @@
 // debug.js - Debug panel UI logic
 
 // Store default values for reset
-const defaultConfig = { ...GameConfig };
+const defaultConfig = { ...GameConfigDefaults };
 
 function populateDebugPanel() {
     for (const key in GameConfig) {
@@ -31,11 +31,13 @@ document.getElementById('debug-reset').addEventListener('click', function () {
             if (input) input.value = defaultConfig[key];
         }
     }
-    alert('Config reset to defaults. Reload the page to apply cell size/world size changes.');
+    localStorage.removeItem(GAME_CONFIG_STORAGE_KEY);
+    alert('Config reset to defaults. Reload the page to apply grid size/world size changes.');
 });
 
 // Reload page to apply changes that require restart (cell size, world size)
 document.getElementById('debug-apply').addEventListener('click', function () {
+    localStorage.setItem(GAME_CONFIG_STORAGE_KEY, JSON.stringify(GameConfig));
     location.reload();
 });
 

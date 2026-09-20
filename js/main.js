@@ -120,10 +120,15 @@ function enableDebugClick(scene) {
             const localRadius = getLocalGatherRadiusPx();
             const clickedCell = worldToCell(pointer.x, pointer.y);
             if (clickedCell.cx >= 0 && clickedCell.cx < GRID_COLS && clickedCell.cy >= 0 && clickedCell.cy < GRID_ROWS) {
-                const cellWorldX = clickedCell.cx * CELL_SIZE + CELL_SIZE / 2;
-                const cellWorldY = clickedCell.cy * CELL_SIZE + CELL_SIZE / 2;
-                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, cellWorldX, cellWorldY);
+                const center = cellToWorld(clickedCell.cx, clickedCell.cy);
+                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, center.x, center.y);
                 if (dist <= localRadius) {
+                    // Clicking the already-selected cell deselects it and shows the camp info again
+                    if (selectedLocalCell && selectedLocalCell.cx === clickedCell.cx && selectedLocalCell.cy === clickedCell.cy) {
+                        selectedLocalCell = null;
+                        updateInfoText();
+                        return;
+                    }
                     selectedLocalCell = clickedCell;
                     updateInfoText();
                     console.log(`Selected local cell (${clickedCell.cx}, ${clickedCell.cy}) - Assigned: ${getCell(clickedCell.cx, clickedCell.cy).assignedWorkers}`);
@@ -356,52 +361,22 @@ function enableDebugClick(scene) {
     });
 }
 
-// preload: load any external assets (images, spritesheets, etc.)
-// For now, we have no assets, so this function is empty.
+// preload: load any external assets and plugins
 function preload() {
-    // nothing to load yet
+    // Load the rexBoard plugin (hexagon board) from CDN
+    this.load.scenePlugin('rexboardplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.60.0/dist/rexboardplugin.min.js', 'rexBoard', 'rexBoard');
 }
 
 // create: called once after preload. We set up the initial scene.
 function create() {
-    // Initialize the spatial grid and forage density
-    createGrid();
+    // Initialize the hex grid and forage density
+    createGrid(this);
     initializeForageDensity();
 
-    // Debug visualization: draw each cell as a colored rectangle
+    // Graphics object for the grid
     const graphics = this.add.graphics();
     gridGraphics = graphics;  // store reference
     campGraphics = this.add.graphics();
-
-    for (let cy = 0; cy < GRID_ROWS; cy++) {
-        for (let cx = 0; cx < GRID_COLS; cx++) {
-            const cell = getCell(cx, cy);
-            const density = cell.forageDensity;
-
-            // Choose color based on density (precise intervals)
-            let color;
-            if (density >= 0.90) {
-                color = 0x1a4d0a;  // dark green (90-100%)
-            } else if (density >= 0.75) {
-                color = 0x2d6b14;  // medium green (75-89%)
-            } else if (density >= 0.50) {
-                color = 0x4a8c1f;  // light green (50-74%)
-            } else if (density >= 0.25) {
-                color = 0xc4a80b;  // yellow (25-49%)
-            } else if (density >= 0.05) {
-                color = 0xc46e0b;  // orange (5-24%)
-            } else if (density > 0.00) {
-                color = 0x8b1a0a;  // red (0-4%)
-            } else {
-                continue; // density = 0, skip (show background)
-            }
-
-            const x = cx * CELL_SIZE;
-            const y = cy * CELL_SIZE;
-            graphics.fillStyle(color, 1); // full opacity
-            graphics.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-        }
-    }
 
     // Add debug text
     this.add.text(10, 10, 'Debug: Forage Density Grid (green = food)', {
@@ -441,7 +416,8 @@ function create() {
     popGraphics = this.add.graphics();
     warningGraphics = this.add.graphics().setDepth(300);
 
-    // Draw the initial pop position and camp
+    // Draw the initial grid, pop position and camp
+    drawGrid();
     drawPops();
     drawCamp();
 }
@@ -566,8 +542,7 @@ function drawLocalRadius() {
 
 // Redraw the grid colors based on current densities
 function drawGrid() {
-    // We need to keep a reference to the grid graphics
-    if (!gameScene || !gridGraphics) return;
+    if (!gameScene || !gridGraphics || !hexBoard) return;
     gridGraphics.clear();
     for (let cy = 0; cy < GRID_ROWS; cy++) {
         for (let cx = 0; cx < GRID_COLS; cx++) {
@@ -591,23 +566,29 @@ function drawGrid() {
                 continue;
             }
 
-            const x = cx * CELL_SIZE;
-            const y = cy * CELL_SIZE;
+            // Culling: skip cells whose center is outside the visible window
+            const center = cellToWorld(cx, cy);
+            if (center.x < -HEX_WIDTH_PX || center.x > GameConfig.worldWidth + HEX_WIDTH_PX ||
+                center.y < -HEX_HEIGHT_PX || center.y > GameConfig.worldHeight + HEX_HEIGHT_PX) {
+                continue;
+            }
+
+            // Draw the hexagon with its 6 vertices
+            const points = hexBoard.getGridPoints(cx, cy);
             gridGraphics.fillStyle(color, 1);
-            gridGraphics.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+            gridGraphics.fillPoints(points, true);
         }
     }
 }
 
 // Draw a highlight border around the currently selected local cell
 function drawSelectedCell() {
-    if (!gridGraphics || !selectedLocalCell) return;
+    if (!gridGraphics || !selectedLocalCell || !hexBoard) return;
     const cx = selectedLocalCell.cx;
     const cy = selectedLocalCell.cy;
-    const x = cx * CELL_SIZE;
-    const y = cy * CELL_SIZE;
+    const points = hexBoard.getGridPoints(cx, cy);
     gridGraphics.lineStyle(2, 0xffff00, 0.8);
-    gridGraphics.strokeRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+    gridGraphics.strokePoints(points, true);
 }
 
 // Create/update/destroy text labels showing assigned workers on cells.
@@ -621,8 +602,9 @@ function updateCellWorkerLabels() {
             const cell = getCell(cx, cy);
             const key = `${cx},${cy}`;
             if (cell.assignedWorkers > 0) {
-                const x = cx * CELL_SIZE + CELL_SIZE / 2;
-                const y = cy * CELL_SIZE + CELL_SIZE / 2;
+                const center = cellToWorld(cx, cy);
+                const x = center.x;
+                const y = center.y;
                 if (cellWorkerTexts[key]) {
                     // Update existing text
                     cellWorkerTexts[key].setText(cell.assignedWorkers.toString());
@@ -653,9 +635,8 @@ function updateLocalGathering(deltaSec) {
         for (let cx = 0; cx < GRID_COLS; cx++) {
             const cell = getCell(cx, cy);
             if (cell.assignedWorkers > 0) {
-                const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
-                const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
-                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, cellWorldX, cellWorldY);
+                const center = cellToWorld(cx, cy);
+                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, center.x, center.y);
                 if (dist <= localRadius) {
                     const density = cell.forageDensity;
                     if (density > 0) {
@@ -694,8 +675,9 @@ function updateWarningIndicators() {
     if (gameState === 'camp') {
         for (const key of warningCells) {
             const [cx, cy] = key.split(',').map(Number);
-            const x = cx * CELL_SIZE + CELL_SIZE / 2;
-            const y = cy * CELL_SIZE + CELL_SIZE / 2 - 10;
+            const center = cellToWorld(cx, cy);
+            const x = center.x;
+            const y = center.y - 10;
             warningGraphics.fillStyle(0xff0000, 1);
             warningGraphics.fillTriangle(x, y, x - 5, y - 10, x + 5, y - 10);
         }
@@ -793,9 +775,8 @@ function updateInfoText() {
         for (let cy = 0; cy < GRID_ROWS; cy++) {
             for (let cx = 0; cx < GRID_COLS; cx++) {
                 const cell = getCell(cx, cy);
-                const cellWorldX = cx * CELL_SIZE + CELL_SIZE / 2;
-                const cellWorldY = cy * CELL_SIZE + CELL_SIZE / 2;
-                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, cellWorldX, cellWorldY);
+                const center = cellToWorld(cx, cy);
+                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, center.x, center.y);
                 if (dist <= localRadius) {
                     const d = cell.forageDensity;
                     foodTo25Total += Math.max(0, (d - GameConfig.cellWarningThreshold) / GameConfig.densityReductionPerFood);
