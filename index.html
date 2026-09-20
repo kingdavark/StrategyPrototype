@@ -22,23 +22,36 @@
     <button id="debug-toggle" style="position:absolute; top:10px; right:10px; z-index:1000;">Debug</button>
    <div id="debug-panel" style="display:none; position:absolute; top:40px; right:10px; width:360px; background:#222; color:#fff; padding:10px; border:1px solid #555; font-size:11px; z-index:999; max-height:80%; overflow-y:auto; overflow-x:hidden;">
         <h3>Game Config</h3>
-        <label>Day Length (s): <input type="number" id="cfg-dayLengthSeconds" step="0.5"></label><br>
-        <label>Food/Person/Day: <input type="number" id="cfg-foodConsumptionPerPersonPerDay" step="0.001"></label><br>
-        <label>Base Gather Rate: <input type="number" id="cfg-baseGatherRate" step="0.1"></label><br>
-        <label>Density Reduction/Food: <input type="number" id="cfg-densityReductionPerFood" step="0.0001"></label><br>
-        <label>Max Capacity/Worker: <input type="number" id="cfg-maxCapacityPerWorker" step="0.5"></label><br>
-        <label>Area Radius: <input type="number" id="cfg-areaRadius" step="10"></label><br>
-        <label>Cell Abandon Threshold: <input type="number" id="cfg-cellAbandonThreshold" step="0.05"></label><br>
-        <label>Cell Switch Score Threshold: <input type="number" id="cfg-cellSwitchScoreThreshold" step="0.05"></label><br>
-        <label>Cell Score Density Weight: <input type="number" id="cfg-cellScoreDensityWeight" step="10"></label><br>
-        <label>Cell Score Distance Weight: <input type="number" id="cfg-cellScoreDistanceWeight" step="0.1"></label><br>
-        <label>Cell Eval Interval (s): <input type="number" id="cfg-cellEvaluationInterval" step="0.1"></label><br>
-        <label>Hex Center Distance (km): <input type="number" id="cfg-hexCenterDistanceKm" step="0.1"></label><br>
-        <label>Pixels per Km: <input type="number" id="cfg-pixelsPerKm" step="1"></label><br>
-        <label>Settlement Growth/Person (km²): <input type="number" id="cfg-settlementGrowthPerPerson" step="0.0001"></label><br>
-        <label>Settlement Min Area (km²): <input type="number" id="cfg-settlementMinAreaKm2" step="0.01"></label><br>
-        <label>Settlement Min Visual Radius (px): <input type="number" id="cfg-settlementMinVisualRadiusPx" step="1"></label><br>
-        <label>Hours Walking Radius: <input type="number" id="cfg-hoursWalkingRadius" step="0.1"></label><br>
+        <label title="Real seconds per in-game day.">Day Length (s): <input type="number" id="cfg-dayLengthSeconds" step="0.5"></label><br>
+        <label title="Base food consumed per person per day.">Food/Person/Day: <input type="number" id="cfg-foodConsumptionPerPersonPerDay" step="0.001"></label><br>
+        <label title="Food per second per worker at density 1.0.">Base Gather Rate: <input type="number" id="cfg-baseGatherRate" step="0.1"></label><br>
+        <label title="Density removed per food gathered.">Density Reduction/Food: <input type="number" id="cfg-densityReductionPerFood" step="0.0001"></label><br>
+        <label title="Walking speed in km/h.">Walking Speed (km/h): <input type="number" id="cfg-walkingSpeedKmh" step="0.5"></label><br>
+        <label title="Consumption multiplier while travelling.">Travel Cons. Multiplier: <input type="number" id="cfg-travelConsumptionMultiplier" step="0.1"></label><br>
+        <label title="Consumption multiplier while gathering.">Gathering Cons. Multiplier: <input type="number" id="cfg-gatheringConsumptionMultiplier" step="0.1"></label><br>
+        <label title="Safety margin for provisions.">Safety Multiplier: <input type="number" id="cfg-safetyMultiplier" step="0.05"></label><br>
+        <label title="Rest as a proportion of trip duration.">Rest Multiplier: <input type="number" id="cfg-restMultiplier" step="0.1"></label><br>
+        <label title="Inventory slots per worker.">Max Capacity/Worker: <input type="number" id="cfg-maxCapacityPerWorker" step="0.5"></label><br>
+        <label title="Default gathering area radius in pixels.">Area Radius: <input type="number" id="cfg-areaRadius" step="10"></label><br>
+        <label title="Density to abandon a cell.">Cell Abandon Threshold: <input type="number" id="cfg-cellAbandonThreshold" step="0.05"></label><br>
+        <label title="Score multiplier to switch cells.">Cell Switch Score Threshold: <input type="number" id="cfg-cellSwitchScoreThreshold" step="0.05"></label><br>
+        <label title="Weight of density in cell scoring.">Cell Score Density Weight: <input type="number" id="cfg-cellScoreDensityWeight" step="10"></label><br>
+        <label title="Weight of distance in cell scoring.">Cell Score Distance Weight: <input type="number" id="cfg-cellScoreDistanceWeight" step="0.1"></label><br>
+        <label title="Seconds between cell evaluations.">Cell Eval Interval (s): <input type="number" id="cfg-cellEvaluationInterval" step="0.1"></label><br>
+        <label title="Initial food stock. Requires Apply & Reload.">Starting Food Stock: <input type="number" id="cfg-startingFoodStock" step="1"></label><br>
+        <label title="Initial unassigned population. Requires Apply & Reload.">Starting Unassigned Pop: <input type="number" id="cfg-startingUnassignedPopulation" step="1"></label><br>
+        <label title="Workers taken for a new expedition.">Starting Expedition Workers: <input type="number" id="cfg-startingExpeditionWorkers" step="1"></label><br>
+        <label title="Initial settlement X (pixels). Requires Apply & Reload.">Settlement X: <input type="number" id="cfg-settlementX" step="10"></label><br>
+        <label title="Initial settlement Y (pixels). Requires Apply & Reload.">Settlement Y: <input type="number" id="cfg-settlementY" step="10"></label><br>
+        <label title="Km between adjacent hex centers. Requires Apply & Reload.">Hex Center Distance (km): <input type="number" id="cfg-hexCenterDistanceKm" step="0.1"></label><br>
+        <label title="Pixels per kilometer. Requires Apply & Reload.">Pixels per Km: <input type="number" id="cfg-pixelsPerKm" step="1"></label><br>
+        <label title="Settlement area (km²) per person.">Settlement Growth/Person (km²): <input type="number" id="cfg-settlementGrowthPerPerson" step="0.0001"></label><br>
+        <label title="Minimum settlement area in km².">Settlement Min Area (km²): <input type="number" id="cfg-settlementMinAreaKm2" step="0.01"></label><br>
+        <label title="Minimum settlement visual radius (px).">Settlement Min Visual Radius (px): <input type="number" id="cfg-settlementMinVisualRadiusPx" step="1"></label><br>
+        <label title="Hours of walking for local radius.">Hours Walking Radius: <input type="number" id="cfg-hoursWalkingRadius" step="0.1"></label><br>
+        <label title="World width in pixels. Requires Apply & Reload.">World Width: <input type="number" id="cfg-worldWidth" step="10"></label><br>
+        <label title="World height in pixels. Requires Apply & Reload.">World Height: <input type="number" id="cfg-worldHeight" step="10"></label><br>
+        <label title="Density threshold for depletion warning.">Cell Warning Threshold: <input type="number" id="cfg-cellWarningThreshold" step="0.05"></label><br>
         <hr>
         <button id="debug-reset">Reset to Defaults</button>
         <button id="debug-apply">Apply & Reload</button>

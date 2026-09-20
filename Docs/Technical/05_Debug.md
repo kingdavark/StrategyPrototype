@@ -12,9 +12,11 @@ Gestisce il pannello di debug HTML e il pannello lavoratori locali. Collega gli 
 
 - `debug-toggle` – pulsante per mostrare/nascondere il pannello.
 - `debug-panel` – div contenitore del pannello.
-- `cfg-<nomeParametro>` – un input numerico per ogni parametro di `GameConfig`.
+- `cfg-<nomeParametro>` – un input numerico per ognuno dei 30 parametri di `GameConfig`. Ogni riga ha un tooltip nativo (`title` sull'elemento `<label>`) con una breve descrizione; i parametri strutturali terminano con "Requires Apply & Reload.".
 - `debug-reset` – pulsante "Reset to Defaults".
 - `debug-apply` – pulsante "Apply & Reload".
+
+I 13 campi aggiunti: `cfg-walkingSpeedKmh`, `cfg-travelConsumptionMultiplier`, `cfg-gatheringConsumptionMultiplier`, `cfg-safetyMultiplier`, `cfg-restMultiplier`, `cfg-startingExpeditionWorkers`, `cfg-cellWarningThreshold`, `cfg-startingFoodStock`, `cfg-startingUnassignedPopulation`, `cfg-settlementX`, `cfg-settlementY`, `cfg-worldWidth`, `cfg-worldHeight`.
 
 ### Pannello lavoratori locali
 

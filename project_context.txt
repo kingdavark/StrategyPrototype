@@ -1,6 +1,6 @@
 ================================================================================
 PROJECT CONTEXT BUNDLE
-Generated: 2026-09-20 15:32:41
+Generated: 2026-09-20 16:32:43
 Project root: C:\Users\david\OneDrive\Desktop\Omnia\Game Development\StrategyPrototype
 ================================================================================
 
@@ -573,10 +573,12 @@ La scelta della scala per il prototipo è **fissa a 1 km²**. La scala variabile
   - 0.05-0.24: arancione
   - 0.01-0.04: rosso
   - 0.00: nessun colore (sfondo)
-- L'area occupata dal settlement è evidenziata con una tinta marroncina.
-- Il raggio locale del settlement è mostrato come **bordo esterno giallo** degli esagoni al confine. Solo il lato esterno degli esagoni al confine è colorato, per formare un unico grande poligono giallo attorno all'area di sfruttamento.
+- Il raggio locale del settlement è mostrato come **poligono esagonale giallo**: vengono evidenziati solo i lati esterni delle celle incluse (quelle il cui centro cade entro il raggio locale), formando un unico contorno che racchiude esattamente le celle sfruttabili. Nessun lato interno tra due celle incluse viene disegnato.
+- L'area occupata dal settlement resta un **cerchio marrone** e non assume forma esagonale. Le celle che contengono il settlement non ricevono alcun bordo marrone: la loro appartenenza al settlement è comunicata solo dal cerchio visivo.
 - I numeri sopra gli esagoni indicano i lavoratori assegnati.
 - I triangoli rossi persistenti indicano esagoni sotto soglia.
+
+- 
 
 ================================================================================
 
@@ -911,7 +913,7 @@ L'area di raccolta è definita da un centro (`areaCenter`) e un raggio (`areaRad
 
 - **Tasto C**: cancella la spedizione selezionata. Se è al settlement, viene sciolta immediatamente; altrimenti torna al settlement e poi viene rimossa.
 
-- **Click su una spedizione**: la seleziona e mostra le informazioni.
+- **Click su una spedizione**: la seleziona e mostra le informazioni. Quando una spedizione è selezionata, la sua area di raccolta è visualizzata con lo stesso criterio del raggio locale del settlement: **bordo esterno esagonale** delle celle incluse (quelle il cui centro cade entro `areaRadius`), formando un unico contorno. Nessun lato interno tra due celle incluse viene disegnato.
 
 ---
 
@@ -1548,11 +1550,11 @@ Uso attuale:
 
 - Esagoni colorati in base alla densità di cibo con scala a 7 colori.
 - Area occupata dal settlement evidenziata con tinta marroncina.
-- Raggio locale del settlement mostrato come bordo esterno giallo sugli esagoni al confine. Solo il lato esterno degli esagoni al confine viene colorato, per formare un unico poligono giallo attorno all'area di sfruttamento.
+- Raggio locale del settlement mostrato come **poligono esagonale giallo**: solo i lati esterni delle celle incluse vengono colorati, per formare un unico contorno giallo attorno all'area di sfruttamento. Nessun lato interno.
 - Numeri sopra gli esagoni con lavoratori assegnati.
 - Triangoli rossi persistenti per esagoni sotto soglia (in modalità settlement) e sul settlement (in modalità mappa).
 - Percorsi tratteggiati per le spedizioni selezionate.
-- Area di raccolta visualizzata per le spedizioni selezionate.
+- Area di raccolta visualizzata per le spedizioni selezionate, resa come **bordo esterno esagonale** delle celle incluse (coerente con il raggio locale del settlement). Nessun lato interno tra due celle incluse.
 
 ## Interazione con il giocatore
 
@@ -2122,33 +2124,37 @@ Da riorganizzare e rip rioritizzare in base a quello che ha senso e non è tropp
 
 7. Non abbiamo minimamente lavorato sulla tipologia del terreno (montagna, acqua, acqua profonda, collina, pianura) e le caratteristiche di esso (foresta, erba ecc.). Questo perché sulla base del tipo di terreno poi dipende il cibo (la pesca è solo nelle acque, le aree di pianura con erba vicino ai fiumi hanno più cibo ecc.). Da forse vedere subito dopo MVP1? Implementiamo già diversi layer di visualizzazione (terreno, cibo, risorse varie ecc.)?
 
-8. Spedizioni multi-pop con dinamiche di coesione interna (es. conflitti o collaborazioni tra individui di etnie/religioni diverse nello stesso gruppo).
+8. Countdown per tempo a riposo per le spedizioni a riposo
 
-9. Campo base che si sposta fisicamente sulla mappa durante le migrazioni o il nomadismo, e conseguente aggiornamento del punto di ritorno per le spedizioni attive.
+9. Spedizioni multi-pop con dinamiche di coesione interna (es. conflitti o collaborazioni tra individui di etnie/religioni diverse nello stesso gruppo).
 
-10. Rotazione automatica delle aree di raccolta da parte delle spedizioni, per evitare l'impoverimento permanente di una singola zona (comportamento di raccolta più conservativo e sostenibile).
+10. Campo base che si sposta fisicamente sulla mappa durante le migrazioni o il nomadismo, e conseguente aggiornamento del punto di ritorno per le spedizioni attive.
 
-11. Algoritmo di raccolta con priorità alle celle a media densità (es. 0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
+11. Rotazione automatica delle aree di raccolta da parte delle spedizioni, per evitare l'impoverimento permanente di una singola zona (comportamento di raccolta più conservativo e sostenibile).
 
-12. Rigenerazione e "fertilità" celle sulla base anche del terreno.
+12. Algoritmo di raccolta con priorità alle celle a media densità (es. 0.4-0.7) per massimizzare la rigenerazione complessiva dell'area.
 
-13. Meccaniche di frizione/resistenza al cambio di pop della popolazione (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso, tipo uomini giovani infelici se assegnati a gathering perché disonorevole). Da capire come fare distinzione popolazione per sesso ma soprattutto per età senza dover monitorare ogni singolo abitante.
+13. Rigenerazione e "fertilità" celle sulla base anche del terreno.
 
-14. Icone diverse per tipologia di pop con di fianco barre informative (tipo provviste o che).
+14. Meccaniche di frizione/resistenza al cambio di pop della popolazione (o che si evolve nel tempo e inizialmente la basiamo solo sul sesso, tipo uomini giovani infelici se assegnati a gathering perché disonorevole). Da capire come fare distinzione popolazione per sesso ma soprattutto per età senza dover monitorare ogni singolo abitante.
 
-15. Giocatore seleziona manualmente il numero di pop da mandare in spedizione (con anche tasti rapidi di scelta).
+15. Icone diverse per tipologia di pop con di fianco barre informative (tipo provviste o che).
 
-16. Aggiungere crescita demografica: più cibo c'è, più la popolazione cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione finisce scorte, iniziano a morire o a consumare cibo raccolto.
+16. Giocatore seleziona manualmente il numero di pop da mandare in spedizione (con anche tasti rapidi di scelta).
 
-17. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno di partenza e con che tecnologie? In quanti anni arrivare a creare una città, in modo che il gioco non risulti troppo lento e noioso all'inizio (ma senza nemmeno fare come civilization che dura questa età come una roba da 10 minuti). Vogliamo fare che in realtà è un gruppo di superstiti che riparte e recupera le tecnologie già apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo andare sul lungo termine come civilization 4 cavemen to cosmos e quindi comunque rendere intriganti le meccaniche di sopravvivenza della tribù (e praticamente fare solo un gioco su questo, magari come primo titolo di una serie).
+17. Aggiungere crescita demografica: più cibo c'è, più la popolazione cresce. Se cibo scarseggia, aumenta il tasso di morte. Se spedizione finisce scorte, iniziano a morire o a consumare cibo raccolto.
 
-18. Ragionare sull'acqua.
+18. Da ragionare: in che contesto siamo, quale è la narrativa? Che anno di partenza e con che tecnologie? In quanti anni arrivare a creare una città, in modo che il gioco non risulti troppo lento e noioso all'inizio (ma senza nemmeno fare come civilization che dura questa età come una roba da 10 minuti). Vogliamo fare che in realtà è un gruppo di superstiti che riparte e recupera le tecnologie già apprese? In che anni? Vogliamo fare un gioco diverso per era (quindi tipo qui con meccaniche più stilizzate) tipo come fa spore? Vogliamo andare sul lungo termine come civilization 4 cavemen to cosmos e quindi comunque rendere intriganti le meccaniche di sopravvivenza della tribù (e praticamente fare solo un gioco su questo, magari come primo titolo di una serie).
 
-19. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e unità e meccaniche intorno e link di timeline del progresso (wiki e altri link se funzionano).
+19. Ragionare sull'acqua.
 
-20. Aggiungere caricamento JSON da Excel per impostare i valori in config.
+20. Basare lo sviluppo su: tecnologie cavemen 2 to cosmos con edifici e unità e meccaniche intorno e link di timeline del progresso (wiki e altri link se funzionano).
 
-21. Creare script per simulazioni montecarlo. Da simulare in montecarlo il cambio cella e la quantità di provviste da prendere, ma magari non deve sempre essere perfetto ma dipendere dall'esperienza (dei singoli, della civiltà/città/comunità, del livello tecnologico?).
+21. Aggiungere caricamento JSON da Excel per impostare i valori in config.
+
+22. Creare script per simulazioni montecarlo. Da simulare in montecarlo il cambio cella e la quantità di provviste da prendere, ma magari non deve sempre essere perfetto ma dipendere dall'esperienza (dei singoli, della civiltà/città/comunità, del livello tecnologico?).
+
+23. Tooltip su valori in debug
 
 ================================================================================
 
@@ -2929,6 +2935,7 @@ Variabili di scena (create in `create()`):
 - `infoText` – pannello info in alto a destra (`Phaser.Text`).
 - `settlementText` – riepilogo campo in basso a sinistra.
 - `speedText` – indicatore di velocità in alto a sinistra.
+- `settlementLabel` – etichetta testuale "SETTLEMENT", creata una sola volta (evita accumulo di oggetti ogni frame).
 
 Variabili di stato globali:
 
@@ -3040,17 +3047,23 @@ Disegna tutte le spedizioni come cerchi colorati in base allo stato:
 - `resting` – grigio (`0x888888`)
 - altri – bianco (`0xffffff`)
 
-Se `isForced`, disegna un bordo rosso. Se `!useAssignedArea`, un bordo blu semitrasparente. Se selezionata, un bordo giallo e il percorso tratteggiato (dal campo al target). Viene chiamata ogni frame.
+Se `isForced`, disegna un bordo rosso. Se `!useAssignedArea`, un bordo blu semitrasparente. Se selezionata, un bordo giallo e il percorso tratteggiato (dal campo al target). Per la spedizione selezionata, l'area di raccolta è mostrata come **bordo esterno esagonale** delle celle incluse (via `computeHexAreaBorder`): attorno alla posizione corrente in auto mode, attorno ad `areaCenter` in manual mode. Viene chiamata ogni frame.
 
 ### drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength)
 
 Utility per disegnare una linea tratteggiata. Usata per il percorso delle spedizioni selezionate.
 
+### edgeKey(a, b)
+
+Restituisce una chiave canonica (ordine-indipendente) per un lato di esagono, arrotondando le coordinate per evitare mismatch di floating point tra celle adiacenti che condividono lo stesso lato.
+
+### computeHexAreaBorder(centerX, centerY, radius)
+
+Calcola il bordo esterno (solo i lati rivolti verso l'esterno) dell'insieme di celle il cui centro cade entro l'area circolare `(centerX, centerY, radius)`. Costruisce l'insieme delle celle incluse, conta quante celle rivendicano ogni lato (via `hexBoard.getGridPoints`) e restituisce solo i lati con conteggio 1 (esterni). Se nessuna cella è inclusa, restituisce `[]` (culling). Con una sola cella restituisce l'esagono completo. Restituisce un array di segmenti `{ x1, y1, x2, y2 }`.
+
 ### drawSettlement()
 
-Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(population), settlementMinVisualRadiusPx)`) con bordo e, se `settlementSelected`, un anello di selezione giallo e il raggio locale effettivo (cerchio giallo semitrasparente di raggio `getEffectiveLocalGatherRadiusPx()`). Il cerchio, la label, l'anello di selezione e il raggio sono centrati su `settlement.x`/`settlement.y`. Viene chiamata ogni frame.
-
-**Nota**: l'etichetta testuale "SETTLEMENT" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
+Disegna il campo come cerchio marrone pieno (raggio `max(getSettlementRadiusPx(population), settlementMinVisualRadiusPx)`) con bordo e, se `settlementSelected`, un anello di selezione giallo e il raggio locale effettivo come **bordo esterno esagonale** delle celle incluse (via `computeHexAreaBorder`). Il cerchio, la label, l'anello di selezione e il bordo sono centrati su `settlement.x`/`settlement.y`. L'etichetta "SETTLEMENT" è creata una sola volta (`settlementLabel`). Viene chiamata ogni frame.
 
 ### updateWarningIndicators()
 
@@ -3141,7 +3154,6 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 ## Note per modifiche
 
 - La logica di rendering è mista a quella di gioco in questo file. In futuro potrà essere separata (`ui.js`).
-- L'etichetta "SETTLEMENT" viene ricreata ogni frame: bug noto da correggere.
 - Il pannello info viene aggiornato ogni frame: possibile ottimizzazione futura.
 - La griglia viene ridisegnata completamente ogni frame: collo di bottiglia su mappe grandi.
 - I warning sono persistenti e ridisegnati ogni frame.
@@ -3168,9 +3180,11 @@ Gestisce il pannello di debug HTML e il pannello lavoratori locali. Collega gli 
 
 - `debug-toggle` – pulsante per mostrare/nascondere il pannello.
 - `debug-panel` – div contenitore del pannello.
-- `cfg-<nomeParametro>` – un input numerico per ogni parametro di `GameConfig`.
+- `cfg-<nomeParametro>` – un input numerico per ognuno dei 30 parametri di `GameConfig`. Ogni riga ha un tooltip nativo (`title` sull'elemento `<label>`) con una breve descrizione; i parametri strutturali terminano con "Requires Apply & Reload.".
 - `debug-reset` – pulsante "Reset to Defaults".
 - `debug-apply` – pulsante "Apply & Reload".
+
+I 13 campi aggiunti: `cfg-walkingSpeedKmh`, `cfg-travelConsumptionMultiplier`, `cfg-gatheringConsumptionMultiplier`, `cfg-safetyMultiplier`, `cfg-restMultiplier`, `cfg-startingExpeditionWorkers`, `cfg-cellWarningThreshold`, `cfg-startingFoodStock`, `cfg-startingUnassignedPopulation`, `cfg-settlementX`, `cfg-settlementY`, `cfg-worldWidth`, `cfg-worldHeight`.
 
 ### Pannello lavoratori locali
 
@@ -3682,6 +3696,12 @@ L'agente di programmazione:
 3. **Leggi anche i documenti Technical degli script collegati** indicati dal Game Designer nel prompt (o dalla sezione Dipendenze). Questo evita di rompere dipendenze.
 4. **Se una modifica cambia una dipendenza** (es. nuova funzione pubblica, cambio di firma, nuovo stato globale), aggiorna il documento Technical corrispondente.
 5. **Aggiorna solo i documenti Technical**, mai quelli di Game Design.
+6. **Ogni nuovo parametro di GameConfig va esposto nel pannello debug.** Quando aggiungi un parametro a `GameConfig` (in `js/config.js`), devi contestualmente:
+   - Aggiungere l'input HTML corrispondente in `index.html` con id `cfg-<nomeParametro>`, dentro il contenitore `debug-panel`, seguendo la struttura degli input esistenti.
+   - Assegnare all'input (o alla sua etichetta/riga) un tooltip con attributo HTML nativo `title` contenente una descrizione breve del parametro.
+   - Se il parametro viene letto solo all'avvio e richiede reload per avere effetto, il tooltip deve terminare con " Requires Apply & Reload.".
+   - Aggiornare `Docs/Technical/01_Config.md` e `Docs/Technical/05_Debug.md` di conseguenza.
+     La funzione `populateDebugPanel` in `js/debug.js` collega automaticamente ogni `cfg-<nomeParametro>` a `GameConfig[nomeParametro]`: non serve toccare la logica, ma l'input HTML deve esistere.
 
 ## Flusso di lavoro
 
@@ -3696,6 +3716,7 @@ Prima di applicare qualsiasi modifica, fornisci un debrief in linguaggio semplic
 - **Quali documenti Technical saranno aggiornati** e in che modo.
 - **Effetti attesi sul gameplay e sulla UI**.
 - **Limiti tecnici o approcci alternativi** che hai considerato.
+- **Se vengono introdotti nuovi parametri di GameConfig**: indicare esplicitamente che andranno aggiunti al pannello debug (`index.html` + tooltip in `Docs/Technical/05_Debug.md`).
 
 Attendi **una sola approvazione globale**. Non chiedere l'OK modifica per modifica.
 
@@ -3707,7 +3728,7 @@ Attendi **una sola approvazione globale**. Non chiedere l'OK modifica per modifi
 - Non applicare modifiche non approvate.
 - Preservare i commenti esistenti.
 - Usare delta time per aggiornamenti temporali.
-- Ogni nuovo parametro va in GameConfig e nel pannello debug.
+- Ogni nuovo parametro va in GameConfig e nel pannello debug (input HTML `cfg-<nomeParametro>` in `index.html` + tooltip `title`). Vedi regola 6 delle Regole fondamentali.
 
 ### Step 3 – Aggiornamento documentazione tecnica
 
@@ -3761,6 +3782,21 @@ Non esistono eccezioni: se l'agente ritiene che un fix sia troppo piccolo per se
 ### Auto-approve e strumenti esterni
 
 L'agente deve applicare le modifiche **solo** attraverso gli strumenti di modifica file di Cline, dopo approvazione esplicita. Non deve usare comandi shell (es. `echo`, `python`, `node`, redirezioni) per scrivere o modificare file, anche se i comandi sono auto-approvati.
+
+## Checklist nuovi parametri GameConfig
+
+Ogni volta che aggiungi un parametro a `GameConfig` (in `js/config.js`), verifica TUTTI i punti seguenti prima di considerare il lavoro finito:
+
+- [ ] Parametro aggiunto a `GameConfig` in `js/config.js`.
+- [ ] Input HTML aggiunto in `index.html` (contenitore `debug-panel`) con id `cfg-<nomeParametro>`.
+- [ ] Tooltip `title` assegnato all'input o alla sua riga, con descrizione breve.
+- [ ] Se il parametro richiede reload: tooltip termina con " Requires Apply & Reload.".
+- [ ] `Docs/Technical/01_Config.md` aggiornato (descrizione parametro, dipendenze).
+- [ ] `Docs/Technical/05_Debug.md` aggiornato (elemento HTML aggiunto alla sezione "Elementi HTML gestiti").
+- [ ] Documenti Technical degli script che leggono il parametro aggiornati (sezione "Parametri GameConfig usati").
+- [ ] Test funzionale: il campo appare nel pannello debug e la modifica ha l'effetto atteso (immediato o dopo reload).
+
+Questa checklist vale **anche per i parametri derivati** che, pur non essendo in `GameConfig`, vengono esposti nel pannello (es. costanti derivate da altri parametri): in quel caso la regola 6 non si applica direttamente, ma il tooltip `title` va comunque assegnato.
 
 ## Output atteso
 

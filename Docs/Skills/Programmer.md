@@ -26,6 +26,12 @@ L'agente di programmazione:
 3. **Leggi anche i documenti Technical degli script collegati** indicati dal Game Designer nel prompt (o dalla sezione Dipendenze). Questo evita di rompere dipendenze.
 4. **Se una modifica cambia una dipendenza** (es. nuova funzione pubblica, cambio di firma, nuovo stato globale), aggiorna il documento Technical corrispondente.
 5. **Aggiorna solo i documenti Technical**, mai quelli di Game Design.
+6. **Ogni nuovo parametro di GameConfig va esposto nel pannello debug.** Quando aggiungi un parametro a `GameConfig` (in `js/config.js`), devi contestualmente:
+   - Aggiungere l'input HTML corrispondente in `index.html` con id `cfg-<nomeParametro>`, dentro il contenitore `debug-panel`, seguendo la struttura degli input esistenti.
+   - Assegnare all'input (o alla sua etichetta/riga) un tooltip con attributo HTML nativo `title` contenente una descrizione breve del parametro.
+   - Se il parametro viene letto solo all'avvio e richiede reload per avere effetto, il tooltip deve terminare con " Requires Apply & Reload.".
+   - Aggiornare `Docs/Technical/01_Config.md` e `Docs/Technical/05_Debug.md` di conseguenza.
+     La funzione `populateDebugPanel` in `js/debug.js` collega automaticamente ogni `cfg-<nomeParametro>` a `GameConfig[nomeParametro]`: non serve toccare la logica, ma l'input HTML deve esistere.
 
 ## Flusso di lavoro
 
@@ -40,6 +46,7 @@ Prima di applicare qualsiasi modifica, fornisci un debrief in linguaggio semplic
 - **Quali documenti Technical saranno aggiornati** e in che modo.
 - **Effetti attesi sul gameplay e sulla UI**.
 - **Limiti tecnici o approcci alternativi** che hai considerato.
+- **Se vengono introdotti nuovi parametri di GameConfig**: indicare esplicitamente che andranno aggiunti al pannello debug (`index.html` + tooltip in `Docs/Technical/05_Debug.md`).
 
 Attendi **una sola approvazione globale**. Non chiedere l'OK modifica per modifica.
 
@@ -51,7 +58,7 @@ Attendi **una sola approvazione globale**. Non chiedere l'OK modifica per modifi
 - Non applicare modifiche non approvate.
 - Preservare i commenti esistenti.
 - Usare delta time per aggiornamenti temporali.
-- Ogni nuovo parametro va in GameConfig e nel pannello debug.
+- Ogni nuovo parametro va in GameConfig e nel pannello debug (input HTML `cfg-<nomeParametro>` in `index.html` + tooltip `title`). Vedi regola 6 delle Regole fondamentali.
 
 ### Step 3 – Aggiornamento documentazione tecnica
 
@@ -105,6 +112,21 @@ Non esistono eccezioni: se l'agente ritiene che un fix sia troppo piccolo per se
 ### Auto-approve e strumenti esterni
 
 L'agente deve applicare le modifiche **solo** attraverso gli strumenti di modifica file di Cline, dopo approvazione esplicita. Non deve usare comandi shell (es. `echo`, `python`, `node`, redirezioni) per scrivere o modificare file, anche se i comandi sono auto-approvati.
+
+## Checklist nuovi parametri GameConfig
+
+Ogni volta che aggiungi un parametro a `GameConfig` (in `js/config.js`), verifica TUTTI i punti seguenti prima di considerare il lavoro finito:
+
+- [ ] Parametro aggiunto a `GameConfig` in `js/config.js`.
+- [ ] Input HTML aggiunto in `index.html` (contenitore `debug-panel`) con id `cfg-<nomeParametro>`.
+- [ ] Tooltip `title` assegnato all'input o alla sua riga, con descrizione breve.
+- [ ] Se il parametro richiede reload: tooltip termina con " Requires Apply & Reload.".
+- [ ] `Docs/Technical/01_Config.md` aggiornato (descrizione parametro, dipendenze).
+- [ ] `Docs/Technical/05_Debug.md` aggiornato (elemento HTML aggiunto alla sezione "Elementi HTML gestiti").
+- [ ] Documenti Technical degli script che leggono il parametro aggiornati (sezione "Parametri GameConfig usati").
+- [ ] Test funzionale: il campo appare nel pannello debug e la modifica ha l'effetto atteso (immediato o dopo reload).
+
+Questa checklist vale **anche per i parametri derivati** che, pur non essendo in `GameConfig`, vengono esposti nel pannello (es. costanti derivate da altri parametri): in quel caso la regola 6 non si applica direttamente, ma il tooltip `title` va comunque assegnato.
 
 ## Output atteso
 
