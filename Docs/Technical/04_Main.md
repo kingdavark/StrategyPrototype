@@ -11,18 +11,18 @@ Variabili di scena (create in `create()`):
 - `gameScene` – riferimento alla scena Phaser.
 - `gridGraphics` – graphics per griglia e cella selezionata.
 - `popGraphics` – graphics per spedizioni.
-- `campGraphics` – graphics per il campo e il raggio locale.
+- `settlementGraphics` – graphics per il campo e il raggio locale.
 - `warningGraphics` – graphics per i triangoli di warning (depth 300).
 - `infoText` – pannello info in alto a destra (`Phaser.Text`).
-- `campText` – riepilogo campo in basso a sinistra.
+- `settlementText` – riepilogo campo in basso a sinistra.
 - `speedText` – indicatore di velocità in alto a sinistra.
 
 Variabili di stato globali:
 
-- `gameState` – `'map'` o `'camp'`. Determina il significato dei click.
-- `campSelected` – `true` se il campo è selezionato (sempre `true` in `gameState === 'camp'`).
+- `gameState` – `'map'` o `'settlement'`. Determina il significato dei click.
+- `settlementSelected` – `true` se il campo è selezionato (sempre `true` in `gameState === 'settlement'`).
 - `selectedExpedition` – spedizione selezionata, o `null`.
-- `selectedLocalCell` – cella locale selezionata (in modalità camp), o `null`.
+- `selectedLocalCell` – cella locale selezionata (in modalità settlement), o `null`.
 - `cellWorkerTexts` – mappa `"cx,cy"` → `Phaser.Text` con il numero di lavoratori sopra le celle.
 - `warningCells` – array di stringhe `"cx,cy"` con le celle sotto soglia.
 - `dayAccumulator` – accumula delta per il ciclo giorno.
@@ -40,13 +40,13 @@ Carica il plugin rexBoard (griglia esagonale) via `this.load.scenePlugin(...)` d
 Inizializza la scena:
 
 1. Chiama `createGrid(this)` (che inizializza la board esagonale rexBoard) e `initializeForageDensity()` (da `world.js`).
-2. Crea i graphics objects: `gridGraphics`, `campGraphics`, `popGraphics`, `warningGraphics`.
+2. Crea i graphics objects: `gridGraphics`, `settlementGraphics`, `popGraphics`, `warningGraphics`.
 3. Disegna la griglia esagonale iniziale chiamando `drawGrid()`.
 4. Aggiunge il testo di debug in alto a sinistra.
 5. Chiama `enableDebugClick(this)` per attivare i listener di input.
 6. Salva `gameScene = this`.
-7. Crea i testi UI: `infoText`, `campText`, `speedText`.
-8. Chiama `drawGrid()`, `drawPops()` e `drawCamp()`.
+7. Crea i testi UI: `infoText`, `settlementText`, `speedText`.
+8. Chiama `drawGrid()`, `drawPops()` e `drawSettlement()`.
 9. Crea `warningGraphics` con depth 300.
 
 ### update(time, delta)
@@ -58,9 +58,9 @@ Chiamata ogni frame da Phaser. È il game loop.
 3. Accumula `gameTimeSec += deltaSec`.
 4. Aggiorna tutte le spedizioni: `for (const exp of expeditions) exp.update(deltaSec)`.
 5. Chiama `updateLocalGathering(deltaSec)`.
-6. Gestisce il ciclo giorno: quando `dayAccumulator >= dayLengthSeconds`, incrementa `gameDay`, calcola il consumo, aggiorna `gatheredDaily` e `consumedDaily`, azzera i contatori giornalieri (camp e celle).
-7. Aggiorna i pannelli: `updateInfoText()`, `updateSpeedText()`, `updateCampText()`, `updateLocalWorkerPanel()`.
-8. Ridisegna: `drawGrid()`, `drawSelectedCell()`, `drawPops()`, `drawCamp()`, `updateWarningIndicators()`.
+6. Gestisce il ciclo giorno: quando `dayAccumulator >= dayLengthSeconds`, incrementa `gameDay`, calcola il consumo, aggiorna `gatheredDaily` e `consumedDaily`, azzera i contatori giornalieri (settlement e celle).
+7. Aggiorna i pannelli: `updateInfoText()`, `updateSpeedText()`, `updateSettlementText()`, `updateLocalWorkerPanel()`.
+8. Ridisegna: `drawGrid()`, `drawSelectedCell()`, `drawPops()`, `drawSettlement()`, `updateWarningIndicators()`.
 
 ### enableDebugClick(scene)
 
@@ -70,9 +70,9 @@ Attiva i listener di input sulla scena. Gestisce click sinistro (selezione) e cl
 
 1. Se Shift premuto: ispezione cella (tooltip temporaneo con densità e coordinate).
 2. Se clicca su una spedizione: la seleziona, entra in `gameState = 'map'`.
-3. Se clicca sul campo: toggle tra `gameState = 'map'` e `gameState = 'camp'`.
-4. Se in `gameState === 'camp'` e clicca su una cella entro il raggio locale: la seleziona. Se clicca sulla cella già selezionata, la deseleziona e mostra di nuovo l'info del settlement.
-5. Se in `gameState === 'camp'` e clicca fuori dal raggio: esce dalla modalità camp.
+3. Se clicca sul campo: toggle tra `gameState = 'map'` e `gameState = 'settlement'`.
+4. Se in `gameState === 'settlement'` e clicca su una cella entro il raggio locale: la seleziona. Se clicca sulla cella già selezionata, la deseleziona e mostra di nuovo l'info del settlement.
+5. Se in `gameState === 'settlement'` e clicca fuori dal raggio: esce dalla modalità settlement.
 6. Altrimenti: deseleziona tutto.
 
 **Click destro**:
@@ -121,7 +121,7 @@ Disegna un bordo giallo esagonale attorno alla cella selezionata (`selectedLocal
 Disegna tutte le spedizioni come cerchi colorati in base allo stato:
 
 - `gathering` – verde (`0x00ff00`)
-- `returningToCamp` – arancione (`0xff8800`)
+- `returningToSettlement` – arancione (`0xff8800`)
 - `resting` – grigio (`0x888888`)
 - altri – bianco (`0xffffff`)
 
@@ -131,17 +131,17 @@ Se `isForced`, disegna un bordo rosso. Se `!useAssignedArea`, un bordo blu semit
 
 Utility per disegnare una linea tratteggiata. Usata per il percorso delle spedizioni selezionate.
 
-### drawCamp()
+### drawSettlement()
 
-Disegna il campo (quadrato marrone con bordo) e, se `campSelected`, il raggio locale. Viene chiamata ogni frame.
+Disegna il campo (quadrato marrone con bordo) e, se `settlementSelected`, il raggio locale. Viene chiamata ogni frame.
 
-**Nota**: l'etichetta testuale "CAMP" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
+**Nota**: l'etichetta testuale "SETTLEMENT" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
 
 ### updateWarningIndicators()
 
-Disegna i triangoli rossi persistenti per le celle sotto soglia. Viene chiamata ogni frame dopo `drawPops()` e `drawCamp()`.
+Disegna i triangoli rossi persistenti per le celle sotto soglia. Viene chiamata ogni frame dopo `drawPops()` e `drawSettlement()`.
 
-- In `gameState === 'camp'`: triangolo sopra ogni cella in `warningCells`.
+- In `gameState === 'settlement'`: triangolo sopra ogni cella in `warningCells`.
 - In `gameState === 'map'`: triangolo sopra il campo se `warningCells.length > 0`.
 
 ### updateCellWorkerLabels()
@@ -159,12 +159,12 @@ Esegue la raccolta locale ogni frame.
 1. Calcola il raggio locale con `getLocalGatherRadiusPx()`.
 2. Itera su tutte le celle della griglia.
 3. Per ogni cella con `assignedWorkers > 0` e distanza dal campo <= raggio:
-   - Se `density > 0`, raccoglie: `gathered = assignedWorkers * baseGatherRate * density * deltaSec`. Aggiorna `camp.foodStock`, `camp.foodGatheredToday`, `cell.foodGatheredToday`, chiama `reduceCellDensity`.
+   - Se `density > 0`, raccoglie: `gathered = assignedWorkers * baseGatherRate * density * deltaSec`. Aggiorna `settlement.foodStock`, `settlement.foodGatheredToday`, `cell.foodGatheredToday`, chiama `reduceCellDensity`.
    - Controlla la soglia `cellWarningThreshold`: se scende sotto e `warningShown` è `false`, aggiunge la cella a `warningCells` e mostra un avviso in console. Se risale sopra, rimuove la cella da `warningCells`.
 
 La riduzione avviene **solo sulla cella esatta**, non sulle celle vicine.
 
-### updateCampText()
+### updateSettlementText()
 
 Aggiorna il testo in basso a sinistra con cibo, popolazione totale, non assegnati e giorno corrente.
 
@@ -177,15 +177,15 @@ Aggiorna il testo in alto a sinistra con la velocità corrente, letta da `TimeMa
 Aggiorna il pannello info in alto a destra. Contenuto in base alla selezione:
 
 - **Spedizione selezionata** – id, workerCount, stato, provviste, cibo, capacità, flag `[FORCED]` e `[AUTO]`.
-- **Cella locale selezionata (in modalità camp)** – coordinate, densità, lavoratori, cibo raccolto daily, cibo rimanente alle soglie, giorni alle soglie, incremento con un lavoratore in più, giorni ridotti con un lavoratore in più.
-- **Campo selezionato (in modalità camp)** – cibo, non assegnati, `gatheredDaily`, `consumedDaily`, cibo rimanente nell'area locale (to 25% e to 0%), statistiche dei gatherer (locali, spedizioni, disponibili).
+- **Cella locale selezionata (in modalità settlement)** – coordinate, densità, lavoratori, cibo raccolto daily, cibo rimanente alle soglie, giorni alle soglie, incremento con un lavoratore in più, giorni ridotti con un lavoratore in più.
+- **Campo selezionato (in modalità settlement)** – cibo, non assegnati, `gatheredDaily`, `consumedDaily`, cibo rimanente nell'area locale (to 25% e to 0%), statistiche dei gatherer (locali, spedizioni, disponibili).
 - **Altrimenti** – stringa vuota.
 
 Alla fine chiama `updateLocalWorkerPanel()` per aggiornare la visibilità del pannello lavoratori locali.
 
 ### updateLocalWorkerPanel()
 
-Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell` e `gameState === 'camp'`. Aggiorna il testo con coordinate e numero di lavoratori. È definita in `debug.js`, ma viene chiamata anche da `main.js`.
+Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell` e `gameState === 'settlement'`. Aggiorna il testo con coordinate e numero di lavoratori. È definita in `debug.js`, ma viene chiamata anche da `main.js`.
 
 ## Dipendenze in ingresso
 
@@ -196,7 +196,7 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 
 - `js/config.js` – per `GameConfig` (tutti i parametri usati dal rendering e dalla raccolta), `getLocalGatherRadiusPx()`, `getBaseConsumptionPerSec()` (indirettamente via `updateLocalGathering`), `getSecondsPerGameHour()` (indirettamente).
 - `js/world.js` – per `createGrid`, `initializeForageDensity`, `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `hexBoard`, `HEX_WIDTH_PX`, `HEX_HEIGHT_PX`, `GRID_COLS`, `GRID_ROWS`.
-- `js/units.js` – per `camp`, `expeditions`, `Pop`, `Expedition`.
+- `js/units.js` – per `settlement`, `expeditions`, `Pop`, `Expedition`.
 - `js/time.js` – per `TimeManager` (delta, velocità, pausa).
 - `js/debug.js` – per `updateLocalWorkerPanel`.
 - `Phaser.Math.Distance.Between` – per calcolo distanze.
@@ -207,27 +207,27 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 - `cellWarningThreshold` – per il warning.
 - `dayLengthSeconds` – per il ciclo giorno.
 - `foodConsumptionPerPersonPerDay` – per il consumo.
-- `campX`, `campY` – per la posizione del campo.
+- `settlementX`, `settlementY` – per la posizione del campo.
 - `areaRadius` – per il raggio predefinito dell'area spedizione.
 - `cellEvaluationInterval` – indirettamente via `units.js`.
 - Altri parametri indirettamente tramite funzioni di `config.js`.
 
 ## Stato globale modificato
 
-- `gameState`, `campSelected`, `selectedExpedition`, `selectedLocalCell`, `dayAccumulator`, `gameDay`.
+- `gameState`, `settlementSelected`, `selectedExpedition`, `selectedLocalCell`, `dayAccumulator`, `gameDay`.
 - `warningCells`, `cellWorkerTexts`.
-- `camp` (tramite `updateLocalGathering` e `update`).
+- `settlement` (tramite `updateLocalGathering` e `update`).
 - `expeditions` (creazione e rimozione).
 - Le celle della griglia (tramite `reduceCellDensity`).
 
 ## Note per modifiche
 
 - La logica di rendering è mista a quella di gioco in questo file. In futuro potrà essere separata (`ui.js`).
-- L'etichetta "CAMP" viene ricreata ogni frame: bug noto da correggere.
+- L'etichetta "SETTLEMENT" viene ricreata ogni frame: bug noto da correggere.
 - Il pannello info viene aggiornato ogni frame: possibile ottimizzazione futura.
 - La griglia viene ridisegnata completamente ogni frame: collo di bottiglia su mappe grandi.
 - I warning sono persistenti e ridisegnati ogni frame.
-- Se si modifica la logica di input, verificare che non ci siano conflitti con i game state (`map` vs `camp`).
+- Se si modifica la logica di input, verificare che non ci siano conflitti con i game state (`map` vs `settlement`).
 - Se si modifica una funzione pubblica usata da altri script (es. `updateInfoText`, `updateCellWorkerLabels`, `updateLocalWorkerPanel`), aggiornare i documenti Technical collegati (`05_Debug.md`).
 - Se si aggiunge una variabile globale, dichiararla in cima al file e documentarla in "Variabili globali e stato".
 - Se si modifica la logica di raccolta locale, verificare che `updateLocalGathering` continui a ridurre solo la cella esatta (non le vicine).

@@ -136,7 +136,7 @@ Ogni parametro è modificabile a runtime tramite la console o il pannello di deb
 - **`startingExpeditionWorkers`** (default `5`)  
   Numero di lavoratori prelevati automaticamente quando si crea una nuova spedizione.
 
-- **`campX`**, **`campY`** (default `100`, `100`)  
+- **`settlementX`**, **`settlementY`** (default `100`, `100`)  
   Posizione iniziale del campo sulla mappa, in pixel.
 
 ### Mondo

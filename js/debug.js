@@ -57,7 +57,7 @@ function updateLocalWorkerPanel() {
     const panel = document.getElementById('local-worker-panel');
     const info = document.getElementById('local-worker-info');
     if (panel && info) {
-        if (selectedLocalCell && gameState === 'camp') {
+        if (selectedLocalCell && gameState === 'settlement') {
             panel.style.display = 'block';
             const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
             info.textContent = `Cell (${selectedLocalCell.cx}, ${selectedLocalCell.cy}) - Assigned: ${cell.assignedWorkers}`;
@@ -69,22 +69,22 @@ function updateLocalWorkerPanel() {
 
 // Add/remove workers buttons
 document.getElementById('local-worker-add').addEventListener('click', function () {
-    if (selectedLocalCell && gameState === 'camp') {
+    if (selectedLocalCell && gameState === 'settlement') {
         const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
-        if (camp.unassignedPopulation > 0) {
+        if (settlement.unassignedPopulation > 0) {
             // Ensure gatherer pop exists
-            let pop = camp.pops.find(p => p.type === 'gatherer');
+            let pop = settlement.pops.find(p => p.type === 'gatherer');
             if (!pop) {
                 pop = new Pop('gatherer');
-                camp.pops.push(pop);
+                settlement.pops.push(pop);
             }
             cell.assignedWorkers++;
-            camp.unassignedPopulation--;
-            camp.localGatherers++;
+            settlement.unassignedPopulation--;
+            settlement.localGatherers++;
             pop.totalWorkers++;
             pop.localWorkers++;
             updateInfoText();
-            updateCampText();
+            updateSettlementText();
             updateLocalWorkerPanel();
             updateCellWorkerLabels();
         }
@@ -92,18 +92,18 @@ document.getElementById('local-worker-add').addEventListener('click', function (
 });
 
 document.getElementById('local-worker-remove').addEventListener('click', function () {
-    if (selectedLocalCell && gameState === 'camp') {
+    if (selectedLocalCell && gameState === 'settlement') {
         const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
         if (cell.assignedWorkers > 0) {
-            const pop = camp.pops.find(p => p.type === 'gatherer');
+            const pop = settlement.pops.find(p => p.type === 'gatherer');
             if (pop && pop.localWorkers > 0) {
                 cell.assignedWorkers--;
-                camp.unassignedPopulation++;
-                camp.localGatherers--;
+                settlement.unassignedPopulation++;
+                settlement.localGatherers--;
                 pop.totalWorkers--;
                 pop.localWorkers--;
                 updateInfoText();
-                updateCampText();
+                updateSettlementText();
                 updateLocalWorkerPanel();
                 updateCellWorkerLabels();
             }

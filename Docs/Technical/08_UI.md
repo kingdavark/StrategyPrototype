@@ -6,7 +6,7 @@
 
 Nel prototipo attuale, la logica di rendering è distribuita tra:
 
-- `js/main.js` – pannelli info, camp, speed, e rendering sulla scena Phaser.
+- `js/main.js` – pannelli info, settlement, speed, e rendering sulla scena Phaser.
 - `js/debug.js` – pannelli HTML (debug e lavoratori locali).
 - `index.html` – struttura HTML dei pannelli.
 

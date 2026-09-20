@@ -17,23 +17,23 @@ const config = {
 // Create the Phaser game instance
 const game = new Phaser.Game(config);
 
-// Camp position (visual placeholder, functionality comes later)
-const CAMP_X = GameConfig.campX;
-const CAMP_Y = GameConfig.campY;
+// Settlement position (visual placeholder, functionality comes later)
+const SETTLEMENT_X = GameConfig.settlementX;
+const SETTLEMENT_Y = GameConfig.settlementY;
 
 // Global references for the game scene (set in create)
 let gameScene;
 let popGraphics;
 let gridGraphics;  // reference to grid graphics for dynamic updates
-let campGraphics;
+let settlementGraphics;
 let dayAccumulator = 0;          // accumulator for game time in seconds
 let gameDay = 1; // Day counter
-let campSelected = false;      // whether camp is currently selected
+let settlementSelected = false;      // whether settlement is currently selected
 let selectedExpedition = null; // currently selected expedition
 let infoText;                  // UI text for selected expedition info
 let speedText; // UI text for current simulation speed
 let selectedLocalCell = null;   // grid cell selected for local worker assignment
-let gameState = 'map';        // 'map' or 'camp'
+let gameState = 'map';        // 'map' or 'settlement'
 let cellWorkerTexts = {};       // map "cx,cy" -> Phaser.Text for worker count overlay
 let warningCells = [];
 let warningGraphics;
@@ -92,22 +92,22 @@ function enableDebugClick(scene) {
         if (clickedExp) {
             gameState = 'map';
             selectedExpedition = clickedExp;
-            campSelected = false;
+            settlementSelected = false;
             selectedLocalCell = null;
             updateInfoText();
             console.log(`Selected expedition ${clickedExp.id}`);
             return;
         }
 
-        // Check if clicked on camp: toggle between map and camp state
-        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) < 20) {
-            if (gameState === 'camp') {
+        // Check if clicked on settlement: toggle between map and settlement state
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, settlement.x, settlement.y) < 20) {
+            if (gameState === 'settlement') {
                 gameState = 'map';
-                campSelected = false;
+                settlementSelected = false;
                 selectedLocalCell = null;
             } else {
-                gameState = 'camp';
-                campSelected = true;
+                gameState = 'settlement';
+                settlementSelected = true;
                 selectedExpedition = null;
                 selectedLocalCell = null;
             }
@@ -115,15 +115,15 @@ function enableDebugClick(scene) {
             return;
         }
 
-        // If in camp state, handle cell selection within local radius
-        if (gameState === 'camp') {
+        // If in settlement state, handle cell selection within local radius
+        if (gameState === 'settlement') {
             const localRadius = getLocalGatherRadiusPx();
             const clickedCell = worldToCell(pointer.x, pointer.y);
             if (clickedCell.cx >= 0 && clickedCell.cx < GRID_COLS && clickedCell.cy >= 0 && clickedCell.cy < GRID_ROWS) {
                 const center = cellToWorld(clickedCell.cx, clickedCell.cy);
-                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, center.x, center.y);
+                const dist = Phaser.Math.Distance.Between(settlement.x, settlement.y, center.x, center.y);
                 if (dist <= localRadius) {
-                    // Clicking the already-selected cell deselects it and shows the camp info again
+                    // Clicking the already-selected cell deselects it and shows the settlement info again
                     if (selectedLocalCell && selectedLocalCell.cx === clickedCell.cx && selectedLocalCell.cy === clickedCell.cy) {
                         selectedLocalCell = null;
                         updateInfoText();
@@ -135,9 +135,9 @@ function enableDebugClick(scene) {
                     return;
                 }
             }
-            // Clicked outside radius: exit camp state, deselect everything
+            // Clicked outside radius: exit settlement state, deselect everything
             gameState = 'map';
-            campSelected = false;
+            settlementSelected = false;
             selectedExpedition = null;
             selectedLocalCell = null;
             updateInfoText();
@@ -146,7 +146,7 @@ function enableDebugClick(scene) {
 
         // In map state, empty ground click deselects everything
         gameState = 'map';
-        campSelected = false;
+        settlementSelected = false;
         selectedExpedition = null;
         selectedLocalCell = null;
         updateInfoText();
@@ -156,16 +156,16 @@ function enableDebugClick(scene) {
     scene.input.on('pointerdown', function (pointer) {
         if (!pointer.rightButtonDown()) return;
 
-        // If neither camp nor an expedition is selected, ignore
-        if (!campSelected && !selectedExpedition) {
-            console.log('Select camp or an expedition first.');
+        // If neither settlement nor an expedition is selected, ignore
+        if (!settlementSelected && !selectedExpedition) {
+            console.log('Select settlement or an expedition first.');
             return;
         }
 
-        // Ignore right-clicks inside the camp's local gathering radius:
+        // Ignore right-clicks inside the settlement's local gathering radius:
         // that area is reserved for local gathering, not expeditions
         const localRadius = getLocalGatherRadiusPx();
-        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, camp.x, camp.y) <= localRadius) {
+        if (Phaser.Math.Distance.Between(pointer.x, pointer.y, settlement.x, settlement.y) <= localRadius) {
             console.log('Right-click inside local gathering area ignored.');
             return;
         }
@@ -183,19 +183,19 @@ function enableDebugClick(scene) {
         }
 
         // Create a gathering expedition
-        let pop = camp.pops.find(p => p.type === 'gatherer');
+        let pop = settlement.pops.find(p => p.type === 'gatherer');
         if (!pop) {
             // Create gatherer pop if it doesn't exist
             pop = new Pop('gatherer');
-            camp.pops.push(pop);
+            settlement.pops.push(pop);
         }
 
         // Determine how many workers to take (priority: unassigned, then available gatherers)
         let workersToTake = 0;
-        if (camp.unassignedPopulation > 0) {
+        if (settlement.unassignedPopulation > 0) {
             // Move unassigned to gatherers, then take them
-            const moveCount = Math.min(GameConfig.startingExpeditionWorkers, camp.unassignedPopulation);
-            camp.unassignedPopulation -= moveCount;
+            const moveCount = Math.min(GameConfig.startingExpeditionWorkers, settlement.unassignedPopulation);
+            settlement.unassignedPopulation -= moveCount;
             pop.addWorkers(moveCount);
             workersToTake = moveCount;
         } else if (pop.availableWorkers > 0) {
@@ -215,16 +215,16 @@ function enableDebugClick(scene) {
         // Create expedition
         const id = 'exp_' + Date.now();
         const areaRadius = GameConfig.areaRadius;
-        const exp = new Expedition(id, 'gatherer', taken, camp.x, camp.y, pointer.x, pointer.y, areaRadius, camp);
+        const exp = new Expedition(id, 'gatherer', taken, settlement.x, settlement.y, pointer.x, pointer.y, areaRadius, settlement);
         exp.isForced = forced;
 
-        // Give provisions from camp stock, respecting inventory capacity
-        const dist = Phaser.Math.Distance.Between(camp.x, camp.y, pointer.x, pointer.y);
+        // Give provisions from settlement stock, respecting inventory capacity
+        const dist = Phaser.Math.Distance.Between(settlement.x, settlement.y, pointer.x, pointer.y);
         const needed = getProvisionsNeeded(taken, dist);
-        // Cannot exceed camp food, nor the expedition's max capacity
-        const given = Math.min(needed, camp.foodStock, exp.maxCapacity);
+        // Cannot exceed settlement food, nor the expedition's max capacity
+        const given = Math.min(needed, settlement.foodStock, exp.maxCapacity);
         exp.inventory.provisions = given;
-        camp.foodStock -= given;
+        settlement.foodStock -= given;
 
         expeditions.push(exp);
         updateInfoText();
@@ -234,10 +234,10 @@ function enableDebugClick(scene) {
     // Keyboard 'R' to return selected expedition
     scene.input.keyboard.on('keydown-R', function () {
         if (isInputFocused()) return;
-        if (selectedExpedition && selectedExpedition.state !== 'returningToCamp' && selectedExpedition.state !== 'resting') {
-            selectedExpedition.targetX = camp.x;
-            selectedExpedition.targetY = camp.y;
-            selectedExpedition.state = 'returningToCamp';
+        if (selectedExpedition && selectedExpedition.state !== 'returningToSettlement' && selectedExpedition.state !== 'resting') {
+            selectedExpedition.targetX = settlement.x;
+            selectedExpedition.targetY = settlement.y;
+            selectedExpedition.state = 'returningToSettlement';
             console.log(`Expedition ${selectedExpedition.id} manually recalled.`);
         }
     });
@@ -334,29 +334,29 @@ function enableDebugClick(scene) {
         if (selectedExpedition) {
             const exp = selectedExpedition;
 
-            // If already at camp (resting or idle), disband immediately
+            // If already at settlement (resting or idle), disband immediately
             if (exp.state === 'resting' || exp.state === 'idle') {
-                camp.foodStock += exp.inventory.food;
-                const pop = camp.pops.find(p => p.type === exp.popType);
+                settlement.foodStock += exp.inventory.food;
+                const pop = settlement.pops.find(p => p.type === exp.popType);
                 if (pop) pop.returnWorkers(exp.workerCount);
                 const index = expeditions.indexOf(exp);
                 if (index > -1) expeditions.splice(index, 1);
                 selectedExpedition = null;
                 updateInfoText();
-                updateCampText();
-                console.log(`Expedition ${exp.id} disbanded at camp.`);
+                updateSettlementText();
+                console.log(`Expedition ${exp.id} disbanded at settlement.`);
                 return;
             }
 
-            // Otherwise, force return to camp and mark for disbanding
+            // Otherwise, force return to settlement and mark for disbanding
             exp.toBeDisbanded = true;
-            exp.targetX = camp.x;
-            exp.targetY = camp.y;
-            exp.state = 'returningToCamp';
+            exp.targetX = settlement.x;
+            exp.targetY = settlement.y;
+            exp.state = 'returningToSettlement';
             // Clear selection
             selectedExpedition = null;
             updateInfoText();
-            console.log(`Expedition ${exp.id} will disband on arrival at camp.`);
+            console.log(`Expedition ${exp.id} will disband on arrival at settlement.`);
         }
     });
 }
@@ -376,7 +376,7 @@ function create() {
     // Graphics object for the grid
     const graphics = this.add.graphics();
     gridGraphics = graphics;  // store reference
-    campGraphics = this.add.graphics();
+    settlementGraphics = this.add.graphics();
 
     // Add debug text
     this.add.text(10, 10, 'Debug: Forage Density Grid (green = food)', {
@@ -400,9 +400,9 @@ function create() {
         wordWrap: { width: 250 }
     }).setDepth(200);
 
-    // Camp info text (bottom left) – we can reuse campText from before, define it
-    campText = this.add.text(10, 720 - 30, '', { fontSize: '14px', fill: '#ffffff' });
-    updateCampText();
+    // Settlement info text (bottom left) – we can reuse settlementText from before, define it
+    settlementText = this.add.text(10, 720 - 30, '', { fontSize: '14px', fill: '#ffffff' });
+    updateSettlementText();
 
     // Speed indicator text
     speedText = this.add.text(10, 30, 'Speed: 1x', {
@@ -416,10 +416,10 @@ function create() {
     popGraphics = this.add.graphics();
     warningGraphics = this.add.graphics().setDepth(300);
 
-    // Draw the initial grid, pop position and camp
+    // Draw the initial grid, pop position and settlement
     drawGrid();
     drawPops();
-    drawCamp();
+    drawSettlement();
 }
 
 // Draw all pops as circles on the screen
@@ -430,7 +430,7 @@ function drawPops() {
     for (const exp of expeditions) {
         let color = 0xffffff; // default white
         if (exp.state === 'gathering') color = 0x00ff00;
-        else if (exp.state === 'returningToCamp') color = 0xff8800; // orange
+        else if (exp.state === 'returningToSettlement') color = 0xff8800; // orange
         else if (exp.state === 'resting') color = 0x888888;
 
         popGraphics.fillStyle(color, 1);
@@ -454,14 +454,14 @@ function drawPops() {
             popGraphics.strokeCircle(exp.x, exp.y, 10);
 
             if (!exp.useAssignedArea) {
-                // Auto mode: draw path from camp to current position
-                drawDashedLine(popGraphics, camp.x, camp.y, exp.x, exp.y, 10, 5);
+                // Auto mode: draw path from settlement to current position
+                drawDashedLine(popGraphics, settlement.x, settlement.y, exp.x, exp.y, 10, 5);
                 // Draw area radius around the expedition
                 popGraphics.lineStyle(1, 0xffff00, 0.2);
                 popGraphics.strokeCircle(exp.x, exp.y, exp.areaRadius);
             } else {
-                // Manual mode: draw path from camp to area center
-                drawDashedLine(popGraphics, camp.x, camp.y, exp.areaCenter.x, exp.areaCenter.y, 10, 5);
+                // Manual mode: draw path from settlement to area center
+                drawDashedLine(popGraphics, settlement.x, settlement.y, exp.areaCenter.x, exp.areaCenter.y, 10, 5);
                 // Draw area radius around area center
                 popGraphics.lineStyle(1, 0xffff00, 0.2);
                 popGraphics.strokeCircle(exp.areaCenter.x, exp.areaCenter.y, exp.areaRadius);
@@ -469,7 +469,7 @@ function drawPops() {
         }
 
         // Line to target if moving
-        if (exp.state === 'travellingToArea' || exp.state === 'returningToCamp') {
+        if (exp.state === 'travellingToArea' || exp.state === 'returningToSettlement') {
             popGraphics.lineStyle(1, 0xffffff, 0.3);
             popGraphics.beginPath();
             popGraphics.moveTo(exp.x, exp.y);
@@ -505,28 +505,28 @@ function drawDashedLine(graphics, x1, y1, x2, y2, dashLength, gapLength) {
     }
 }
 
-// Draw the camp as a visual placeholder and (if selected) its local gathering radius
-function drawCamp() {
-    if (!campGraphics) return;
-    campGraphics.clear();
+// Draw the settlement as a visual placeholder and (if selected) its local gathering radius
+function drawSettlement() {
+    if (!settlementGraphics) return;
+    settlementGraphics.clear();
     // Brown square
-    campGraphics.fillStyle(0x8b5e3c, 1);
-    campGraphics.fillRect(CAMP_X - 15, CAMP_Y - 15, 30, 30);
+    settlementGraphics.fillStyle(0x8b5e3c, 1);
+    settlementGraphics.fillRect(SETTLEMENT_X - 15, SETTLEMENT_Y - 15, 30, 30);
     // Border
-    campGraphics.lineStyle(2, 0xc4a46c, 1);
-    campGraphics.strokeRect(CAMP_X - 15, CAMP_Y - 15, 30, 30);
+    settlementGraphics.lineStyle(2, 0xc4a46c, 1);
+    settlementGraphics.strokeRect(SETTLEMENT_X - 15, SETTLEMENT_Y - 15, 30, 30);
     // Selection highlight
-    if (campSelected) {
-        campGraphics.lineStyle(2, 0xffff00, 1);
-        campGraphics.strokeRect(CAMP_X - 17, CAMP_Y - 17, 34, 34);
+    if (settlementSelected) {
+        settlementGraphics.lineStyle(2, 0xffff00, 1);
+        settlementGraphics.strokeRect(SETTLEMENT_X - 17, SETTLEMENT_Y - 17, 34, 34);
 
         // Local gathering radius (one day of travel)
         const localRadius = getLocalGatherRadiusPx();
-        campGraphics.lineStyle(1, 0xffff00, 0.3);
-        campGraphics.strokeCircle(CAMP_X, CAMP_Y, localRadius);
+        settlementGraphics.lineStyle(1, 0xffff00, 0.3);
+        settlementGraphics.strokeCircle(SETTLEMENT_X, SETTLEMENT_Y, localRadius);
     }
     // Label
-    gameScene.add.text(CAMP_X, CAMP_Y - 25, 'CAMP', {
+    gameScene.add.text(SETTLEMENT_X, SETTLEMENT_Y - 25, 'SETTLEMENT', {
         fontSize: '12px',
         fill: '#ffffff',
         backgroundColor: '#00000088',
@@ -535,9 +535,9 @@ function drawCamp() {
 }
 
 function drawLocalRadius() {
-    if (!popGraphics || gameState !== 'camp') return;
+    if (!popGraphics || gameState !== 'settlement') return;
     popGraphics.lineStyle(1, 0xffff00, 0.4);
-    popGraphics.strokeCircle(camp.x, camp.y, getLocalGatherRadiusPx());
+    popGraphics.strokeCircle(settlement.x, settlement.y, getLocalGatherRadiusPx());
 }
 
 // Redraw the grid colors based on current densities
@@ -636,13 +636,13 @@ function updateLocalGathering(deltaSec) {
             const cell = getCell(cx, cy);
             if (cell.assignedWorkers > 0) {
                 const center = cellToWorld(cx, cy);
-                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, center.x, center.y);
+                const dist = Phaser.Math.Distance.Between(settlement.x, settlement.y, center.x, center.y);
                 if (dist <= localRadius) {
                     const density = cell.forageDensity;
                     if (density > 0) {
                         const gathered = cell.assignedWorkers * GameConfig.baseGatherRate * density * deltaSec;
-                        camp.foodStock += gathered;
-                        camp.foodGatheredToday += gathered;
+                        settlement.foodStock += gathered;
+                        settlement.foodGatheredToday += gathered;
                         cell.foodGatheredToday += gathered;
                         const reduction = gathered * GameConfig.densityReductionPerFood;
                         reduceCellDensity(cell, reduction);
@@ -672,7 +672,7 @@ function updateLocalGathering(deltaSec) {
 function updateWarningIndicators() {
     if (!warningGraphics) return;
     warningGraphics.clear();
-    if (gameState === 'camp') {
+    if (gameState === 'settlement') {
         for (const key of warningCells) {
             const [cx, cy] = key.split(',').map(Number);
             const center = cellToWorld(cx, cy);
@@ -684,16 +684,16 @@ function updateWarningIndicators() {
     } else {
         if (warningCells.length > 0) {
             warningGraphics.fillStyle(0xff0000, 1);
-            warningGraphics.fillTriangle(CAMP_X, CAMP_Y - 20, CAMP_X - 5, CAMP_Y - 30, CAMP_X + 5, CAMP_Y - 30);
+            warningGraphics.fillTriangle(SETTLEMENT_X, SETTLEMENT_Y - 20, SETTLEMENT_X - 5, SETTLEMENT_Y - 30, SETTLEMENT_X + 5, SETTLEMENT_Y - 30);
         }
     }
 }
 
-function updateCampText() {
-    let totalPop = camp.unassignedPopulation;
-    for (const pop of camp.pops) totalPop += pop.totalWorkers;
-    campText.setText(
-        `Food: ${camp.foodStock.toFixed(0)} | Pop: ${totalPop} | Unassigned: ${camp.unassignedPopulation}\n` +
+function updateSettlementText() {
+    let totalPop = settlement.unassignedPopulation;
+    for (const pop of settlement.pops) totalPop += pop.totalWorkers;
+    settlementText.setText(
+        `Food: ${settlement.foodStock.toFixed(0)} | Pop: ${totalPop} | Unassigned: ${settlement.unassignedPopulation}\n` +
         `Day: ${gameDay}`
     );
 }
@@ -705,7 +705,7 @@ function updateSpeedText() {
     }
 }
 
-//Info text tha appears when clicking on the camp
+//Info text tha appears when clicking on the settlement
 function updateInfoText() {
     if (!infoText) return;
     let str = '';
@@ -716,7 +716,7 @@ function updateInfoText() {
         str = `Expedition ${exp.id}\nWorkers: ${exp.workerCount}\nState: ${exp.state}\nProvisions: ${exp.inventory.provisions.toFixed(1)}\nFood: ${exp.inventory.food.toFixed(1)}\nCapacity: ${used.toFixed(1)}/${exp.maxCapacity}`;
         if (exp.isForced) str += `\n[FORCED]`;
         if (!exp.useAssignedArea) str += '\n[AUTO]';
-    } else if (selectedLocalCell && gameState === 'camp') {
+    } else if (selectedLocalCell && gameState === 'settlement') {
         const cell = getCell(selectedLocalCell.cx, selectedLocalCell.cy);
         const density = cell.forageDensity;
         const workers = cell.assignedWorkers;
@@ -766,9 +766,9 @@ function updateInfoText() {
               `+1 worker food/day: ${increasePerDay.toFixed(1)}\n` +
               `Days reduced to 25% if +1 worker: ${workers > 0 ? reducedDays25.toFixed(1) : '--'}\n` +
               `Days reduced to 0% if +1 worker: ${workers > 0 ? reducedDays0.toFixed(1) : '--'}`;
-    } else if (campSelected && gameState === 'camp') {
-        // Camp summary
-        // Camp summary
+    } else if (settlementSelected && gameState === 'settlement') {
+        // Settlement summary
+        // Settlement summary
         const localRadius = getLocalGatherRadiusPx();
         let foodTo25Total = 0;
         let foodTo0Total = 0;
@@ -776,7 +776,7 @@ function updateInfoText() {
             for (let cx = 0; cx < GRID_COLS; cx++) {
                 const cell = getCell(cx, cy);
                 const center = cellToWorld(cx, cy);
-                const dist = Phaser.Math.Distance.Between(camp.x, camp.y, center.x, center.y);
+                const dist = Phaser.Math.Distance.Between(settlement.x, settlement.y, center.x, center.y);
                 if (dist <= localRadius) {
                     const d = cell.forageDensity;
                     foodTo25Total += Math.max(0, (d - GameConfig.cellWarningThreshold) / GameConfig.densityReductionPerFood);
@@ -786,16 +786,16 @@ function updateInfoText() {
         }
 
         // Gatherer pop stats
-        let gathererPop = camp.pops.find(p => p.type === 'gatherer');
+        let gathererPop = settlement.pops.find(p => p.type === 'gatherer');
         let localGatherers = gathererPop ? gathererPop.localWorkers : 0;
         let expeditionGatherers = gathererPop ? gathererPop.assignedWorkers : 0;
         let availableGatherers = gathererPop ? gathererPop.availableWorkers : 0;
 
-        str = `Camp\n` +
-              `Food: ${camp.foodStock.toFixed(0)}\n` +
-              `Unassigned: ${camp.unassignedPopulation}\n` +
-              `Gathered daily: ${camp.gatheredDaily.toFixed(1)}\n` +
-              `Consumed daily: ${camp.consumedDaily.toFixed(1)}\n` +
+        str = `Settlement\n` +
+              `Food: ${settlement.foodStock.toFixed(0)}\n` +
+              `Unassigned: ${settlement.unassignedPopulation}\n` +
+              `Gathered daily: ${settlement.gatheredDaily.toFixed(1)}\n` +
+              `Consumed daily: ${settlement.consumedDaily.toFixed(1)}\n` +
               `Food remaining (to 25%): ${foodTo25Total.toFixed(1)}\n` +
               `Food remaining (to 0%): ${foodTo0Total.toFixed(1)}\n` +
               `Gatherers:\n` +
@@ -826,16 +826,16 @@ function update(time, delta) {
         // Advance day counter
                 gameDay++;
         dayAccumulator -= GameConfig.dayLengthSeconds;
-        let totalPop = camp.unassignedPopulation;
-        for (const pop of camp.pops) totalPop += pop.totalWorkers;
+        let totalPop = settlement.unassignedPopulation;
+        for (const pop of settlement.pops) totalPop += pop.totalWorkers;
         const consumed = totalPop * GameConfig.foodConsumptionPerPersonPerDay;
-        camp.foodStock -= consumed;
-        if (camp.foodStock < 0) camp.foodStock = 0;
+        settlement.foodStock -= consumed;
+        if (settlement.foodStock < 0) settlement.foodStock = 0;
 
         // Save daily totals and reset current day counters
-        camp.gatheredDaily = camp.foodGatheredToday;
-        camp.consumedDaily = consumed;
-        camp.foodGatheredToday = 0;
+        settlement.gatheredDaily = settlement.foodGatheredToday;
+        settlement.consumedDaily = consumed;
+        settlement.foodGatheredToday = 0;
 
         for (let cy = 0; cy < GRID_ROWS; cy++) {
             for (let cx = 0; cx < GRID_COLS; cx++) {
@@ -848,11 +848,11 @@ function update(time, delta) {
 
     updateInfoText(); // refresh selected info
     updateSpeedText();
-    updateCampText(); // refresh camp counter every frame
+    updateSettlementText(); // refresh settlement counter every frame
     updateLocalWorkerPanel(); // refresh local worker panel visibility and numbers
     drawGrid();
     drawSelectedCell(); // highlight selected local cell
     drawPops();
-    drawCamp();
+    drawSettlement();
     updateWarningIndicators();
 }

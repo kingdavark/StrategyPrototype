@@ -19,7 +19,7 @@ Codice:
 - `css/style.css` – stili per UI HTML sovrapposta
 - `js/config.js` – parametri di gioco centralizzati nell'oggetto `GameConfig`
 - `js/world.js` – griglia esagonale spaziale, layer di densità, query spaziali
-- `js/units.js` – classi per Pop, Expedition e oggetto camp
+- `js/units.js` – classi per Pop, Expedition e oggetto settlement
 - `js/resources.js` – logica di raccolta, consumo, deterioramento (futuro)
 - `js/ui.js` – interfaccia utente, pannelli, tooltip (futuro)
 - `js/time.js` – gestione pausa/play/velocità
@@ -58,7 +58,7 @@ Il prototipo è organizzato in moduli con responsabilità separate:
 
 - **Configurazione**: `GameConfig` centralizza tutti i parametri di gioco. Nessuna costante di gioco hardcoded nel resto del codice.
 - **Mondo**: la griglia esagonale spaziale (via rexBoard) e i layer di densità vivono in `world.js`. Espone funzioni di query e modifica (es. `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`).
-- **Entità**: le classi `Pop`, `Expedition` e l'oggetto `camp` sono in `units.js`. Gestiscono la logica di lavoratori e spedizioni.
+- **Entità**: le classi `Pop`, `Expedition` e l'oggetto `settlement` sono in `units.js`. Gestiscono la logica di lavoratori e spedizioni.
 - **Tempo**: `TimeManager` in `time.js` controlla la velocità di simulazione e fornisce il delta di gioco.
 - **Scena e rendering**: `main.js` crea la scena Phaser, gestisce l'input, disegna griglia, pop, campo e indicatori, e implementa la raccolta locale e le previsioni.
 - **Debug**: `debug.js` collega gli input HTML del pannello debug ai parametri di `GameConfig` e gestisce l'assegnazione dei lavoratori locali.

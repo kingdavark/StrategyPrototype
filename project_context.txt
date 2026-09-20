@@ -1,6 +1,6 @@
 ================================================================================
 PROJECT CONTEXT BUNDLE
-Generated: 2026-09-20 09:39:40
+Generated: 2026-09-20 10:45:29
 Project root: C:\Users\david\OneDrive\Desktop\Omnia\Game Development\StrategyPrototype
 ================================================================================
 
@@ -58,7 +58,7 @@ Prototipo di strategico 4X in tempo reale con Phaser 3.
 - Codice e commenti in inglese.
 - Ogni nuovo parametro va in GameConfig e nel pannello debug.
 - Usare delta time per aggiornamenti temporali.
-- Non mischiare input di stati diversi (map vs camp).
+- Non mischiare input di stati diversi (map vs settlement).
 - La raccolta riduce solo la cella esatta, non le celle vicine.
 
 ## Flusso di lavoro
@@ -82,7 +82,7 @@ Prototipo di strategico 4X in tempo reale con Phaser 3.
 
 - `js/config.js` – GameConfig e parametri
 - `js/world.js` – griglia spaziale e densità
-- `js/units.js` – Pop, Expedition, camp
+- `js/units.js` – Pop, Expedition, settlement
 - `js/main.js` – scena Phaser, input, rendering, raccolta locale
 - `js/debug.js` – pannello debug e assegnazione lavoratori
 - `js/time.js` – controllo velocità di gioco
@@ -2263,7 +2263,7 @@ Codice:
 - `css/style.css` – stili per UI HTML sovrapposta
 - `js/config.js` – parametri di gioco centralizzati nell'oggetto `GameConfig`
 - `js/world.js` – griglia esagonale spaziale, layer di densità, query spaziali
-- `js/units.js` – classi per Pop, Expedition e oggetto camp
+- `js/units.js` – classi per Pop, Expedition e oggetto settlement
 - `js/resources.js` – logica di raccolta, consumo, deterioramento (futuro)
 - `js/ui.js` – interfaccia utente, pannelli, tooltip (futuro)
 - `js/time.js` – gestione pausa/play/velocità
@@ -2302,7 +2302,7 @@ Il prototipo è organizzato in moduli con responsabilità separate:
 
 - **Configurazione**: `GameConfig` centralizza tutti i parametri di gioco. Nessuna costante di gioco hardcoded nel resto del codice.
 - **Mondo**: la griglia esagonale spaziale (via rexBoard) e i layer di densità vivono in `world.js`. Espone funzioni di query e modifica (es. `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`).
-- **Entità**: le classi `Pop`, `Expedition` e l'oggetto `camp` sono in `units.js`. Gestiscono la logica di lavoratori e spedizioni.
+- **Entità**: le classi `Pop`, `Expedition` e l'oggetto `settlement` sono in `units.js`. Gestiscono la logica di lavoratori e spedizioni.
 - **Tempo**: `TimeManager` in `time.js` controlla la velocità di simulazione e fornisce il delta di gioco.
 - **Scena e rendering**: `main.js` crea la scena Phaser, gestisce l'input, disegna griglia, pop, campo e indicatori, e implementa la raccolta locale e le previsioni.
 - **Debug**: `debug.js` collega gli input HTML del pannello debug ai parametri di `GameConfig` e gestisce l'assegnazione dei lavoratori locali.
@@ -2493,7 +2493,7 @@ Ogni parametro è modificabile a runtime tramite la console o il pannello di deb
 - **`startingExpeditionWorkers`** (default `5`)  
   Numero di lavoratori prelevati automaticamente quando si crea una nuova spedizione.
 
-- **`campX`**, **`campY`** (default `100`, `100`)  
+- **`settlementX`**, **`settlementY`** (default `100`, `100`)  
   Posizione iniziale del campo sulla mappa, in pixel.
 
 ### Mondo
@@ -2674,17 +2674,17 @@ Il resto dei parametri di raccolta (`baseGatherRate`, `densityReductionPerFood`)
 
 ## Scopo
 
-Definisce le entità principali del gioco: il campo (`camp`), i Pop (gruppi di lavoratori) e le spedizioni (`Expedition`). Contiene anche l'alias globale `expeditions` che punta all'array delle spedizioni attive del campo.
+Definisce le entità principali del gioco: il campo (`settlement`), i Pop (gruppi di lavoratori) e le spedizioni (`Expedition`). Contiene anche l'alias globale `expeditions` che punta all'array delle spedizioni attive del campo.
 
 ## Struttura dati
 
-### camp
+### settlement
 
 L'accampamento è il punto di riferimento della tribù. È un oggetto globale definito in questo file.
 
 Proprietà:
 
-- `x`, `y` – posizione in pixel sulla mappa. Inizializzati da `GameConfig.campX` e `GameConfig.campY`.
+- `x`, `y` – posizione in pixel sulla mappa. Inizializzati da `GameConfig.settlementX` e `GameConfig.settlementY`.
 - `foodStock` – scorte globali di cibo. Inizializzato da `GameConfig.startingFoodStock`.
 - `unassignedPopulation` – numero di individui non ancora assegnati a nessun Pop. Inizializzato da `GameConfig.startingUnassignedPopulation`.
 - `pops` – array di oggetti Pop presenti al campo. All'inizio è vuoto.
@@ -2730,7 +2730,7 @@ Proprietà:
 - `inventory` – oggetto con `provisions` (provviste rimanenti) e `food` (cibo raccolto).
 - `areaCenter` – `{ x, y }` centro dell'area di raccolta assegnata.
 - `areaRadius` – raggio dell'area di raccolta in pixel. Inizializzato da `GameConfig.areaRadius`.
-- `campRef` – riferimento all'oggetto `camp`.
+- `settlementRef` – riferimento all'oggetto `settlement`.
 - `cooldownRemaining` – secondi di riposo rimanenti.
 - `lastCellEvaluation` – tempo trascorso dall'ultima valutazione di cambio cella.
 - `isForced` – se `true`, la spedizione ignora l'esaurimento delle provviste per il ritorno.
@@ -2743,7 +2743,7 @@ Stati:
 - `travellingToArea` – in viaggio verso l'area di raccolta.
 - `movingToCell` – in movimento verso una cella specifica all'interno dell'area.
 - `gathering` – sta raccogliendo dalla cella corrente.
-- `returningToCamp` – sta tornando al campo.
+- `returningToSettlement` – sta tornando al campo.
 - `resting` – a riposo al campo prima di ripartire.
 
 ## Funzioni e metodi principali
@@ -2782,7 +2782,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 
 - `index.html` – carica lo script dopo `world.js`.
 - `js/main.js` – crea le spedizioni (click destro su mappa), aggiorna Pop (tramite `debug.js`), disegna le spedizioni. Chiama `exp.update(delta)` ogni frame.
-- `js/debug.js` – modifica Pop e camp tramite l'assegnazione e la rimozione di lavoratori locali.
+- `js/debug.js` – modifica Pop e settlement tramite l'assegnazione e la rimozione di lavoratori locali.
 
 ## Dipendenze in uscita
 
@@ -2792,7 +2792,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 
 ## Parametri GameConfig usati
 
-- `campX`, `campY` – posizione iniziale del campo.
+- `settlementX`, `settlementY` – posizione iniziale del campo.
 - `startingFoodStock` – cibo iniziale.
 - `startingUnassignedPopulation` – popolazione non assegnata iniziale.
 - `maxCapacityPerWorker` – capacità per lavoratore.
@@ -2807,8 +2807,8 @@ Indirettamente, tramite le funzioni di `config.js`: `dayLengthSeconds`, `walking
 
 ## Stato globale modificato
 
-- `camp` (oggetto globale) e tutte le sue proprietà.
-- `expeditions` (alias di `camp.expeditions`).
+- `settlement` (oggetto globale) e tutte le sue proprietà.
+- `expeditions` (alias di `settlement.expeditions`).
 - Le celle della griglia (tramite `reduceCellDensity`).
 
 ## Note per modifiche
@@ -2838,18 +2838,18 @@ Variabili di scena (create in `create()`):
 - `gameScene` – riferimento alla scena Phaser.
 - `gridGraphics` – graphics per griglia e cella selezionata.
 - `popGraphics` – graphics per spedizioni.
-- `campGraphics` – graphics per il campo e il raggio locale.
+- `settlementGraphics` – graphics per il campo e il raggio locale.
 - `warningGraphics` – graphics per i triangoli di warning (depth 300).
 - `infoText` – pannello info in alto a destra (`Phaser.Text`).
-- `campText` – riepilogo campo in basso a sinistra.
+- `settlementText` – riepilogo campo in basso a sinistra.
 - `speedText` – indicatore di velocità in alto a sinistra.
 
 Variabili di stato globali:
 
-- `gameState` – `'map'` o `'camp'`. Determina il significato dei click.
-- `campSelected` – `true` se il campo è selezionato (sempre `true` in `gameState === 'camp'`).
+- `gameState` – `'map'` o `'settlement'`. Determina il significato dei click.
+- `settlementSelected` – `true` se il campo è selezionato (sempre `true` in `gameState === 'settlement'`).
 - `selectedExpedition` – spedizione selezionata, o `null`.
-- `selectedLocalCell` – cella locale selezionata (in modalità camp), o `null`.
+- `selectedLocalCell` – cella locale selezionata (in modalità settlement), o `null`.
 - `cellWorkerTexts` – mappa `"cx,cy"` → `Phaser.Text` con il numero di lavoratori sopra le celle.
 - `warningCells` – array di stringhe `"cx,cy"` con le celle sotto soglia.
 - `dayAccumulator` – accumula delta per il ciclo giorno.
@@ -2867,13 +2867,13 @@ Carica il plugin rexBoard (griglia esagonale) via `this.load.scenePlugin(...)` d
 Inizializza la scena:
 
 1. Chiama `createGrid(this)` (che inizializza la board esagonale rexBoard) e `initializeForageDensity()` (da `world.js`).
-2. Crea i graphics objects: `gridGraphics`, `campGraphics`, `popGraphics`, `warningGraphics`.
+2. Crea i graphics objects: `gridGraphics`, `settlementGraphics`, `popGraphics`, `warningGraphics`.
 3. Disegna la griglia esagonale iniziale chiamando `drawGrid()`.
 4. Aggiunge il testo di debug in alto a sinistra.
 5. Chiama `enableDebugClick(this)` per attivare i listener di input.
 6. Salva `gameScene = this`.
-7. Crea i testi UI: `infoText`, `campText`, `speedText`.
-8. Chiama `drawGrid()`, `drawPops()` e `drawCamp()`.
+7. Crea i testi UI: `infoText`, `settlementText`, `speedText`.
+8. Chiama `drawGrid()`, `drawPops()` e `drawSettlement()`.
 9. Crea `warningGraphics` con depth 300.
 
 ### update(time, delta)
@@ -2885,9 +2885,9 @@ Chiamata ogni frame da Phaser. È il game loop.
 3. Accumula `gameTimeSec += deltaSec`.
 4. Aggiorna tutte le spedizioni: `for (const exp of expeditions) exp.update(deltaSec)`.
 5. Chiama `updateLocalGathering(deltaSec)`.
-6. Gestisce il ciclo giorno: quando `dayAccumulator >= dayLengthSeconds`, incrementa `gameDay`, calcola il consumo, aggiorna `gatheredDaily` e `consumedDaily`, azzera i contatori giornalieri (camp e celle).
-7. Aggiorna i pannelli: `updateInfoText()`, `updateSpeedText()`, `updateCampText()`, `updateLocalWorkerPanel()`.
-8. Ridisegna: `drawGrid()`, `drawSelectedCell()`, `drawPops()`, `drawCamp()`, `updateWarningIndicators()`.
+6. Gestisce il ciclo giorno: quando `dayAccumulator >= dayLengthSeconds`, incrementa `gameDay`, calcola il consumo, aggiorna `gatheredDaily` e `consumedDaily`, azzera i contatori giornalieri (settlement e celle).
+7. Aggiorna i pannelli: `updateInfoText()`, `updateSpeedText()`, `updateSettlementText()`, `updateLocalWorkerPanel()`.
+8. Ridisegna: `drawGrid()`, `drawSelectedCell()`, `drawPops()`, `drawSettlement()`, `updateWarningIndicators()`.
 
 ### enableDebugClick(scene)
 
@@ -2897,9 +2897,9 @@ Attiva i listener di input sulla scena. Gestisce click sinistro (selezione) e cl
 
 1. Se Shift premuto: ispezione cella (tooltip temporaneo con densità e coordinate).
 2. Se clicca su una spedizione: la seleziona, entra in `gameState = 'map'`.
-3. Se clicca sul campo: toggle tra `gameState = 'map'` e `gameState = 'camp'`.
-4. Se in `gameState === 'camp'` e clicca su una cella entro il raggio locale: la seleziona. Se clicca sulla cella già selezionata, la deseleziona e mostra di nuovo l'info del settlement.
-5. Se in `gameState === 'camp'` e clicca fuori dal raggio: esce dalla modalità camp.
+3. Se clicca sul campo: toggle tra `gameState = 'map'` e `gameState = 'settlement'`.
+4. Se in `gameState === 'settlement'` e clicca su una cella entro il raggio locale: la seleziona. Se clicca sulla cella già selezionata, la deseleziona e mostra di nuovo l'info del settlement.
+5. Se in `gameState === 'settlement'` e clicca fuori dal raggio: esce dalla modalità settlement.
 6. Altrimenti: deseleziona tutto.
 
 **Click destro**:
@@ -2948,7 +2948,7 @@ Disegna un bordo giallo esagonale attorno alla cella selezionata (`selectedLocal
 Disegna tutte le spedizioni come cerchi colorati in base allo stato:
 
 - `gathering` – verde (`0x00ff00`)
-- `returningToCamp` – arancione (`0xff8800`)
+- `returningToSettlement` – arancione (`0xff8800`)
 - `resting` – grigio (`0x888888`)
 - altri – bianco (`0xffffff`)
 
@@ -2958,17 +2958,17 @@ Se `isForced`, disegna un bordo rosso. Se `!useAssignedArea`, un bordo blu semit
 
 Utility per disegnare una linea tratteggiata. Usata per il percorso delle spedizioni selezionate.
 
-### drawCamp()
+### drawSettlement()
 
-Disegna il campo (quadrato marrone con bordo) e, se `campSelected`, il raggio locale. Viene chiamata ogni frame.
+Disegna il campo (quadrato marrone con bordo) e, se `settlementSelected`, il raggio locale. Viene chiamata ogni frame.
 
-**Nota**: l'etichetta testuale "CAMP" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
+**Nota**: l'etichetta testuale "SETTLEMENT" viene ricreata ogni frame con `gameScene.add.text()`, causando un aumento continuo di oggetti testo. È un bug noto da correggere (vedi `Docs/Roadmap/MVP1 - Prototipo1.md`).
 
 ### updateWarningIndicators()
 
-Disegna i triangoli rossi persistenti per le celle sotto soglia. Viene chiamata ogni frame dopo `drawPops()` e `drawCamp()`.
+Disegna i triangoli rossi persistenti per le celle sotto soglia. Viene chiamata ogni frame dopo `drawPops()` e `drawSettlement()`.
 
-- In `gameState === 'camp'`: triangolo sopra ogni cella in `warningCells`.
+- In `gameState === 'settlement'`: triangolo sopra ogni cella in `warningCells`.
 - In `gameState === 'map'`: triangolo sopra il campo se `warningCells.length > 0`.
 
 ### updateCellWorkerLabels()
@@ -2986,12 +2986,12 @@ Esegue la raccolta locale ogni frame.
 1. Calcola il raggio locale con `getLocalGatherRadiusPx()`.
 2. Itera su tutte le celle della griglia.
 3. Per ogni cella con `assignedWorkers > 0` e distanza dal campo <= raggio:
-   - Se `density > 0`, raccoglie: `gathered = assignedWorkers * baseGatherRate * density * deltaSec`. Aggiorna `camp.foodStock`, `camp.foodGatheredToday`, `cell.foodGatheredToday`, chiama `reduceCellDensity`.
+   - Se `density > 0`, raccoglie: `gathered = assignedWorkers * baseGatherRate * density * deltaSec`. Aggiorna `settlement.foodStock`, `settlement.foodGatheredToday`, `cell.foodGatheredToday`, chiama `reduceCellDensity`.
    - Controlla la soglia `cellWarningThreshold`: se scende sotto e `warningShown` è `false`, aggiunge la cella a `warningCells` e mostra un avviso in console. Se risale sopra, rimuove la cella da `warningCells`.
 
 La riduzione avviene **solo sulla cella esatta**, non sulle celle vicine.
 
-### updateCampText()
+### updateSettlementText()
 
 Aggiorna il testo in basso a sinistra con cibo, popolazione totale, non assegnati e giorno corrente.
 
@@ -3004,15 +3004,15 @@ Aggiorna il testo in alto a sinistra con la velocità corrente, letta da `TimeMa
 Aggiorna il pannello info in alto a destra. Contenuto in base alla selezione:
 
 - **Spedizione selezionata** – id, workerCount, stato, provviste, cibo, capacità, flag `[FORCED]` e `[AUTO]`.
-- **Cella locale selezionata (in modalità camp)** – coordinate, densità, lavoratori, cibo raccolto daily, cibo rimanente alle soglie, giorni alle soglie, incremento con un lavoratore in più, giorni ridotti con un lavoratore in più.
-- **Campo selezionato (in modalità camp)** – cibo, non assegnati, `gatheredDaily`, `consumedDaily`, cibo rimanente nell'area locale (to 25% e to 0%), statistiche dei gatherer (locali, spedizioni, disponibili).
+- **Cella locale selezionata (in modalità settlement)** – coordinate, densità, lavoratori, cibo raccolto daily, cibo rimanente alle soglie, giorni alle soglie, incremento con un lavoratore in più, giorni ridotti con un lavoratore in più.
+- **Campo selezionato (in modalità settlement)** – cibo, non assegnati, `gatheredDaily`, `consumedDaily`, cibo rimanente nell'area locale (to 25% e to 0%), statistiche dei gatherer (locali, spedizioni, disponibili).
 - **Altrimenti** – stringa vuota.
 
 Alla fine chiama `updateLocalWorkerPanel()` per aggiornare la visibilità del pannello lavoratori locali.
 
 ### updateLocalWorkerPanel()
 
-Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell` e `gameState === 'camp'`. Aggiorna il testo con coordinate e numero di lavoratori. È definita in `debug.js`, ma viene chiamata anche da `main.js`.
+Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell` e `gameState === 'settlement'`. Aggiorna il testo con coordinate e numero di lavoratori. È definita in `debug.js`, ma viene chiamata anche da `main.js`.
 
 ## Dipendenze in ingresso
 
@@ -3023,7 +3023,7 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 
 - `js/config.js` – per `GameConfig` (tutti i parametri usati dal rendering e dalla raccolta), `getLocalGatherRadiusPx()`, `getBaseConsumptionPerSec()` (indirettamente via `updateLocalGathering`), `getSecondsPerGameHour()` (indirettamente).
 - `js/world.js` – per `createGrid`, `initializeForageDensity`, `getCell`, `worldToCell`, `cellToWorld`, `reduceCellDensity`, `hexBoard`, `HEX_WIDTH_PX`, `HEX_HEIGHT_PX`, `GRID_COLS`, `GRID_ROWS`.
-- `js/units.js` – per `camp`, `expeditions`, `Pop`, `Expedition`.
+- `js/units.js` – per `settlement`, `expeditions`, `Pop`, `Expedition`.
 - `js/time.js` – per `TimeManager` (delta, velocità, pausa).
 - `js/debug.js` – per `updateLocalWorkerPanel`.
 - `Phaser.Math.Distance.Between` – per calcolo distanze.
@@ -3034,27 +3034,27 @@ Mostra o nasconde il pannello `local-worker-panel` in base a `selectedLocalCell`
 - `cellWarningThreshold` – per il warning.
 - `dayLengthSeconds` – per il ciclo giorno.
 - `foodConsumptionPerPersonPerDay` – per il consumo.
-- `campX`, `campY` – per la posizione del campo.
+- `settlementX`, `settlementY` – per la posizione del campo.
 - `areaRadius` – per il raggio predefinito dell'area spedizione.
 - `cellEvaluationInterval` – indirettamente via `units.js`.
 - Altri parametri indirettamente tramite funzioni di `config.js`.
 
 ## Stato globale modificato
 
-- `gameState`, `campSelected`, `selectedExpedition`, `selectedLocalCell`, `dayAccumulator`, `gameDay`.
+- `gameState`, `settlementSelected`, `selectedExpedition`, `selectedLocalCell`, `dayAccumulator`, `gameDay`.
 - `warningCells`, `cellWorkerTexts`.
-- `camp` (tramite `updateLocalGathering` e `update`).
+- `settlement` (tramite `updateLocalGathering` e `update`).
 - `expeditions` (creazione e rimozione).
 - Le celle della griglia (tramite `reduceCellDensity`).
 
 ## Note per modifiche
 
 - La logica di rendering è mista a quella di gioco in questo file. In futuro potrà essere separata (`ui.js`).
-- L'etichetta "CAMP" viene ricreata ogni frame: bug noto da correggere.
+- L'etichetta "SETTLEMENT" viene ricreata ogni frame: bug noto da correggere.
 - Il pannello info viene aggiornato ogni frame: possibile ottimizzazione futura.
 - La griglia viene ridisegnata completamente ogni frame: collo di bottiglia su mappe grandi.
 - I warning sono persistenti e ridisegnati ogni frame.
-- Se si modifica la logica di input, verificare che non ci siano conflitti con i game state (`map` vs `camp`).
+- Se si modifica la logica di input, verificare che non ci siano conflitti con i game state (`map` vs `settlement`).
 - Se si modifica una funzione pubblica usata da altri script (es. `updateInfoText`, `updateCellWorkerLabels`, `updateLocalWorkerPanel`), aggiornare i documenti Technical collegati (`05_Debug.md`).
 - Se si aggiunge una variabile globale, dichiararla in cima al file e documentarla in "Variabili globali e stato".
 - Se si modifica la logica di raccolta locale, verificare che `updateLocalGathering` continui a ridurre solo la cella esatta (non le vicine).
@@ -3105,7 +3105,7 @@ Viene chiamata quando il pannello debug viene aperto.
 
 Mostra o nasconde il pannello `local-worker-panel` in base allo stato:
 
-- Se `selectedLocalCell && gameState === 'camp'`: mostra il pannello e aggiorna il testo con coordinate e `assignedWorkers`.
+- Se `selectedLocalCell && gameState === 'settlement'`: mostra il pannello e aggiorna il testo con coordinate e `assignedWorkers`.
 - Altrimenti: nasconde il pannello.
 
 Viene chiamata da `updateInfoText()` in `main.js` e dai listener dei bottoni `+` e `-`.
@@ -3135,25 +3135,25 @@ Al click: salva i valori correnti di `GameConfig` in `localStorage` (chiave `GAM
 
 ### local-worker-add
 
-Al click, se una cella locale è selezionata e `gameState === 'camp'`:
+Al click, se una cella locale è selezionata e `gameState === 'settlement'`:
 
-1. Verifica che `camp.unassignedPopulation > 0`.
-2. Cerca il Pop `gatherer` in `camp.pops`. Se non esiste, lo crea e lo aggiunge.
+1. Verifica che `settlement.unassignedPopulation > 0`.
+2. Cerca il Pop `gatherer` in `settlement.pops`. Se non esiste, lo crea e lo aggiunge.
 3. Incrementa `cell.assignedWorkers`.
-4. Decrementa `camp.unassignedPopulation`.
-5. Incrementa `camp.localGatherers`.
+4. Decrementa `settlement.unassignedPopulation`.
+5. Incrementa `settlement.localGatherers`.
 6. Incrementa `pop.totalWorkers` e `pop.localWorkers`.
-7. Chiama `updateInfoText()`, `updateCampText()`, `updateLocalWorkerPanel()`, `updateCellWorkerLabels()`.
+7. Chiama `updateInfoText()`, `updateSettlementText()`, `updateLocalWorkerPanel()`, `updateCellWorkerLabels()`.
 
 ### local-worker-remove
 
-Al click, se una cella locale è selezionata e `gameState === 'camp'`:
+Al click, se una cella locale è selezionata e `gameState === 'settlement'`:
 
 1. Verifica che `cell.assignedWorkers > 0`.
 2. Cerca il Pop `gatherer`. Se esiste e ha `localWorkers > 0`:
    - Decrementa `cell.assignedWorkers`.
-   - Incrementa `camp.unassignedPopulation`.
-   - Decrementa `camp.localGatherers`.
+   - Incrementa `settlement.unassignedPopulation`.
+   - Decrementa `settlement.localGatherers`.
    - Decrementa `pop.totalWorkers` e `pop.localWorkers`.
 3. Aggiorna pannelli ed etichette.
 
@@ -3169,8 +3169,8 @@ Al click, se una cella locale è selezionata e `gameState === 'camp'`:
 
 - `js/config.js` – per `GameConfig` e `defaultConfig`.
 - `js/world.js` – per `getCell` (usato nei listener `+` e `-`).
-- `js/units.js` – per `camp`, `Pop`, `selectedLocalCell` (indirettamente).
-- `js/main.js` – per `updateInfoText`, `updateCampText`, `updateCellWorkerLabels`, `gameState`, `selectedLocalCell`, `isInputFocused`.
+- `js/units.js` – per `settlement`, `Pop`, `selectedLocalCell` (indirettamente).
+- `js/main.js` – per `updateInfoText`, `updateSettlementText`, `updateCellWorkerLabels`, `gameState`, `selectedLocalCell`, `isInputFocused`.
 
 ## Parametri GameConfig usati
 
@@ -3179,8 +3179,8 @@ Nessuno direttamente. Legge e scrive su `GameConfig` in modo generico, tramite i
 ## Stato globale modificato
 
 - `GameConfig` (tutti i parametri modificabili dal pannello).
-- `camp` (tramite i listener `+` e `-`).
-- Il Pop `gatherer` in `camp.pops`.
+- `settlement` (tramite i listener `+` e `-`).
+- Il Pop `gatherer` in `settlement.pops`.
 - Le celle della griglia (`assignedWorkers`).
 
 ## Note per modifiche
@@ -3192,7 +3192,7 @@ Nessuno direttamente. Legge e scrive su `GameConfig` in modo generico, tramite i
   3. Il resto è automatico: `populateDebugPanel` lo troverà e lo collegherà.
 - Il pannello non gestisce valori non numerici (solo float).
 - Il pannello non ha un pulsante "Salva preset" o "Carica preset".
-- Se si modifica la logica di assegnazione lavoratori, verificare che `camp.localGatherers`, `pop.localWorkers` e `cell.assignedWorkers` siano sempre coerenti.
+- Se si modifica la logica di assegnazione lavoratori, verificare che `settlement.localGatherers`, `pop.localWorkers` e `cell.assignedWorkers` siano sempre coerenti.
 - Se si aggiunge una nuova funzione chiamata da `main.js`, dichiararla prima dei listener per evitare errori di hoisting.
 
 ================================================================================
@@ -3335,7 +3335,7 @@ Nessuno.
 
 Nel prototipo attuale, la logica di rendering è distribuita tra:
 
-- `js/main.js` – pannelli info, camp, speed, e rendering sulla scena Phaser.
+- `js/main.js` – pannelli info, settlement, speed, e rendering sulla scena Phaser.
 - `js/debug.js` – pannelli HTML (debug e lavoratori locali).
 - `index.html` – struttura HTML dei pannelli.
 
@@ -3376,7 +3376,7 @@ Nessuno.
 
 Nel prototipo attuale, la logica di rendering è distribuita tra:
 
-- `js/main.js` – pannelli info, camp, speed, e rendering sulla scena Phaser.
+- `js/main.js` – pannelli info, settlement, speed, e rendering sulla scena Phaser.
 - `js/debug.js` – pannelli HTML (debug e lavoratori locali).
 - `index.html` – struttura HTML dei pannelli.
 
@@ -3574,9 +3574,9 @@ L'agente di programmazione:
 
 - Riceve un prompt dal Game Designer.
 - Legge i documenti Technical degli script coinvolti (comprese le sezioni "Dipendenze").
-- Discute con l'utente le modifiche tecniche da apportare.
+- Fornisce un **debrief unico** delle modifiche previste (codice + documentazione).
 - Applica le modifiche solo dopo approvazione esplicita.
-- Fornisce test tecnici dopo che tutte le modifiche del batch sono state implementate.
+- Fornisce test tecnici a fine batch.
 - Aggiorna SOLO la documentazione tecnica.
 - Prepara il messaggio di commit (titolo + descrizione). L'utente esegue git manualmente.
 
@@ -3593,32 +3593,37 @@ L'agente di programmazione:
 
 ## Flusso di lavoro
 
-### Step 1 – Brief generale
+### Step 1 – Debrief unico
 
-- Leggi il prompt ricevuto.
-- Leggi i documenti Technical indicati.
-- Leggi le sezioni Dipendenze per capire l'impatto.
-- Fornisci un brief generale in linguaggio semplice:
-  - Cosa si andrà a fare.
-  - Quali effetti avrà sul gameplay e sulla UI.
-  - Quali script saranno toccati e perché.
-  - Eventuali limiti tecnici o approcci alternativi.
-- Attendi l'OK dell'utente.
+Prima di applicare qualsiasi modifica, fornisci un debrief in linguaggio semplice che copra:
 
-### Step 2 – Modifiche una per una
+- **Cosa si andrà a fare** (panoramica).
+- **Quali file di codice saranno modificati** e perché.
+- **Quali file di codice saranno creati o eliminati**, se applicabile.
+- **Quali dipendenze vengono toccate** e come.
+- **Quali documenti Technical saranno aggiornati** e in che modo.
+- **Effetti attesi sul gameplay e sulla UI**.
+- **Limiti tecnici o approcci alternativi** che hai considerato.
 
-- Per ogni modifica:
-  - Spiega cosa fa.
-  - Descrivi le conseguenze sul codice e sul gameplay.
-  - Indica i file coinvolti.
-  - Indica quali dipendenze vengono toccate.
-  - Attendi l'OK dell'utente prima di applicare.
+Attendi **una sola approvazione globale**. Non chiedere l'OK modifica per modifica.
+
+### Step 2 – Implementazione
+
+- Applica tutte le modifiche al codice come descritto nel debrief.
+- Se durante l'implementazione emergono problemi, deviazioni dal piano o decisioni non coperte dal debrief, **fermati e chiedi** prima di procedere.
+- Se una modifica si rivela diversa da come l'avevi descritta (es. serve toccare un file in più), fermati e aggiorna il debrief con l'utente.
 - Non applicare modifiche non approvate.
 - Preservare i commenti esistenti.
 - Usare delta time per aggiornamenti temporali.
 - Ogni nuovo parametro va in GameConfig e nel pannello debug.
 
-### Step 3 – Test tecnici (dopo tutte le modifiche del batch)
+### Step 3 – Aggiornamento documentazione tecnica
+
+- Applica le modifiche alla documentazione Technical come descritto nel debrief.
+- Se durante l'implementazione sono emerse nuove strutture dati, funzioni o dipendenze non previste, aggiungile alla documentazione e segnalale all'utente.
+- Aggiorna SOLO i documenti Technical, MAI quelli di Game Design.
+
+### Step 4 – Test tecnici
 
 - Fornisci una checklist di test tecnici complessivi.
 - I test devono includere:
@@ -3627,27 +3632,43 @@ L'agente di programmazione:
   - Controlli in console (es. "non devono apparire errori").
 - Attendi che l'utente esegua i test e segnali eventuali problemi.
 
-### Step 4 – Aggiornamento documentazione tecnica
-
-- Se sono state introdotte nuove strutture dati, funzioni, dipendenze o pattern, aggiorna i file in `Docs/Technical/`.
-- Aggiorna SOLO i documenti Technical, MAI quelli di Game Design.
-- Se una modifica cambia le dipendenze, aggiorna sia la sezione "Dipendenze" del documento Technical dello script modificato, sia quella degli script collegati.
-- Attendere conferma dell'utente.
-
 ### Step 5 – Messaggio di commit
 
 - Fornisci solo il titolo e la descrizione del commit, basati sulle modifiche effettive del batch.
 - Non eseguire comandi git.
 - L'utente eseguirà il commit e il push manualmente nel terminale.
 
-#### Interazione con l'utente
+## Interazione con l'utente
 
 - L'agente applica direttamente le modifiche ai file del progetto in VS Code.
-- L'utente approva ogni modifica prima che venga applicata (auto-approve di "Edit project files" è disattivato).
-- L'agente mostra il diff o la porzione di codice che sta per modificare, e attende l'OK.
+- L'agente **non applica modifiche prima dell'approvazione del debrief unico**.
+- L'agente mostra il debrief completo all'inizio, e aspetta un unico OK.
 - L'agente non esegue commit o push. L'utente li esegue manualmente nel terminale dopo aver ricevuto il messaggio di commit.
-- Se una modifica richiede l'aggiunta di un nuovo file, l'agente lo crea direttamente.
+- Se una modifica richiede l'aggiunta di un nuovo file, l'agente lo crea direttamente (dopo OK del debrief).
 - Se una modifica richiede l'eliminazione di un file, l'agente lo segnala e attende conferma esplicita.
+
+## Modalità Plan e Act
+
+- L'agente deve operare in **Plan mode** finché l'utente non approva il debrief.
+- Solo dopo approvazione l'utente passa l'agente in **Act mode** per l'esecuzione.
+- Se l'agente si trova in Act mode prima dell'approvazione, deve fermarsi e chiedere conferma.
+
+## Regole per bug fix e compiti piccoli
+
+Le regole del flusso di lavoro valgono **per qualsiasi modifica**, inclusi bug fix, refactoring minori e compiti che sembrano semplici.
+
+Anche se un fix è "piccolo":
+
+- Va fornito il debrief unico prima di applicare qualsiasi modifica.
+- Va attesa l'approvazione dell'utente.
+- Va aggiornata la documentazione Technical se cambia strutture dati, funzioni o dipendenze (anche minime).
+- Va fornito un messaggio di commit.
+
+Non esistono eccezioni: se l'agente ritiene che un fix sia troppo piccolo per seguire il flusso, lo segnala all'utente e chiede conferma. Non procede autonomamente.
+
+### Auto-approve e strumenti esterni
+
+L'agente deve applicare le modifiche **solo** attraverso gli strumenti di modifica file di Cline, dopo approvazione esplicita. Non deve usare comandi shell (es. `echo`, `python`, `node`, redirezioni) per scrivere o modificare file, anche se i comandi sono auto-approvati.
 
 ## Output atteso
 

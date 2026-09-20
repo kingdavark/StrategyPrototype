@@ -40,7 +40,7 @@ Viene chiamata quando il pannello debug viene aperto.
 
 Mostra o nasconde il pannello `local-worker-panel` in base allo stato:
 
-- Se `selectedLocalCell && gameState === 'camp'`: mostra il pannello e aggiorna il testo con coordinate e `assignedWorkers`.
+- Se `selectedLocalCell && gameState === 'settlement'`: mostra il pannello e aggiorna il testo con coordinate e `assignedWorkers`.
 - Altrimenti: nasconde il pannello.
 
 Viene chiamata da `updateInfoText()` in `main.js` e dai listener dei bottoni `+` e `-`.
@@ -70,25 +70,25 @@ Al click: salva i valori correnti di `GameConfig` in `localStorage` (chiave `GAM
 
 ### local-worker-add
 
-Al click, se una cella locale è selezionata e `gameState === 'camp'`:
+Al click, se una cella locale è selezionata e `gameState === 'settlement'`:
 
-1. Verifica che `camp.unassignedPopulation > 0`.
-2. Cerca il Pop `gatherer` in `camp.pops`. Se non esiste, lo crea e lo aggiunge.
+1. Verifica che `settlement.unassignedPopulation > 0`.
+2. Cerca il Pop `gatherer` in `settlement.pops`. Se non esiste, lo crea e lo aggiunge.
 3. Incrementa `cell.assignedWorkers`.
-4. Decrementa `camp.unassignedPopulation`.
-5. Incrementa `camp.localGatherers`.
+4. Decrementa `settlement.unassignedPopulation`.
+5. Incrementa `settlement.localGatherers`.
 6. Incrementa `pop.totalWorkers` e `pop.localWorkers`.
-7. Chiama `updateInfoText()`, `updateCampText()`, `updateLocalWorkerPanel()`, `updateCellWorkerLabels()`.
+7. Chiama `updateInfoText()`, `updateSettlementText()`, `updateLocalWorkerPanel()`, `updateCellWorkerLabels()`.
 
 ### local-worker-remove
 
-Al click, se una cella locale è selezionata e `gameState === 'camp'`:
+Al click, se una cella locale è selezionata e `gameState === 'settlement'`:
 
 1. Verifica che `cell.assignedWorkers > 0`.
 2. Cerca il Pop `gatherer`. Se esiste e ha `localWorkers > 0`:
    - Decrementa `cell.assignedWorkers`.
-   - Incrementa `camp.unassignedPopulation`.
-   - Decrementa `camp.localGatherers`.
+   - Incrementa `settlement.unassignedPopulation`.
+   - Decrementa `settlement.localGatherers`.
    - Decrementa `pop.totalWorkers` e `pop.localWorkers`.
 3. Aggiorna pannelli ed etichette.
 
@@ -104,8 +104,8 @@ Al click, se una cella locale è selezionata e `gameState === 'camp'`:
 
 - `js/config.js` – per `GameConfig` e `defaultConfig`.
 - `js/world.js` – per `getCell` (usato nei listener `+` e `-`).
-- `js/units.js` – per `camp`, `Pop`, `selectedLocalCell` (indirettamente).
-- `js/main.js` – per `updateInfoText`, `updateCampText`, `updateCellWorkerLabels`, `gameState`, `selectedLocalCell`, `isInputFocused`.
+- `js/units.js` – per `settlement`, `Pop`, `selectedLocalCell` (indirettamente).
+- `js/main.js` – per `updateInfoText`, `updateSettlementText`, `updateCellWorkerLabels`, `gameState`, `selectedLocalCell`, `isInputFocused`.
 
 ## Parametri GameConfig usati
 
@@ -114,8 +114,8 @@ Nessuno direttamente. Legge e scrive su `GameConfig` in modo generico, tramite i
 ## Stato globale modificato
 
 - `GameConfig` (tutti i parametri modificabili dal pannello).
-- `camp` (tramite i listener `+` e `-`).
-- Il Pop `gatherer` in `camp.pops`.
+- `settlement` (tramite i listener `+` e `-`).
+- Il Pop `gatherer` in `settlement.pops`.
 - Le celle della griglia (`assignedWorkers`).
 
 ## Note per modifiche
@@ -127,5 +127,5 @@ Nessuno direttamente. Legge e scrive su `GameConfig` in modo generico, tramite i
   3. Il resto è automatico: `populateDebugPanel` lo troverà e lo collegherà.
 - Il pannello non gestisce valori non numerici (solo float).
 - Il pannello non ha un pulsante "Salva preset" o "Carica preset".
-- Se si modifica la logica di assegnazione lavoratori, verificare che `camp.localGatherers`, `pop.localWorkers` e `cell.assignedWorkers` siano sempre coerenti.
+- Se si modifica la logica di assegnazione lavoratori, verificare che `settlement.localGatherers`, `pop.localWorkers` e `cell.assignedWorkers` siano sempre coerenti.
 - Se si aggiunge una nuova funzione chiamata da `main.js`, dichiararla prima dei listener per evitare errori di hoisting.

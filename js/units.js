@@ -1,8 +1,8 @@
-// units.js - Mobile entities: Expedition, Pop (specialized workers), and Camp
+// units.js - Mobile entities: Expedition, Pop (specialized workers), and Settlement
 
-const camp = {
-    x: GameConfig.campX,
-    y: GameConfig.campY,
+const settlement = {
+    x: GameConfig.settlementX,
+    y: GameConfig.settlementY,
     foodStock: GameConfig.startingFoodStock,
     unassignedPopulation: GameConfig.startingUnassignedPopulation,
     pops: [],
@@ -42,7 +42,7 @@ class Pop {
 }
 
 class Expedition {
-    constructor(id, popType, workerCount, startX, startY, areaX, areaY, areaRadius, campRef) {
+    constructor(id, popType, workerCount, startX, startY, areaX, areaY, areaRadius, settlementRef) {
         this.id = id;
         this.popType = popType;
         this.workerCount = workerCount;
@@ -56,7 +56,7 @@ class Expedition {
         this.inventory = { provisions: 0, food: 0 };
         this.areaCenter = { x: areaX, y: areaY };
         this.areaRadius = areaRadius;
-        this.campRef = campRef;
+        this.settlementRef = settlementRef;
         this.cooldownRemaining = 0;
         this.lastCellEvaluation = 0;
         this.isForced = false;
@@ -86,9 +86,9 @@ class Expedition {
                 const cx = centerCell.cx + dx;
                 const cy = centerCell.cy + dy;
                 if (cx >= 0 && cx < GRID_COLS && cy >= 0 && cy < GRID_ROWS) {
-                    // Skip camp cell (prevent gathering at camp)
-                    const campCell = worldToCell(this.campRef.x, this.campRef.y);
-                    if (cx === campCell.cx && cy === campCell.cy) {
+                    // Skip settlement cell (prevent gathering at settlement)
+                    const settlementCell = worldToCell(this.settlementRef.x, this.settlementRef.y);
+                    if (cx === settlementCell.cx && cy === settlementCell.cy) {
                         continue;
                     }
                     const score = this.cellScore(cx, cy);
@@ -148,12 +148,12 @@ class Expedition {
                 let targetFound = false;
 
                 if (this.useAssignedArea) {
-                    const best = this.findBestCellInArea(this.campRef.x, this.campRef.y);
+                    const best = this.findBestCellInArea(this.settlementRef.x, this.settlementRef.y);
                     if (best.cx >= 0) {
                         const target = cellToWorld(best.cx, best.cy);
                         const targetX = target.x;
                         const targetY = target.y;
-                        targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
+                        targetDist = Phaser.Math.Distance.Between(this.settlementRef.x, this.settlementRef.y, targetX, targetY);
                         targetFound = true;
                         this.targetX = targetX;
                         this.targetY = targetY;
@@ -166,7 +166,7 @@ class Expedition {
                         const target = cellToWorld(best.cx, best.cy);
                         const targetX = target.x;
                         const targetY = target.y;
-                        targetDist = Phaser.Math.Distance.Between(this.campRef.x, this.campRef.y, targetX, targetY);
+                        targetDist = Phaser.Math.Distance.Between(this.settlementRef.x, this.settlementRef.y, targetX, targetY);
                         targetFound = true;
                         this.targetX = targetX;
                         this.targetY = targetY;
@@ -175,9 +175,9 @@ class Expedition {
 
                 if (targetFound) {
                     const needed = getProvisionsNeeded(this.workerCount, targetDist);
-                    const taken = Math.min(needed, this.campRef.foodStock, this.maxCapacity);
+                    const taken = Math.min(needed, this.settlementRef.foodStock, this.maxCapacity);
                     this.inventory.provisions = taken;
-                    this.campRef.foodStock -= taken;
+                    this.settlementRef.foodStock -= taken;
                     this.tripStartGameTime = gameTimeSec;
                     this.state = 'travellingToArea';
                 } else {
@@ -188,27 +188,27 @@ class Expedition {
         }
 
         // --- TRAVELLING / MOVING / RETURNING ---
-        if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToCamp') {
+        if (this.state === 'travellingToArea' || this.state === 'movingToCell' || this.state === 'returningToSettlement') {
             const consumed = this.workerCount * getTravelConsumptionPerSec() * delta;
             this.inventory.provisions -= consumed;
             if (this.inventory.provisions < 0) this.inventory.provisions = 0;
 
-            if (this.state === 'returningToCamp') {
-                const distToCamp = Phaser.Math.Distance.Between(this.x, this.y, this.campRef.x, this.campRef.y);
-                if (distToCamp < 5) {
-                    this.x = this.campRef.x;
-                    this.y = this.campRef.y;
+            if (this.state === 'returningToSettlement') {
+                const distToSettlement = Phaser.Math.Distance.Between(this.x, this.y, this.settlementRef.x, this.settlementRef.y);
+                if (distToSettlement < 5) {
+                    this.x = this.settlementRef.x;
+                    this.y = this.settlementRef.y;
                     if (this.toBeDisbanded) {
-                        this.campRef.foodStock += this.inventory.food;
+                        this.settlementRef.foodStock += this.inventory.food;
                         this.inventory.food = 0;
                         this.inventory.provisions = 0;
-                        const pop = this.campRef.pops.find(p => p.type === this.popType);
+                        const pop = this.settlementRef.pops.find(p => p.type === this.popType);
                         if (pop) pop.returnWorkers(this.workerCount);
-                        const index = this.campRef.expeditions.indexOf(this);
-                        if (index > -1) this.campRef.expeditions.splice(index, 1);
+                        const index = this.settlementRef.expeditions.indexOf(this);
+                        if (index > -1) this.settlementRef.expeditions.splice(index, 1);
                         return;
                     }
-                    this.campRef.foodStock += this.inventory.food;
+                    this.settlementRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
                     const tripDuration = gameTimeSec - this.tripStartGameTime;
@@ -218,11 +218,11 @@ class Expedition {
                 }
             }
             // Return early if provisions exhausted and not forced (but only if not already returning)
-            if (this.state !== 'returningToCamp' && !this.isForced && this.inventory.provisions <= 0) {
+            if (this.state !== 'returningToSettlement' && !this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
-                this.targetX = this.campRef.x;
-                this.targetY = this.campRef.y;
-                this.state = 'returningToCamp';
+                this.targetX = this.settlementRef.x;
+                this.targetY = this.settlementRef.y;
+                this.state = 'returningToSettlement';
                 return;
             }
 
@@ -235,18 +235,18 @@ class Expedition {
                 this.y = this.targetY;
                 if (this.state === 'travellingToArea' || this.state === 'movingToCell') {
                     this.state = 'gathering';
-                } else if (this.state === 'returningToCamp') {
+                } else if (this.state === 'returningToSettlement') {
                     if (this.toBeDisbanded) {
-                        this.campRef.foodStock += this.inventory.food;
+                        this.settlementRef.foodStock += this.inventory.food;
                         this.inventory.food = 0;
                         this.inventory.provisions = 0;
-                        const pop = this.campRef.pops.find(p => p.type === this.popType);
+                        const pop = this.settlementRef.pops.find(p => p.type === this.popType);
                         if (pop) pop.returnWorkers(this.workerCount);
-                        const index = this.campRef.expeditions.indexOf(this);
-                        if (index > -1) this.campRef.expeditions.splice(index, 1);
+                        const index = this.settlementRef.expeditions.indexOf(this);
+                        if (index > -1) this.settlementRef.expeditions.splice(index, 1);
                         return;
                     }
-                    this.campRef.foodStock += this.inventory.food;
+                    this.settlementRef.foodStock += this.inventory.food;
                     this.inventory.food = 0;
                     this.inventory.provisions = 0;
                     const tripDuration = gameTimeSec - this.tripStartGameTime;
@@ -268,16 +268,16 @@ class Expedition {
             this.inventory.provisions -= consumed;
             if (!this.isForced && this.inventory.provisions <= 0) {
                 this.inventory.provisions = 0;
-                this.targetX = this.campRef.x;
-                this.targetY = this.campRef.y;
-                this.state = 'returningToCamp';
+                this.targetX = this.settlementRef.x;
+                this.targetY = this.settlementRef.y;
+                this.state = 'returningToSettlement';
                 return;
             }
 
             if (this.inventory.food + this.inventory.provisions >= this.maxCapacity) {
-                this.targetX = this.campRef.x;
-                this.targetY = this.campRef.y;
-                this.state = 'returningToCamp';
+                this.targetX = this.settlementRef.x;
+                this.targetY = this.settlementRef.y;
+                this.state = 'returningToSettlement';
                 return;
             }
 
@@ -325,13 +325,13 @@ class Expedition {
                     this.targetY = target.y;
                     this.state = 'movingToCell';
                 } else {
-                    this.targetX = this.campRef.x;
-                    this.targetY = this.campRef.y;
-                    this.state = 'returningToCamp';
+                    this.targetX = this.settlementRef.x;
+                    this.targetY = this.settlementRef.y;
+                    this.state = 'returningToSettlement';
                 }
             }
         }
     }
 }
 
-const expeditions = camp.expeditions;
+const expeditions = settlement.expeditions;

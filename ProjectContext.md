@@ -14,7 +14,7 @@ Prototipo di strategico 4X in tempo reale con Phaser 3.
 - Codice e commenti in inglese.
 - Ogni nuovo parametro va in GameConfig e nel pannello debug.
 - Usare delta time per aggiornamenti temporali.
-- Non mischiare input di stati diversi (map vs camp).
+- Non mischiare input di stati diversi (map vs settlement).
 - La raccolta riduce solo la cella esatta, non le celle vicine.
 
 ## Flusso di lavoro
@@ -38,7 +38,7 @@ Prototipo di strategico 4X in tempo reale con Phaser 3.
 
 - `js/config.js` – GameConfig e parametri
 - `js/world.js` – griglia spaziale e densità
-- `js/units.js` – Pop, Expedition, camp
+- `js/units.js` – Pop, Expedition, settlement
 - `js/main.js` – scena Phaser, input, rendering, raccolta locale
 - `js/debug.js` – pannello debug e assegnazione lavoratori
 - `js/time.js` – controllo velocità di gioco

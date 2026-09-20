@@ -12,7 +12,7 @@ const GameConfig = {
 
     // --- Grid geometry (hexagon) ---
     hexCenterDistanceKm: 1,                 // km between centers of adjacent hexagons (world cell size)
-    pixelsPerKm: 10,                        // pixels per km (visual scale)
+    pixelsPerKm: 30,                        // pixels per km (visual scale)
 
     // --- Movement (base parameters) ---
     walkingSpeedKmh: 4,                     // walking speed in km/h
@@ -40,8 +40,8 @@ const GameConfig = {
     startingFoodStock: 10,
     startingUnassignedPopulation: 10,
     startingExpeditionWorkers: 5,
-    campX: 100,
-    campY: 100,
+    settlementX: 100,
+    settlementY: 100,
 
     // --- World ---
     worldWidth: 1280,          // game world width in pixels

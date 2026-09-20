@@ -2,17 +2,17 @@
 
 ## Scopo
 
-Definisce le entità principali del gioco: il campo (`camp`), i Pop (gruppi di lavoratori) e le spedizioni (`Expedition`). Contiene anche l'alias globale `expeditions` che punta all'array delle spedizioni attive del campo.
+Definisce le entità principali del gioco: il campo (`settlement`), i Pop (gruppi di lavoratori) e le spedizioni (`Expedition`). Contiene anche l'alias globale `expeditions` che punta all'array delle spedizioni attive del campo.
 
 ## Struttura dati
 
-### camp
+### settlement
 
 L'accampamento è il punto di riferimento della tribù. È un oggetto globale definito in questo file.
 
 Proprietà:
 
-- `x`, `y` – posizione in pixel sulla mappa. Inizializzati da `GameConfig.campX` e `GameConfig.campY`.
+- `x`, `y` – posizione in pixel sulla mappa. Inizializzati da `GameConfig.settlementX` e `GameConfig.settlementY`.
 - `foodStock` – scorte globali di cibo. Inizializzato da `GameConfig.startingFoodStock`.
 - `unassignedPopulation` – numero di individui non ancora assegnati a nessun Pop. Inizializzato da `GameConfig.startingUnassignedPopulation`.
 - `pops` – array di oggetti Pop presenti al campo. All'inizio è vuoto.
@@ -58,7 +58,7 @@ Proprietà:
 - `inventory` – oggetto con `provisions` (provviste rimanenti) e `food` (cibo raccolto).
 - `areaCenter` – `{ x, y }` centro dell'area di raccolta assegnata.
 - `areaRadius` – raggio dell'area di raccolta in pixel. Inizializzato da `GameConfig.areaRadius`.
-- `campRef` – riferimento all'oggetto `camp`.
+- `settlementRef` – riferimento all'oggetto `settlement`.
 - `cooldownRemaining` – secondi di riposo rimanenti.
 - `lastCellEvaluation` – tempo trascorso dall'ultima valutazione di cambio cella.
 - `isForced` – se `true`, la spedizione ignora l'esaurimento delle provviste per il ritorno.
@@ -71,7 +71,7 @@ Stati:
 - `travellingToArea` – in viaggio verso l'area di raccolta.
 - `movingToCell` – in movimento verso una cella specifica all'interno dell'area.
 - `gathering` – sta raccogliendo dalla cella corrente.
-- `returningToCamp` – sta tornando al campo.
+- `returningToSettlement` – sta tornando al campo.
 - `resting` – a riposo al campo prima di ripartire.
 
 ## Funzioni e metodi principali
@@ -110,7 +110,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 
 - `index.html` – carica lo script dopo `world.js`.
 - `js/main.js` – crea le spedizioni (click destro su mappa), aggiorna Pop (tramite `debug.js`), disegna le spedizioni. Chiama `exp.update(delta)` ogni frame.
-- `js/debug.js` – modifica Pop e camp tramite l'assegnazione e la rimozione di lavoratori locali.
+- `js/debug.js` – modifica Pop e settlement tramite l'assegnazione e la rimozione di lavoratori locali.
 
 ## Dipendenze in uscita
 
@@ -120,7 +120,7 @@ Il comportamento dettagliato per ciascuno stato è descritto nel documento di Ga
 
 ## Parametri GameConfig usati
 
-- `campX`, `campY` – posizione iniziale del campo.
+- `settlementX`, `settlementY` – posizione iniziale del campo.
 - `startingFoodStock` – cibo iniziale.
 - `startingUnassignedPopulation` – popolazione non assegnata iniziale.
 - `maxCapacityPerWorker` – capacità per lavoratore.
@@ -135,8 +135,8 @@ Indirettamente, tramite le funzioni di `config.js`: `dayLengthSeconds`, `walking
 
 ## Stato globale modificato
 
-- `camp` (oggetto globale) e tutte le sue proprietà.
-- `expeditions` (alias di `camp.expeditions`).
+- `settlement` (oggetto globale) e tutte le sue proprietà.
+- `expeditions` (alias di `settlement.expeditions`).
 - Le celle della griglia (tramite `reduceCellDensity`).
 
 ## Note per modifiche
